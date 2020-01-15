@@ -46,7 +46,7 @@ end_date = "31122018"
 page_offset = "1"
 page_size = "96"
 #Site id to run between 1 and 17911, problems exporting site 1 but not sure why? Do a test see how many give results:
-site_id = "2"
+site_id = "1"
 
 api_url = api_url_base+"/"+version+"/"+resource+"/"+start_date+"/to/"+end_date+"/"+report_type+"?sites="+site_id+"&page="+page_offset+"&page_size="+page_size 
 #api_url = "http://webtris.highwaysengland.co.uk/api/v1/reports/01012018/to/31122018/Daily?sites=4%2C5&page=1&page_size=10"
@@ -65,6 +65,33 @@ df_rows =df_rows.drop(["0 - 10 mph", "11 - 15 mph", "16 - 20 mph", "21 - 25 mph"
 df_rows_am=df_rows[28:40]
 df_rows_ip=df_rows[40:64]
 df_rows_pm=df_rows[64:76]
+
+# non_here - doesn't exist - calling it causes error
+
+non_here = 'Hello!'
+
+top_loop = ['a', 'b', 'c']
+test = [1,2,3,4,5,6,7,8,9]
+
+for tl in top_loop:
+    print(tl)
+    for t in test:
+        print(t)
+        if t == 4:
+            break
+
+
+try:
+    # Note it actually does this
+    print(non_here)
+except:
+    # If try fails, do this
+    print('That variable doesn\'t exist m8')
+else:
+    # If try passes, do this
+    print(non_here) # again
+    
+
 
 
 
