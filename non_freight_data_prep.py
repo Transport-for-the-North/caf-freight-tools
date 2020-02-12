@@ -14,7 +14,7 @@ _default_file_drive = 'Y:/'
 if __name__ == '__main__':
     # Define import folder
     import_folder = (_default_file_drive + 'NorMITs Freight/import/')
-    
+
     # Import DfT traffic counts
     tc = pd.read_csv(import_folder + '/tra0201_dft.csv')
     # Import WSP/DfT trip purpose splits
