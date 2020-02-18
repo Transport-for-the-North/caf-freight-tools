@@ -317,12 +317,6 @@ for siteId in siteIdList:
 
         print('Unforunately site %s has no valid counts for WebTAG neutral weekdays and neutral months' % siteId)
 
-  except (TypeError, KeyError):
-        print('Site %s encountered a type error, and processing has been skipped. Raw data is still downloaded' % siteId)
-        scriptResult = 'We encountered a type error for site %s' % siteId
-        scriptResultList.append(scriptResult)
-        meanDaysList.append(0)
-
         with open(reportName, 'w') as reportFile:
             reportFile.write(introString + '\n')
             reportFile.write('\n' + runTimeString + '\n')
@@ -330,6 +324,12 @@ for siteId in siteIdList:
             for index in rawDataDays.index:
                 reportFile.write('\tSample size for hour %d is %d days. \n' % (index, rawDataDays[index]))
             reportFile.write('This site encountered a type error and data processing cannot be completed.')
+            
+  except (TypeError, KeyError):
+        print('Site %s encountered a type error, and processing has been skipped. Raw data is still downloaded' % siteId)
+        scriptResult = 'We encountered a type error for site %s' % siteId
+        scriptResultList.append(scriptResult)
+        meanDaysList.append(0)
   plt.close('all')
 
 print('All sites have been processed!')
