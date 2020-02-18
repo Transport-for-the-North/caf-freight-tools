@@ -12,7 +12,7 @@ Before using this tool please review the accompanying Jupyter notebook [WebTRIS_
 Run [get_sites.py](get_sites.py) to get All_Sites.csv to obtain the latest list of sites from the API.
 Plot this in GIS and select the subset of sites you want data for. Put the values in the ID column into a text file, preferably CSV.
 
-Run script [WebTRIS_Analysis_v1.4.py](WebTRIS_Analysis_v1.4.py) and pass the following four arguments:
+Run script [WebTRIS_Analysis_v1.5.py](WebTRIS_Analysis_v1.5.py) in the command prompt and pass the following four arguments:
 
 * Start date (ddmmyyyy)
 * End date (ddmmyyyy)
@@ -22,11 +22,11 @@ Run script [WebTRIS_Analysis_v1.4.py](WebTRIS_Analysis_v1.4.py) and pass the fol
 The below example will download and process WebTRIS data for all site ids in the sites.csv, looking only at Tuesday-Thursday for the month of March 2017.
 
 ```
-python WebTRIS_Analysis_v1.4.py 01032017 01042017 sites.csv 2,3,4
+python WebTRIS_Analysis_v1.5.py 01032017 01042017 sites.csv 2,3,4
 
 python WebTRIS_Analysis_v1.5.py 01022018 01072018 northern_sites.csv 2,3,4
 
-python WebTRIS_Analysis_v1.59.py 01012018 31122018 northern_sites.csv 1,2,3,4,5,6,7
+python WebTRIS_Analysis_v1.5.py 01012018 31122018 northern_sites.csv 1,2,3,4,5,6,7
 
 ```
 ## Process
@@ -73,5 +73,5 @@ We use [SemVer](http://semver.org/) for versioning.
 
 ## Authors
 
-* **Michael Addyman** - *Initial work*
-* **Alex Harrison** - *Further development*
+* **Michael Addyman** - *Initial work* - *Atkins*
+* **Alex Harrison** - *Further development* - *Atkins*
