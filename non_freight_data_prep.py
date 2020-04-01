@@ -328,7 +328,7 @@ def build_annual_non_freight_van(target_zone_path = _default_pop_translation):
     s_fac = s_fac.melt(id_vars = ['trip_length_bands'],
                       var_name = 'SuperReason',
                       value_name = 'trip_length_factor')
-    
+
     # Import non freight survey mean trip lengths
     s_mtl = pd.read_csv(import_folder + '/non_freight_survey_means.csv')
 
@@ -367,7 +367,7 @@ def build_annual_non_freight_van(target_zone_path = _default_pop_translation):
     # Drop na (and unalligned milage, see above)
     non_freight = non_freight[~non_freight['trip_length_factor'].isna()]
 
-    # Get banded miles
+    # Get banded km
     non_freight['2018_vehicle_km'] = (non_freight['2018_vehicle_km']*
                non_freight['trip_length_factor'])
     # Drop factors
@@ -390,7 +390,7 @@ def build_annual_non_freight_van(target_zone_path = _default_pop_translation):
                                          combine_directions = True,
                                          reduce_to_factors = True)
 
-    # TODO: Get trip length percentages
+    # TODO: Get trip length percentages by band
     tld_bin = non_freight.copy()
     tld_bin = tld_bin.reindex(['ntem_purpose',
                                'trip_length_bands',
