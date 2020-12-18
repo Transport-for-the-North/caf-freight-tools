@@ -39,8 +39,8 @@ def append_factors(tp, veh_type, road_type):
         if hr_start < hr_end:
             flow_in_tp = selected_profile[[i for i in range(hr_start, hr_end)]].mean()
         else: # deal with the case where the time period straddles midnight
-            flow_in_tp = selected_profile[[i for i in range(0, hr_start)]
-                                         +[i for i in range(hr_end, 24)]].mean()
+            flow_in_tp = selected_profile[[i for i in range(hr_start, 24)]
+                                         +[i for i in range(0,hr_end)]].mean()
         
         # divide the total flow per year by the flow in the tp selection and append
         selection.append(2400*365/flow_in_tp)
