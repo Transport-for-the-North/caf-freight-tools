@@ -7,8 +7,8 @@ import pandas as pd
 import sys
 
 # Script modules
-from utils import Loggers, getSeparator, Parameters
-from errors import *
+from utilities import Loggers, getSeparator, Parameters
+from errors import IncorrectParameterError, MissingLookupValuesError
 
 ##### CLASS #####
 class Rezone:
@@ -130,6 +130,4 @@ class Rezone:
 
         return df
 
-
-##### MAIN #####
 

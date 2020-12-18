@@ -39,8 +39,8 @@ def append_factors(tp, veh_type, road_type):
         if hr_start < hr_end:
             flow_in_tp = selected_profile[[i for i in range(hr_start, hr_end)]].mean()
         else: # deal with the case where the time period straddles midnight
-            flow_in_tp = selected_profile[[i for i in range(0, hr_start)]
-                                         +[i for i in range(hr_end, 24)]].mean()
+            flow_in_tp = selected_profile[[i for i in range(hr_start, 24)]
+                                         +[i for i in range(0,hr_end)]].mean()
         
         # divide the total flow per year by the flow in the tp selection and append
         selection.append(2400*365/flow_in_tp)
@@ -64,7 +64,7 @@ def main_converter_process(tp, veh_type, road_type, gbfm_filepath, zone_mapping,
     # Factor the rezoned matrix to convert from annual PCU to the selected time period(s)
     tp = append_factors(tp, veh_type, road_type)
     
-    for selection in tp: # to turn this into a function you would need [tp, rezoned_df, log_name] as arguments ---------------------------------------------------------
+    for selection in tp:
         # Divide the trips by the factor determined by the user selections
         out_df = df.copy()
         factor = selection[4]
@@ -72,8 +72,9 @@ def main_converter_process(tp, veh_type, road_type, gbfm_filepath, zone_mapping,
         
         # Export the factored matrix
         file_name = selection[0] + '.csv'
-        message_box.setText('Exporting ' + file_name)
+        message_box.setText('Rezoning ' + file_name)   
         out_df = rz.rezoneOD(out_df, zone_mapping)
+        message_box.setText('Exporting ' + file_name)  
         out_df.to_csv(file_name, index=None)
         message_box.setText(file_name + ' has been exported')
 
