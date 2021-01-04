@@ -22,15 +22,15 @@ export = "Y:/Zone Translation/Export/"
 # populations built on 2017 mid year population estimates
 # attractions built from 2015 HSL lsoa employment data
 
-localLSOAPopulationsPath = 'Y:/NorMITs Synthesiser/Zone Translation/Import/LSOA Populations/lsoa__populations_2017.csv'
+localLSOAPopulationsPath = 'U:/Lot3_LFT/Zone_Translation/Import/LSOA Populations/lsoa__populations_2017.csv'
 # note that extra underscore there - had a read only problem
-localMSOAPopulationsPath = 'Y:/NorMITs Synthesiser/Zone Translation/Import/MSOA Populations/msoa_populations_2011.csv'
+localMSOAPopulationsPath = 'U:/Lot3_LFT/Zone_Translation/Import/MSOA Populations/msoa_populations_2011.csv'
 
-localLSOAAllPath = 'Y:/NorMITs Synthesiser/Zone Translation/Import/LSOA Employment/lsoa_employment_2018.csv'
+localLSOAAllPath = 'U:/Lot3_LFT/Zone_Translation/Import/LSOA Employment/lsoa_employment_2018.csv'
 
-localLSOACommutePath = 'Y:/NorMITs Synthesiser/Zone Translation/Import/LSOA Employment/commuteAttractionsLSOA.csv'
-localLSOABusinessPath = 'Y:/NorMITs Synthesiser/Zone Translation/Import/businessAttractionsLSOA.csv'
-localLSOAOtherPath = 'Y:/NorMITs Synthesiser/Zone Translation/Import/otherAttractionsLSOA.csv'
+localLSOACommutePath = 'U:/Lot3_LFT/Zone_Translation/Import/LSOA Employment/commuteAttractionsLSOA.csv'
+localLSOABusinessPath = 'U:/Lot3_LFT/Zone_Translation/Import/businessAttractionsLSOA.csv'
+localLSOAOtherPath = 'U:/Lot3_LFT/Zone_Translation/Import/otherAttractionsLSOA.csv'
 
 lsoaPop = pd.read_csv(localLSOAPopulationsPath)
 msoaPop = pd.read_csv(localMSOAPopulationsPath)

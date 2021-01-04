@@ -1,8 +1,15 @@
 # -*- coding: utf-8 -*-
 """
-Created on Tue Mar  3 10:03:21 2020
 
-@author: racs
+Created on: Tue Mar  3 10:03:21 2020
+Updated on: Wed Dec 23 15:42:52 2020
+
+Original author: racs
+Last update made by: cara
+
+File purpose:
+Implements delta approach to produce forecasted model O-D trip matrix.
+
 """
 # PyQt imports
 from PyQt5 import QtWidgets, QtGui

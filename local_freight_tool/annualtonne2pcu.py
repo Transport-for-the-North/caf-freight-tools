@@ -1,8 +1,18 @@
 # -*- coding: utf-8 -*-
 """
-Created on Tue Mar  3 09:58:46 2020
 
-@author: racs
+Created on: Tue Mar  3 09:58:46 2020
+Updated on: Wed Dec 23 14:36:13 2020
+
+Original author: racs
+Last update made by: cara
+
+File purpose:
+Generates two separate files for the rigid and articulated PCUs from a GBFM
+total HGV PCUs output. Uses the methodology set out in MDST's Meta Model
+Training Data note, which sets proportion of articulated HGV traffic at the
+regional level.
+
 """
 # PyQt imports
 from PyQt5 import QtWidgets, QtGui
@@ -18,10 +28,10 @@ import textwrap
 import pandas as pd
 
 # Inputs
-gbfm_nuts = pd.read_csv('Inputs/Rigid artic split/NTMv5_NUTS1.txt', sep='\t')[['UniqueID', 'NUTS1 code']]
+gbfm_nuts = pd.read_csv('../Inputs/Rigid artic split/NTMv5_NUTS1.txt', sep='\t')[['UniqueID', 'NUTS1 code']]
 region_dict = gbfm_nuts.set_index('UniqueID').to_dict()['NUTS1 code']
 
-artic_proportions = pd.read_csv('Inputs/Rigid artic split/artic_proportions.csv')
+artic_proportions = pd.read_csv('../Inputs/Rigid artic split/artic_proportions.csv')
     
 
 class AnnualTonne2PCU(QtWidgets.QWidget):

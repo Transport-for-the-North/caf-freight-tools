@@ -1,8 +1,17 @@
 # -*- coding: utf-8 -*-
 """
-Created on Tue Mar  3 09:56:44 2020
 
-@author: racs
+Created on: Tue Mar  3 09:56:44 2020
+Updated on: Wed Dec 23 15:31:50 2020
+
+Original author: racs
+Last update made by: cara
+
+File purpose:
+Produces zone_correspondence.csv which can be used within the GBFM Annual PCU
+to Model Time Period PCU tool to convert the GBFM zoning system to a model
+zoning system.
+
 """
 # PyQt imports
 from PyQt5 import QtWidgets, QtGui

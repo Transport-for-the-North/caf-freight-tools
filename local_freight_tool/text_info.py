@@ -1,8 +1,15 @@
 # -*- coding: utf-8 -*-
 """
-Created on Thu Mar  5 12:03:18 2020
 
-@author: racs
+Created on: Thu Mar  5 12:03:18 2020
+Updated on: Wed Dec 23 14:12:46 2020
+
+Original author: racs
+Last update made by: cara
+
+File purpose:
+Contains information about each aspect of the tool for display with the GUI.
+
 """
 
 

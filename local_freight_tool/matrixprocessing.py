@@ -1,8 +1,16 @@
 # -*- coding: utf-8 -*-
 """
-Created on Thu Feb 27 08:27:42 2020
 
-@author: racs
+Created on: Thu Feb 27 08:27:42 2020
+Updated on: Wed Dec 23 15:46:56 2020
+
+Original author: racs
+Last update made by: cara
+
+File purpose:
+Factors specific O-D trips within a freight O-D trip matrix. Different factors
+can be used to apply individual scaling to O-D trips.
+
 """
 
 # PyQt imports

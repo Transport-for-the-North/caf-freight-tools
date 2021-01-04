@@ -1,8 +1,16 @@
 # -*- coding: utf-8 -*-
 """
-Created on Tue Mar  3 10:00:42 2020
 
-@author: racs
+Created on: Tue Mar  3 10:00:42 2020
+Updated on: Wed Dec 23 15:45:11 2020
+
+Original author: racs
+Last update made by: cara
+
+File purpose:
+Converts a freight O-D trip matric from one zoning system to another by
+applying a zone correspondence file.
+
 """
 # PyQt Imports
 from PyQt5 import QtWidgets, QtGui

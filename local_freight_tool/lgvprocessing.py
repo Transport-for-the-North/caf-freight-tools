@@ -1,8 +1,20 @@
 # -*- coding: utf-8 -*-
 """
-Created on Tue Mar  3 09:52:36 2020
 
-@author: racs
+Created on: Tue Mar  3 09:52:36 2020
+Updated on: Wed Dec 23 14:12:46 2020
+
+Original author: racs
+Last update made by: cara
+
+File purpose:
+GUI to enable user to access three separate functionalities. 
+The LGV Processing Tool displays the total size of two selected O-D freight
+matrices.
+Applying Global Factors allows up to two O-D freight matrices to be multiplied
+by a global factor.
+Aggregation agggregates together two O-D freight matrices.
+
 """
 # PyQt imports
 from PyQt5 import QtWidgets, QtGui
@@ -43,7 +55,7 @@ class LGVProcessing(QtWidgets.QWidget):
                 
         # Add file path selection fields
         self.gbfm_LGV_Freight = Utilities.add_file_selection( self, 70, "Choose the Freight Van GBFM output file:",directory=False)
-        self.gbfm_LGV_Non_Freight = Utilities.add_file_selection(self, 140, "Choose the Non-Freight Vanoutput file:",directory=False)        
+        self.gbfm_LGV_Non_Freight = Utilities.add_file_selection(self, 140, "Choose the Non-Freight Van output file:",directory=False)        
         Total_Freight=0
         Total_Non_Freight=0
         
@@ -65,7 +77,7 @@ class LGVProcessing(QtWidgets.QWidget):
            
         # Add file path selection fields
         self.gbfm_LGV_Freight_App = Utilities.add_file_selection( self, 290, "Choose the Freight Van GBFM output file:",directory=False)
-        self.gbfm_LGV_Non_Freight_App = Utilities.add_file_selection(self, 360,  "Choose the Non-Freight Vanoutput file:",directory=False)    
+        self.gbfm_LGV_Non_Freight_App = Utilities.add_file_selection(self, 360,  "Choose the Non-Freight Van output file:",directory=False)    
                 
         # Create textboxes
         self.textbox_Freight = QLineEdit(self)
@@ -93,7 +105,7 @@ class LGVProcessing(QtWidgets.QWidget):
         
         # Add file path selection fields
         self.gbfm_LGV_Freight_Agg = Utilities.add_file_selection( self, 480 + 70, "Choose the Freight Van GBFM output file:",directory=False)
-        self.gbfm_LGV_Non_Freight_Agg = Utilities.add_file_selection(self, 550 + 70, "Choose the Non-Freight Vanoutput file:",directory=False)      
+        self.gbfm_LGV_Non_Freight_Agg = Utilities.add_file_selection(self, 550 + 70, "Choose the Non-Freight Van output file:",directory=False)      
             
         run_button = QtWidgets.QPushButton(self)
         run_button.setText('Run')

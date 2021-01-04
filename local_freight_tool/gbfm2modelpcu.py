@@ -1,8 +1,16 @@
 # -*- coding: utf-8 -*-
 """
-Created on Fri Feb 28 14:37:53 2020
 
-@author: racs
+Created on: Fri Feb 28 14:37:53 2020
+Updated on: Wed Dec 23 15:42:52 2020
+
+Original author: racs
+Last update made by: cara
+
+File purpose:
+Tool used to convert annual GBFM O-D trip/PCU matrices to model time period
+specific O-D trip/PCU matrices.
+
 """
 
 # PyQt imports

@@ -1,8 +1,16 @@
 # -*- coding: utf-8 -*-
 """
-Created on Fri Feb 28 12:25:27 2020
 
-@author: racs
+Created on: Fri Feb 28 12:25:27 2020
+Updated on: Wed Dec 23 14:17:35 2020
+
+Original author: racs
+Last update made by: cara
+
+File purpose:
+Produces profile_selection.csv that contains all information required to build
+time period specific O-D trip matrices.
+
 """
 # PyQt imports
 from PyQt5 import QtWidgets, QtGui
@@ -86,7 +94,7 @@ class Profile_Builder(QtWidgets.QWidget):
             if i==2:
                 self.names[i].setPlaceholderText('IP')
                 self.hr_starts[i].setCurrentIndex(10)
-                self.hr_ends[i].setCurrentIndex(4)
+                self.hr_ends[i].setCurrentIndex(16)
                 
             if i==3:
                 self.names[3].setPlaceholderText('OP')
