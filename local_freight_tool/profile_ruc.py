@@ -14,7 +14,7 @@ profiles = pd.read_csv('all_profiles.csv')
 profiles = profiles.set_index(['VehType', 'RoadType', 'DayOfWeek'])
 
 # Read in the GBFM rural/urban classification
-ruc_gbfm = pd.read_csv('gbfm_classed.csv')
+ruc_gbfm = pd.read_csv('../../Inputs/gbfm_classed.csv')
 
 def append_factors(tp, veh_type):
     for selection in tp:

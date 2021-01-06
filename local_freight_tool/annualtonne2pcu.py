@@ -28,10 +28,10 @@ import textwrap
 import pandas as pd
 
 # Inputs
-gbfm_nuts = pd.read_csv('../Inputs/Rigid artic split/NTMv5_NUTS1.txt', sep='\t')[['UniqueID', 'NUTS1 code']]
+gbfm_nuts = pd.read_csv('../../Inputs/Rigid artic split/NTMv5_NUTS1.txt', sep='\t')[['UniqueID', 'NUTS1 code']]
 region_dict = gbfm_nuts.set_index('UniqueID').to_dict()['NUTS1 code']
 
-artic_proportions = pd.read_csv('../Inputs/Rigid artic split/artic_proportions.csv')
+artic_proportions = pd.read_csv('../../Inputs/Rigid artic split/artic_proportions.csv')
     
 
 class AnnualTonne2PCU(QtWidgets.QWidget):
