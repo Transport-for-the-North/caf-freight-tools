@@ -10,9 +10,11 @@ from rezone import Rezone as rz
 from time import gmtime, strftime
 from utilities import Utilities
 
+# TODO Move hardcoded file to constants module and don't read until needed
 profiles = pd.read_csv('all_profiles.csv')
 profiles = profiles.set_index(['VehType', 'RoadType', 'DayOfWeek'])
 
+# TODO Move hardcoded file to constants module and don't read until needed
 # Read in the GBFM rural/urban classification
 ruc_gbfm = pd.read_csv('../../Inputs/gbfm_classed.csv')
 

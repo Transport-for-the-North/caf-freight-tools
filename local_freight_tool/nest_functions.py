@@ -16,8 +16,9 @@ import gc
 osgbCrs = {'proj': 'tmerc', 'lat_0': 49, 'lon_0': -2, 'k': 0.9996012717, 
                'x_0': 400000, 'y_0': -100000, 'datum': 'OSGB36', 'units': 'm', 'no_defs': True}
 
-export = "Y:/Zone Translation/Export/"
+export = "Y:/Zone Translation/Export/" # TODO Remove this as it isn't used anywhere
 
+# TODO Move hardcoded paths to constants file
 # Import paths to local population and employment figures
 # populations built on 2017 mid year population estimates
 # attractions built from 2015 HSL lsoa employment data
@@ -32,6 +33,7 @@ localLSOACommutePath = 'U:/Lot3_LFT/Zone_Translation/Import/LSOA Employment/comm
 localLSOABusinessPath = 'U:/Lot3_LFT/Zone_Translation/Import/businessAttractionsLSOA.csv'
 localLSOAOtherPath = 'U:/Lot3_LFT/Zone_Translation/Import/otherAttractionsLSOA.csv'
 
+# TODO Remove reading files here as they're not used yet
 lsoaPop = pd.read_csv(localLSOAPopulationsPath)
 msoaPop = pd.read_csv(localMSOAPopulationsPath)
 
