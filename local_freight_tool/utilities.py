@@ -1,8 +1,13 @@
 # -*- coding: utf-8 -*-
 """
+
 Created on Tue Mar  3 10:24:10 2020
 
-@author: racs
+Original author: racs
+
+File purpose:
+Set of utilities for use in the freight tool
+
 """
 # PyQt imports
 from PyQt5 import QtWidgets, QtGui

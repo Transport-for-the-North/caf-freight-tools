@@ -1,9 +1,13 @@
 # -*- coding: utf-8 -*-
 """
+
 Created on Mon Jul 27 12:07:06 2020
 
-@author: LukeMonaghan
-#Remove south-south + scot-scot trips and covert to a UFM.  
+Original author: LukeMonaghan
+
+File purpose:
+Remove south-south + scot-scot trips and covert to a UFM.  
+
 """
 import pandas as pd
 import os
