@@ -189,8 +189,8 @@ class tier_converter(QtWidgets.QWidget):
         
 # =============================================================================
 # Main
-            
-app = QtWidgets.QApplication(sys.argv)
-app.setStyle('Fusion')
-tc = tier_converter()
-sys.exit(app.exec_())
+if __name__ == '__main__':           
+    app = QtWidgets.QApplication(sys.argv)
+    app.setStyle('Fusion')
+    tc = tier_converter()
+    sys.exit(app.exec_())
