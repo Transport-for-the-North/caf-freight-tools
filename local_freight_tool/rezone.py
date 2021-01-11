@@ -1,5 +1,8 @@
 """
-    Module for rezoning the matrix when given a lookup with splitting factors.
+    
+    File purpose:
+    Rezones a matrix when given a lookup with splitting factors.
+
 """
 
 ##### IMPORTS #####

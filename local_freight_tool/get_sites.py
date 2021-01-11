@@ -1,4 +1,11 @@
-#!/usr/bin/env python2
+
+"""
+    
+    File purpose:
+    Downloads WebTRIS data from Highways England.
+    Downloads All_Sites.csv to obtain latest list of sites from the API.
+
+"""
 
 import pandas as pd
 

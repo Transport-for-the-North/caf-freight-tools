@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
 """
-Created on Tue Nov 27 
+Created on: Tue Nov 27 
 
+Original author: ChristopherStorey
+
+File purpose:
 Nest 2 shapefiles, ready for population attribution for more detailed splits.
-
-@author: ChristopherStorey
 """
 
 # have the main functions return a name vector as string to export straight to csv.

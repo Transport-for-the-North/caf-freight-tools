@@ -1,10 +1,13 @@
 # -*- coding: utf-8 -*-
 """
-Spyder Editor
+Original author: LukeMonaghan
 
+File purpose:
+Ensure all trip O-Ds are in HGV file. Currently, Van Freight contains all trip
+O-Ds whereas HGV contains non-zero trips only. We need HGV to contain all trip
+O-Ds.
+ 
 """
-#Script to Ensure we have all OD's in the HGV file. 
-#Currently, Van Freight contains all trip OD's whereas HGV contains non-zero trips only, need HGV to contain all Trip OD's
 
 import pandas as pd
 import os

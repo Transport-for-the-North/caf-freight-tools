@@ -1,5 +1,12 @@
 """
+    
+    Updated on: Mon Jan 11 10:51:23 2021
+
+    Last update made by: cara
+
+    File purpose:
     Module containing custom error classes to be used in this tool.
+
 """
 
 ##### ERRORS #####

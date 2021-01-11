@@ -1,9 +1,14 @@
 # -*- coding: utf-8 -*-
 """
-Created on Mon Jul 27 12:07:06 2020
 
-@author: LukeMonaghan
-#Sum Together the Artic+Rigid HGV matrices, remove south-south + scot-scot trips and covert to a UFM.  
+Created on: Mon Jul 27 12:07:06 2020
+
+Original author: LukeMonaghan
+
+File purpose:
+Sum Together the Artic+Rigid HGV matrices, remove south-south + scot-scot
+trips and covert to a UFM. 
+ 
 """
 import pandas as pd
 import os

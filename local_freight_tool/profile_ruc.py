@@ -1,8 +1,12 @@
 # -*- coding: utf-8 -*-
 """
-Created on Mon Feb 17 09:24:11 2020
+Created on: Mon Feb 17 09:24:11 2020
 
-@author: hill1908
+Original author: hill1908
+
+File purpose:
+Converts annual GBFM O-D trip/PCU matrices to model time period
+specific O-D trip/PCU matrices.
 """
 
 import pandas as pd
