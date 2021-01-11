@@ -27,6 +27,7 @@ from text_info import AnnualTonne2PCU_Text
 import textwrap
 import pandas as pd
 
+# TODO Remove reading files before menu is created, move hardcoded files to constant file
 # Inputs
 gbfm_nuts = pd.read_csv('../../Inputs/Rigid artic split/NTMv5_NUTS1.txt', sep='\t')[['UniqueID', 'NUTS1 code']]
 region_dict = gbfm_nuts.set_index('UniqueID').to_dict()['NUTS1 code']
