@@ -34,8 +34,8 @@ localLSOABusinessPath = 'U:/Lot3_LFT/Zone_Translation/Import/businessAttractions
 localLSOAOtherPath = 'U:/Lot3_LFT/Zone_Translation/Import/otherAttractionsLSOA.csv'
 
 # TODO Remove reading files here as they're not used yet
-lsoaPop = pd.read_csv(localLSOAPopulationsPath)
-msoaPop = pd.read_csv(localMSOAPopulationsPath)
+# lsoaPop = pd.read_csv(localLSOAPopulationsPath)
+# msoaPop = pd.read_csv(localMSOAPopulationsPath)
 
 # Imports two shapefiles, (identifies - see to do) and names unique ID columns, calculates larger zoning system relatively, returns list of shapefiles
 
