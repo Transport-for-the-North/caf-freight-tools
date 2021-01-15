@@ -17,7 +17,6 @@ import gc
 osgbCrs = {'proj': 'tmerc', 'lat_0': 49, 'lon_0': -2, 'k': 0.9996012717, 
                'x_0': 400000, 'y_0': -100000, 'datum': 'OSGB36', 'units': 'm', 'no_defs': True}
 
-export = "Y:/Zone Translation/Export/" # TODO Remove this as it isn't used anywhere
 
 # TODO Move hardcoded paths to constants file
 # Import paths to local population and employment figures
