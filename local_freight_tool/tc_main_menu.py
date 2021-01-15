@@ -43,11 +43,11 @@ class tier_converter(QtWidgets.QWidget):
         
     def initUI(self):
         self.setGeometry(500, 400, 500, 490)        
-        self.setWindowTitle('Tier converter')
+        self.setWindowTitle('Local Freight Tool')
         self.setWindowIcon(QtGui.QIcon('icon.jpg'))        
 
         labelA = QtWidgets.QLabel(self)
-        labelA.setText('Tier Converter')
+        labelA.setText('Local Freight Tool')
         labelA.setFont(QtGui.QFont("Arial", 14, QtGui.QFont.Bold))
         labelA.setGeometry(10, 10, 700, 30) 
         
@@ -128,14 +128,14 @@ class tier_converter(QtWidgets.QWidget):
 
     @pyqtSlot()
     def on_click_Info(self):
-         self.progress = info_window('Tier Converter Information')    
+         self.progress = info_window('Local Freight Tool Information')    
          self.progress_label = self.progress.label
          self.progress_labelA = self.progress.labelA
          dedented_text = textwrap.dedent(Tier_Converter_Text).strip()         
          line= textwrap.fill(dedented_text, width=140)
          self.progress_label.setText(line)     
          self.progress_label.move(10,40)
-         self.progress_labelA.setText('Tier Converter Information') 
+         self.progress_labelA.setText('Local Freight Tool Information') 
          self.progress_labelA.setFont(QtGui.QFont("Arial", 10, QtGui.QFont.Bold))
          self.progress.show()
          
