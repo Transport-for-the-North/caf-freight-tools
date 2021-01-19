@@ -196,7 +196,6 @@ class background_thread(QThread):
 
 
         self.progress_label.setText('Saving the correspondence file...')
-        zone_correspondence.to_csv(self.path + '/zone_correspondence.csv', index=False)
 
         zone_correspondence = zone_correspondence[[
             f'{self.zone1_name}_zone_id', f'{self.zone2_name}_zone_id', 
