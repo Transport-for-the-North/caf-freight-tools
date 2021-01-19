@@ -17,6 +17,8 @@ zoning system.
 from PyQt5 import QtWidgets, QtGui
 from PyQt5.QtCore import pyqtSlot
 from PyQt5.QtCore import QThread
+from PyQt5.QtWidgets import QLineEdit
+
 
 # User-defined imports
 from utilities import  Utilities, info_window, progress_window
@@ -50,7 +52,51 @@ class ProduceGBFMCorrespondence(QtWidgets.QWidget):
         
         # Folder path for the outputs
         self.path = Utilities.add_file_selection(self, 190, 'Select the output directory:', directory=True)   
+
+        # Add text boxes for zone names
+        self.textbox_zone1 = QLineEdit(self)
+        self.textbox_zone1.move(10, 250)
+        self.textbox_zone1.resize(150,30)        
+        self.textbox_zone2 = QLineEdit(self)
+        self.textbox_zone2.move(10, 305)
+        self.textbox_zone2.resize(150,30)
+
+        # Add instructions for zone names
+        self.labelZ1 = QtWidgets.QLabel(self)
+        self.labelZ1.setText('Zone 1 name (defaults to GBFM):')
+        self.labelZ1.setGeometry(10, 220, 400, 30) 
+        self.labelZ1.show()  
         
+        self.labelZ2 = QtWidgets.QLabel(self)
+        self.labelZ2.setText('Zone 2 name (defaults to NoHAM):')
+        self.labelZ2.setGeometry(10, 280, 400, 30) 
+        self.labelZ2.show()
+
+        # Add numerical input boxes for tolerances
+        self.lowertolbox = QtWidgets.QDoubleSpinBox(self)
+        self.lowertolbox.setRange(0.0, 1.0)
+        self.lowertolbox.setSingleStep(0.01)
+        self.lowertolbox.setValue(0.10)
+        self.lowertolbox.move(260, 305)
+
+        self.uppertolbox = QtWidgets.QDoubleSpinBox(self)
+        self.uppertolbox.setRange(0.0, 1.0)
+        self.uppertolbox.setSingleStep(0.01)
+        self.uppertolbox.setValue(0.85)
+        self.uppertolbox.move(260, 250)
+        
+
+        # Add instructions for tolerances
+        self.labeluptol = QtWidgets.QLabel(self)
+        self.labeluptol.setText('Upper tolerance:')
+        self.labeluptol.setGeometry(260, 220, 400, 30) 
+        self.labeluptol.show()  
+        
+        self.labellowtol = QtWidgets.QLabel(self)
+        self.labellowtol.setText('Lower tolerance:')
+        self.labellowtol.setGeometry(260, 280, 400, 30) 
+        self.labellowtol.show()
+
         # Create a push button for 'info'
         Info_button = QtWidgets.QPushButton(self)
         Info_button.setText('Info')
@@ -72,12 +118,18 @@ class ProduceGBFMCorrespondence(QtWidgets.QWidget):
         self.show()   
         
     def run_button_clicked(self):
+
         if (self.first_zones_path.text() == '' or self.second_zones_path.text() == ''):        
             alert = QtWidgets.QMessageBox(self)
             alert.setWindowTitle('Zone Correspondence Tool')
             alert.setText('Error: you must specify both shapefiles first')
             alert.show()
-            
+        
+        elif self.uppertolbox.value() < self.lowertolbox.value():
+            alert = QtWidgets.QMessageBox(self)
+            alert.setWindowTitle('Zone Correspondence Tool')
+            alert.setText('Error: upper tolerance must be larger than lower tolerance.')
+            alert.show()    
         else: 
             # Start a progress window
             self.progress = progress_window('Zone Correspondence Tool')
@@ -120,18 +172,36 @@ class background_thread(QThread):
         self.first_zones_path = ProduceGBFMCorrespondence.first_zones_path.text()
         self.second_zones_path = ProduceGBFMCorrespondence.second_zones_path.text()
         self.path = ProduceGBFMCorrespondence.path.text()
+        self.textbox_zone1 = ProduceGBFMCorrespondence.textbox_zone1.text()
+        self.textbox_zone2 = ProduceGBFMCorrespondence.textbox_zone2.text()
+        self.upper_tolerance  = ProduceGBFMCorrespondence.uppertolbox.value()
+        self.lower_tolerance = ProduceGBFMCorrespondence.lowertolbox.value()
         
-    def run(self):                       
+    def run(self):
+        if (self.textbox_zone1 == '' or self.textbox_zone2 == ''):
+            self.zone1_name = 'gbfm'
+            self.zone2_name = 'noham'
+        else:
+            self.zone1_name = str(self.textbox_zone1)
+            self.zone2_name = str(self.textbox_zone2)
+           
         self.progress_label.setText('Applying the zone nesting process...')
         zone_correspondence = nf.ZoneNest(self.first_zones_path,
-                                          self.second_zones_path,
-                                          zoneName1 = 'gbfm', #NB HERE WE NEED TO LET THE USER CHANGE THESE PARAMETERS
-                                          zoneName2 = 'noham',
-                                          upperTolerance = .85,
-                                          lowerTolerance = .10,
-                                          zone1_index = 0, zone2_index = 0)
-        
+                                        self.second_zones_path,
+                                        zoneName1 = self.zone1_name, #NB HERE WE NEED TO LET THE USER CHANGE THESE PARAMETERS
+                                        zoneName2 = self.zone2_name,
+                                        upperTolerance = self.upper_tolerance,
+                                        lowerTolerance = self.lower_tolerance,
+                                        zone1_index = 0, zone2_index = 0)
+
+
         self.progress_label.setText('Saving the correspondence file...')
         zone_correspondence.to_csv(self.path + '/zone_correspondence.csv', index=False)
-                  
+
+        zone_correspondence = zone_correspondence[[
+            f'{self.zone1_name}_zone_id', f'{self.zone2_name}_zone_id', 
+            f'{self.zone1_name}_to_{self.zone2_name}']]
+
+        zone_correspondence.to_csv(self.path + f'/{self.zone1_name}_to_{self.zone2_name}_zone_correspondence.csv', index=False)
+
         self.progress_label.setText('Zone correspondence process complete. You may exit the program.')
