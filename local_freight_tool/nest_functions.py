@@ -137,7 +137,7 @@ def ZoneNest(zonePath1, zonePath2,
 
         gc.collect()
 
-	# Write a loop to explode any multipolygons - delete the small bit if it's tiny (off the coast) and error if it's not (madstuff going on)
+	    # Write a loop to explode any multipolygons - delete the small bit if it's tiny (off the coast) and error if it's not (madstuff going on)
         tempMajorZone = gpd.GeoDataFrame(majorZone.iloc[[majorZoneIndex]])
         tempMajorZone.crs = osgbCrs
         
@@ -153,18 +153,16 @@ def ZoneNest(zonePath1, zonePath2,
         #print(len(tempJoin), 'matches')
 
         # Second loop iterates over each matches minor zones and quantifies the overlap using the tolerance parameters
-        # This could potentially be functionalised as it's currently quite slow.
-        for minorZoneIndex, minorZoneRow in tempJoin.iterrows():
+        for minorZoneIndex, minorZoneRow in tempJoin.iterrows(): # should be removable using gpd
 
             print('match', minorZoneIndex+1, 'of', len(tempJoin), end="\r", flush=True) # These parameters are new to try and get the console to overwrite (for auditing)
-                                                                                        # Good odds it's going to kill the whole thing.
         
-            tempMinorZoneNo = tempJoin.iloc[[minorZoneIndex]][minorZoneID].values 
+            tempMinorZoneNo = tempJoin.iloc[[minorZoneIndex]][minorZoneID].values # is this getting single val or df/series
             #print('Minor Zone', tempMinorZoneNo)            
             tempMinorZone = minorZone[minorZone[minorZoneID].isin(tempMinorZoneNo)].reset_index(drop = True)
             tempMinorZoneArea = sum(tempMinorZone.area)
         
-            tempOverlay = gpd.overlay(tempMajorZone, tempMinorZone, how='intersection').reset_index()
+            tempOverlay = gpd.overlay(tempMajorZone, tempMinorZone, how='intersection').reset_index() # runs on dataframes
             if(len(tempOverlay) == 0):
                 tempOverlayArea = 0
                 #print('No overlap')
@@ -183,11 +181,12 @@ def ZoneNest(zonePath1, zonePath2,
                     overlayDesc = "Min-Maj nest"
                 elif(minToMaj < upperTolerance and majToMin > upperTolerance):
                     overlayDesc = "Maj-Min nest"
-                elif(minToMaj < upperTolerance and minToMaj > lowerTolerance or majToMin < upperTolerance and majToMin > lowerTolerance):
+                elif (lowerTolerance < minToMaj < upperTolerance or lowerTolerance < majToMin < upperTolerance):
                     overlayDesc = "Partial Nest"
-                elif(minToMaj < upperTolerance and majToMin < upperTolerance):
+                else:
                     overlayDesc = "Marginal overlap"
-                #print(overlayDesc)
+            
+            # TODO: we only need one splitting factor so if above uptol round up, if below lowtol round down, else leave as is
 
             # Create descriptive series for matched data frame
                 tempOverlayList = tempOverlay[[majorZoneID, minorZoneID]].drop_duplicates()
