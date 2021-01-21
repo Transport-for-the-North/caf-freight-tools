@@ -26,13 +26,6 @@ from text_info import AnnualTonne2PCU_Text
 # Other packages
 import textwrap
 import pandas as pd
-
-# TODO Remove reading files before menu is created, move hardcoded files to constant file
-# Inputs
-gbfm_nuts = pd.read_csv('../../Inputs/Rigid artic split/NTMv5_NUTS1.txt', sep='\t')[['UniqueID', 'NUTS1 code']]
-region_dict = gbfm_nuts.set_index('UniqueID').to_dict()['NUTS1 code']
-
-artic_proportions = pd.read_csv('../../Inputs/Rigid artic split/artic_proportions.csv')
     
 
 class AnnualTonne2PCU(QtWidgets.QWidget):
@@ -121,7 +114,12 @@ class AnnualTonne2PCU(QtWidgets.QWidget):
 
 # Main function
 def rigid_artic_split(hgv_pcus, artic_out, rigid_out, message_box):
-    
+    # Inputs
+    artic_proportions = pd.read_csv('../../Inputs/Rigid artic split/artic_proportions.csv')
+    gbfm_nuts = pd.read_csv('../../Inputs/Rigid artic split/NTMv5_NUTS1.txt', sep='\t')[['UniqueID', 'NUTS1 code']]
+    region_dict = gbfm_nuts.set_index('UniqueID').to_dict()['NUTS1 code']
+
+
     # Step 1: read in the GBFM output:
     message_box.setText('Reading in the HGV file')
     hgv_pcus = Utilities.read_csv(hgv_pcus)
