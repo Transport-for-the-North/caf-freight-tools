@@ -73,16 +73,8 @@ class ProduceGBFMCorrespondence(QtWidgets.QWidget):
         self.labelZ2.show()
 
         # Add numerical input boxes for tolerances
-        self.lowertolbox = QtWidgets.QDoubleSpinBox(self)
-        self.lowertolbox.setRange(0.0, 1.0)
-        self.lowertolbox.setSingleStep(0.01)
-        self.lowertolbox.setValue(0.10)
-        self.lowertolbox.move(260, 305)
-
-        self.uppertolbox = QtWidgets.QDoubleSpinBox(self)
-        self.uppertolbox.setRange(0.0, 1.0)
-        self.uppertolbox.setSingleStep(0.01)
-        self.uppertolbox.setValue(0.85)
+        self.uppertolbox = QtWidgets.QDoubleSpinBox(self, suffix='%', decimals=1, maximum=100, minimum=50,
+            singleStep=0.5, value= 99)
         self.uppertolbox.move(260, 250)
         
 
@@ -92,10 +84,6 @@ class ProduceGBFMCorrespondence(QtWidgets.QWidget):
         self.labeluptol.setGeometry(260, 220, 400, 30) 
         self.labeluptol.show()  
         
-        self.labellowtol = QtWidgets.QLabel(self)
-        self.labellowtol.setText('Lower tolerance:')
-        self.labellowtol.setGeometry(260, 280, 400, 30) 
-        self.labellowtol.show()
 
         # Create a push button for 'info'
         Info_button = QtWidgets.QPushButton(self)
@@ -125,11 +113,6 @@ class ProduceGBFMCorrespondence(QtWidgets.QWidget):
             alert.setText('Error: you must specify both shapefiles first')
             alert.show()
         
-        elif self.uppertolbox.value() < self.lowertolbox.value():
-            alert = QtWidgets.QMessageBox(self)
-            alert.setWindowTitle('Zone Correspondence Tool')
-            alert.setText('Error: upper tolerance must be larger than lower tolerance.')
-            alert.show()    
         else: 
             # Start a progress window
             self.progress = progress_window('Zone Correspondence Tool')
@@ -168,14 +151,13 @@ class background_thread(QThread):
         QThread.__init__(self)
         
         self.progress_label = ProduceGBFMCorrespondence.progress.label
-        
         self.first_zones_path = ProduceGBFMCorrespondence.first_zones_path.text()
         self.second_zones_path = ProduceGBFMCorrespondence.second_zones_path.text()
         self.path = ProduceGBFMCorrespondence.path.text()
         self.textbox_zone1 = ProduceGBFMCorrespondence.textbox_zone1.text()
         self.textbox_zone2 = ProduceGBFMCorrespondence.textbox_zone2.text()
-        self.upper_tolerance  = ProduceGBFMCorrespondence.uppertolbox.value()
-        self.lower_tolerance = ProduceGBFMCorrespondence.lowertolbox.value()
+        self.upper_tolerance  = (ProduceGBFMCorrespondence.uppertolbox.value())/100.0
+        self.lower_tolerance = 1.0 - self.upper_tolerance
         
     def run(self):
         if (self.textbox_zone1 == '' or self.textbox_zone2 == ''):
