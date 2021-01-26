@@ -23,6 +23,7 @@ osgbCrs = {'proj': 'tmerc', 'lat_0': 49, 'lon_0': -2, 'k': 0.9996012717,
 # populations built on 2017 mid year population estimates
 # attractions built from 2015 HSL lsoa employment data
 
+# TODO these don't make sense as constants
 localLSOAPopulationsPath = 'U:/Lot3_LFT/Zone_Translation/Import/LSOA Populations/lsoa__populations_2017.csv'
 # note that extra underscore there - had a read only problem
 localMSOAPopulationsPath = 'U:/Lot3_LFT/Zone_Translation/Import/MSOA Populations/msoa_populations_2011.csv'
@@ -236,7 +237,7 @@ def ZoneNest(zonePath1, zonePath2,
     # End of function
 
 # LSOA Method for applying splits to partially overlapping data files - needs a link to the LSOA/DataZone level data
-
+# TODO this code isn't used, potentially remove
 def PopulationApply(areaTranslationPath, populationsPath, populationPaddingFactor = 0, populationMatch = False):
     
     # TODO: Add audit to make sure number of zones coming in are same as those going out
@@ -313,8 +314,8 @@ def PopulationApply(areaTranslationPath, populationsPath, populationPaddingFacto
         
     return(areaTranslationPop)
 
+# TODO this code isn't used, to be removed
 def ZoneSplit(areaTranslationPath1, areaTranslationPath2 = None, splitMethod = 'lsoa_pop', classifyOverlaps=True): # Needs something to capture the population balancing method
-
     if splitMethod == 'lsoa_pop':
         populationsPath = localLSOAPopulationsPath
         popCol = 'lsoa'
