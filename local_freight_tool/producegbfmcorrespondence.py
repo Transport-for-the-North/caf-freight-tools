@@ -73,14 +73,14 @@ class ProduceGBFMCorrespondence(QtWidgets.QWidget):
         self.labelZ2.show()
 
         # Add numerical input boxes for tolerances
-        self.uppertolbox = QtWidgets.QDoubleSpinBox(self, suffix='%', decimals=1, maximum=100, minimum=50,
+        self.uppertolbox = QtWidgets.QDoubleSpinBox(self, suffix='%', decimals=1, maximum=100, minimum=85,
             singleStep=0.5, value= 99)
         self.uppertolbox.move(260, 250)
         
 
         # Add instructions for tolerances
         self.labeluptol = QtWidgets.QLabel(self)
-        self.labeluptol.setText('Upper tolerance:')
+        self.labeluptol.setText('Tolerance:')
         self.labeluptol.setGeometry(260, 220, 400, 30) 
         self.labeluptol.show()  
         
@@ -179,10 +179,15 @@ class background_thread(QThread):
 
         self.progress_label.setText('Saving the correspondence file...')
 
-        zone_correspondence = zone_correspondence[[
+        zone1_zone2_correspondence = zone_correspondence[[
             f'{self.zone1_name}_zone_id', f'{self.zone2_name}_zone_id', 
             f'{self.zone1_name}_to_{self.zone2_name}']]
 
-        zone_correspondence.to_csv(self.path + f'/{self.zone1_name}_to_{self.zone2_name}_zone_correspondence.csv', index=False)
+        zone2_zone1_correspondence = zone_correspondence[[
+            f'{self.zone2_name}_zone_id', f'{self.zone1_name}_zone_id', 
+            f'{self.zone2_name}_to_{self.zone1_name}']]
+
+        zone1_zone2_correspondence.to_csv(self.path + f'/{self.zone1_name}_to_{self.zone2_name}_zone_correspondence.csv', index=False)
+        zone2_zone1_correspondence.to_csv(self.path + f'/{self.zone2_name}_to_{self.zone1_name}_zone_correspondence.csv', index=False)
 
         self.progress_label.setText('Zone correspondence process complete. You may exit the program.')
