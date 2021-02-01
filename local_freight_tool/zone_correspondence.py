@@ -9,9 +9,10 @@ Nest two shapefiles to produce adjustment factors from one zone to another.
 
 import geopandas as gpd
 
-def zone_correspondence(zone_1_path, zone_2_path, outpath='', zone_1_name='gbfm', 
-                        zone_2_name='noham'):
-    """[summary]
+def spatial_zone_correspondence(zone_1_path, zone_2_path, outpath='', 
+                                zone_1_name='gbfm', zone_2_name='noham'):
+    """Finds the spatial zone corrrespondence through calculating adjustment
+    factors with areas only.
 
     Parameters
     ----------
@@ -28,10 +29,12 @@ def zone_correspondence(zone_1_path, zone_2_path, outpath='', zone_1_name='gbfm'
 
     Returns
     -------
-    GeoDataFrame
+    GeoDataFrame, list of GeoDataframes, list of strings
         GeoDataFrame with zone 1 and zone 2 IDs as well as spatial adjustment
-        factors to convert between them.
+        factors to convert between them, a list of zone 1 and zone 2
+        GeoDataframes, and a list with the names of the zones.
     """
+
     # zone column lookups
     gbfm_lookup = {'ID': 'zone_id'}
     noham_lookup = {
@@ -76,22 +79,85 @@ def zone_correspondence(zone_1_path, zone_2_path, outpath='', zone_1_name='gbfm'
     zone_overlay['intersection_area'] = zone_overlay.area
 
     # create geodataframe with spatial adjusted factors
-    spatial_zone_correspondence = zone_overlay[[f'{zone_names[0]}_zone_id',
+    spatial_correspondence = zone_overlay[[f'{zone_names[0]}_zone_id',
                                 f'{zone_names[1]}_zone_id']]
-    spatial_zone_correspondence[f'{zone_names[0]}_to_{zone_names[1]}'] = (zone_overlay['intersection_area'] /
+    spatial_correspondence[f'{zone_names[0]}_to_{zone_names[1]}'] = (zone_overlay['intersection_area'] /
                                                                         zone_overlay[f'{zone_names[0]}_area'])
-    spatial_zone_correspondence[f'{zone_names[1]}_to_{zone_names[0]}'] = (zone_overlay['intersection_area'] /
+    spatial_correspondence[f'{zone_names[1]}_to_{zone_names[0]}'] = (zone_overlay['intersection_area'] /
                                                                         zone_overlay[f'{zone_names[1]}_area'])
 
-    spatial_zone_correspondence.to_csv(f'{outpath}/spatial_zone_correspondence.csv', index=False)
+    spatial_correspondence.to_csv(f'{outpath}/spatial_zone_correspondence.csv', index=False)
 
-    return spatial_zone_correspondence
+    return spatial_correspondence, zone_list, zone_names
 
+def find_slithers(spatial_correspondence, tolerance):
+    """Finds overlap areas between zones which are very small slithers,
+    filters them out of the spatial zone correspondence GeoDataFrame,
+    and returns the filtered zone correspondence as well as the 
+    GeoDataFrame with only the slithers.
+
+    Parameters
+    ----------
+    spatial_correspondence : GeoDataFrame
+        Spatial zone correspondence between zone 1 and zone 2 produced with 
+        spatial_zone_correspondence.
+    tolerance : float
+        User-defined tolerance for filtering out slithers, must be a float
+        between 0 and 1, recommended value is 0.98.
+
+    Returns
+    -------
+    GeoDataFrame, GeoDataFrame
+        slithers GeoDataFrame with all the small zone overlaps, and
+        no_slithers the zone correspondence GeoDataFrame with these zones
+        filtered out.
+    """
+    slither_filter = ((spatial_correspondence[f'{zone_names[0]}_to_{zone_names[1]}'] < (1-tolerance)) &
+                    (spatial_correspondence[f'{zone_names[1]}_to_{zone_names[0]}'] < (1-tolerance)))
+    slithers = spatial_correspondence[slither_filter]
+    no_slithers = spatial_correspondence[~slither_filter]
+
+    return slithers, no_slithers
+
+
+def point_zone_handling(spatial_correspondence_no_slithers, point_tolerance, 
+                        zone_list, zone_names, lsoa_shapefile_path, lsoa_data_path):
+
+    # read in and combine LSOA data
+    lsoa_zones = gpd.read_file(lsoa_shapefile_path)
+    lsoa_data = gpd.read_file(lsoa_data_path)
+    lsoa_data = lsoa_data.rename(columns={'lsoa11cd': 'LSOA11CD'})
+    lsoa_data = lsoa_data[['LSOA11CD', 'var']]
+    lsoa_zones_var = lsoa_zones.merge(lsoa_data, how='inner', left_on='LSOA11CD', right_on='LSOA11CD')
+
+    # find point zones
+    zone_1_point_zone_filter = ((spatial_correspondence_no_slithers[
+        f'{zone_names[0]}_to_{zone_names[1]}'] > point_tolerance)
+        & (spatial_correspondence_no_slithers[
+        f'{zone_names[1]}_to_{zone_names[0]}'] < (1 - point_tolerance)))
+
+    zone_2_point_zone_filter = ((spatial_correspondence_no_slithers[
+        f'{zone_names[1]}_to_{zone_names[0]}'] > point_tolerance)
+        & (spatial_correspondence_no_slithers[
+        f'{zone_names[0]}_to_{zone_names[1]}'] < (1 - point_tolerance)))
+    
+    zone_1_point_zones = spatial_correspondence_no_slithers[zone_1_point_zone_filter]
+        
+    zone_2_point_zones = spatial_correspondence_no_slithers[zone_2_point_zone_filter]
+
+    # find all zones in zone 2 that share an original zone 1 with a point zone
+    zone_2_point_zone_sharing = spatial_correspondence_no_slithers.loc[(
+        spatial_correspondence_no_slithers[f'{zone_names[0]}_zone_id'].isin(
+        zone_2_point_zones[f'{zone_names[0]}_zone_id']))]
+
+
+    
 
 
 if __name__ == '__main__':
     gbfm_path = 'C:/WSP_projects/Freight/zone_shapefiles/GBFM/Zones.shp'
     noham_path = 'C:/WSP_projects/Freight/zone_shapefiles/NoHAM/noham_zones_freeze_2.10.shp'
     output_dir = 'C:/WSP_projects/Freight/local_freight_tool/Outputs/Zone correspondence test'
-    spatial_zones_adjustment = zone_correspondence(gbfm_path, noham_path, outpath=output_dir)
+    spatial_correspondence, zone_list, zone_names = spatial_zone_correspondence(gbfm_path,
+                                noham_path, outpath=output_dir)
     print(spatial_zones_adjustment)
