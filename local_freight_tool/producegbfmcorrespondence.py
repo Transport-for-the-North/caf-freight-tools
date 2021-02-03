@@ -37,7 +37,7 @@ class ProduceGBFMCorrespondence(QtWidgets.QWidget):
     
         
     def initUI(self):
-        self.setGeometry(600, 600, 500, 400)        
+        self.setGeometry(500, 380, 500, 450)        
         self.setWindowTitle('Zone Correspondence Tool')
         self.setWindowIcon(QtGui.QIcon('icon.jpg'))
         
@@ -49,39 +49,43 @@ class ProduceGBFMCorrespondence(QtWidgets.QWidget):
         # Add file path selection fields
         self.first_zones_path = Utilities.add_file_selection(self, 70, "Select the first zone system shapefile:")
         self.second_zones_path = Utilities.add_file_selection(self, 130, "Select the second zone system shapefile:")
+
+        # Add file path to LSOA data
+        self.lsoa_data_path = Utilities.add_file_selection(self, 190, "Select the LSOA employment data file:")
+        # TODO add default file here, will update add_file_selection in utilities
         
         # Folder path for the outputs
-        self.path = Utilities.add_file_selection(self, 190, 'Select the output directory:', directory=True)   
+        self.path = Utilities.add_file_selection(self, 250, 'Select the output directory:', directory=True)   
 
         # Add text boxes for zone names
         self.textbox_zone1 = QLineEdit(self)
-        self.textbox_zone1.move(10, 250)
+        self.textbox_zone1.move(10, 310)
         self.textbox_zone1.resize(150,30)        
         self.textbox_zone2 = QLineEdit(self)
-        self.textbox_zone2.move(10, 305)
+        self.textbox_zone2.move(10, 360)
         self.textbox_zone2.resize(150,30)
 
         # Add instructions for zone names
         self.labelZ1 = QtWidgets.QLabel(self)
         self.labelZ1.setText('Zone 1 name (defaults to GBFM):')
-        self.labelZ1.setGeometry(10, 220, 400, 30) 
+        self.labelZ1.setGeometry(10, 280, 400, 30) 
         self.labelZ1.show()  
         
         self.labelZ2 = QtWidgets.QLabel(self)
         self.labelZ2.setText('Zone 2 name (defaults to NoHAM):')
-        self.labelZ2.setGeometry(10, 280, 400, 30) 
+        self.labelZ2.setGeometry(10, 335, 400, 30) 
         self.labelZ2.show()
 
         # Add numerical input boxes for tolerances
         self.uppertolbox = QtWidgets.QDoubleSpinBox(self, suffix='%', decimals=1, maximum=100, minimum=85,
             singleStep=0.5, value= 99)
-        self.uppertolbox.move(260, 250)
+        self.uppertolbox.move(260, 305)
         
 
         # Add instructions for tolerances
         self.labeluptol = QtWidgets.QLabel(self)
         self.labeluptol.setText('Tolerance:')
-        self.labeluptol.setGeometry(260, 220, 400, 30) 
+        self.labeluptol.setGeometry(260, 280, 400, 30) 
         self.labeluptol.show()  
         
 
@@ -94,13 +98,13 @@ class ProduceGBFMCorrespondence(QtWidgets.QWidget):
         # Create a push button to move back to the menu
         back_button = QtWidgets.QPushButton(self)
         back_button.setText('Back')
-        back_button.setGeometry(10, 360, 100, 30)
+        back_button.setGeometry(10, 410, 100, 30)
         back_button.clicked.connect(self.back_button_clicked)
         
         # Create a push button to run the process
         run_button = QtWidgets.QPushButton(self)
         run_button.setText('Run')
-        run_button.setGeometry(390, 360, 100, 30)
+        run_button.setGeometry(390, 410, 100, 30)
         run_button.clicked.connect(self.run_button_clicked)
         
         self.show()   
@@ -153,6 +157,7 @@ class background_thread(QThread):
         self.progress_label = ProduceGBFMCorrespondence.progress.label
         self.first_zones_path = ProduceGBFMCorrespondence.first_zones_path.text()
         self.second_zones_path = ProduceGBFMCorrespondence.second_zones_path.text()
+        self.lsoa_data_path = ProduceGBFMCorrespondence.lsoa_data_path.text()
         self.path = ProduceGBFMCorrespondence.path.text()
         self.textbox_zone1 = ProduceGBFMCorrespondence.textbox_zone1.text()
         self.textbox_zone2 = ProduceGBFMCorrespondence.textbox_zone2.text()
@@ -166,10 +171,13 @@ class background_thread(QThread):
         else:
             self.zone1_name = str(self.textbox_zone1)
             self.zone2_name = str(self.textbox_zone2)
+
+        if self.lsoa_data_path == '':
+            self.lsoa_data_path = 'U:/Lot3_LFT/Zone_Translation/Import/LSOA Employment/lsoa_employment_2018.csv'
            
         self.progress_label.setText('Applying the zone nesting process...')
         zone_correspondence = nf.ZoneNest(self.first_zones_path,
-                                        self.second_zones_path,
+                                        self.second_zones_path, self.lsoa_data_path,
                                         zoneName1 = self.zone1_name, #NB HERE WE NEED TO LET THE USER CHANGE THESE PARAMETERS
                                         zoneName2 = self.zone2_name,
                                         upperTolerance = self.upper_tolerance,
