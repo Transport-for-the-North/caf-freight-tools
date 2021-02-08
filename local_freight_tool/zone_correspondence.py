@@ -521,7 +521,7 @@ def point_zone_handling(
         [
             f"{zone_names[0]}_zone_id",
             f"{zone_names[1]}_zone_id",
-            f"{zone_names[0]}_to_{zone_names[1]}"
+            f"{zone_names[0]}_to_{zone_names[1]}",
         ]
     ]
     new_zone_corr = pd.concat([spatial_corr, lsoa_zone_corr]).sort_values(
@@ -530,32 +530,71 @@ def point_zone_handling(
 
     return new_zone_corr, point_zones_info
 
+
 def round_zone_correspondence(zone_corr_no_slithers, zone_names):
     # find number of zone 2 zones that each zone 1 zone divides into
     gbfm_counts = zone_corr_no_slithers.groupby(f"{zone_names[0]}_zone_id").size()
 
     # create rounded zone correspondence
-    zone_corr_rounded = zone_corr_no_slithers[[f"{zone_names[0]}_zone_id", f"{zone_names[1]}_zone_id", f"{zone_names[0]}_to_{zone_names[1]}"]]
+    zone_corr_rounded = zone_corr_no_slithers[
+        [
+            f"{zone_names[0]}_zone_id",
+            f"{zone_names[1]}_zone_id",
+            f"{zone_names[0]}_to_{zone_names[1]}",
+        ]
+    ]
 
     # for zone 1 zones that only map to one zone 2 zone, set adjustment factor to 1
-    zone_corr_rounded.loc[zone_corr_rounded[f"{zone_names[0]}_zone_id"].isin(gbfm_counts[gbfm_counts == 1].index), f"{zone_names[0]}_to_{zone_names[1]}"] = 1.0
- 
+    zone_corr_rounded.loc[
+        zone_corr_rounded[f"{zone_names[0]}_zone_id"].isin(
+            gbfm_counts[gbfm_counts == 1].index
+        ),
+        f"{zone_names[0]}_to_{zone_names[1]}",
+    ] = 1.0
+
     # calculate missing zone 1 to zone 2 adjustments for those that don't have a one to one mapping
-    rest_to_round = zone_corr_rounded[zone_corr_rounded[f"{zone_names[0]}_zone_id"].isin(gbfm_counts[gbfm_counts > 1].index)]
-    differences = (1 - rest_to_round[[f"{zone_names[0]}_zone_id", f"{zone_names[0]}_to_{zone_names[1]}"]].groupby(f"{zone_names[0]}_zone_id").sum())
+    rest_to_round = zone_corr_rounded[
+        zone_corr_rounded[f"{zone_names[0]}_zone_id"].isin(
+            gbfm_counts[gbfm_counts > 1].index
+        )
+    ]
+    differences = (
+        1
+        - rest_to_round[
+            [f"{zone_names[0]}_zone_id", f"{zone_names[0]}_to_{zone_names[1]}"]
+        ]
+        .groupby(f"{zone_names[0]}_zone_id")
+        .sum()
+    )
 
     # add counts to differences
-    differences['counts'] = gbfm_counts[gbfm_counts > 1].astype(int)
+    differences["counts"] = gbfm_counts[gbfm_counts > 1].astype(int)
 
     # calculate portion of adjustment factor to add to each noham zone
-    differences['correction'] = differences[f"{zone_names[0]}_to_{zone_names[1]}"] / differences['counts']
+    differences["correction"] = (
+        differences[f"{zone_names[0]}_to_{zone_names[1]}"] / differences["counts"]
+    )
 
     # add correction to adjustment factor
-    rest_to_round = rest_to_round.merge(differences['correction'], how='inner', left_on=f"{zone_names[0]}_zone_id", right_on=differences.index)
+    rest_to_round = rest_to_round.merge(
+        differences["correction"],
+        how="left",
+        left_on=f"{zone_names[0]}_zone_id",
+        right_on=differences.index,
+    ).set_index(rest_to_round.index)
 
-    rest_to_round[f"{zone_names[0]}_to_{zone_names[1]}"] = rest_to_round[f"{zone_names[0]}_to_{zone_names[1]}"] + rest_to_round['correction']
+    rest_to_round[f"{zone_names[0]}_to_{zone_names[1]}"] = (
+        rest_to_round[f"{zone_names[0]}_to_{zone_names[1]}"]
+        + rest_to_round["correction"]
+    )
 
-    zone_corr_rounded.loc[zone_corr_rounded[f"{zone_names[0]}_zone_id"].isin(rest_to_round[f"{zone_names[0]}_zone_id"]), f"{zone_names[0]}_to_{zone_names[1]}"] = rest_to_round[f"{zone_names[0]}_to_{zone_names[1]}"]
+    rest_to_round = rest_to_round.drop(labels="correction", axis=1)
+
+    zone_corr_rounded[
+        zone_corr_rounded[f"{zone_names[0]}_zone_id"].isin(
+            rest_to_round[f"{zone_names[0]}_zone_id"]
+        )
+    ] = rest_to_round
 
     return zone_corr_rounded
 
@@ -595,14 +634,14 @@ def main_zone_correspondence(
     # only need to continue with rest if rounding or point zone handling are true
     if rounding or point_handling:
         # filter out all the small overlaps between zones
-        print('Filtering out small overlaps.')
+        print("Filtering out small overlaps.")
         (
             spatial_correspondence_slithers,
             spatial_correspondence_no_slithers,
         ) = find_slithers(spatial_correspondence, zone_names, tolerance)
 
         if point_handling:
-            print('Handling point zones with data provided')
+            print("Handling point zones with data provided")
             # handle point zones non-spatially
             new_zone_corr, point_zones_info = point_zone_handling(
                 spatial_correspondence_no_slithers,
@@ -614,15 +653,21 @@ def main_zone_correspondence(
                 tolerance,
             )
 
-            print('Saving point zone handling information')
-            point_zones_info.to_csv(f'{out_path}/{zone_names[1]}_point_handling.csv', index=False)
-        
+            print("Saving point zone handling information")
+            point_zones_info.to_csv(
+                f"{out_path}/{zone_names[1]}_point_handling.csv", index=False
+            )
+
         else:
-            new_zone_corr = spatial_correspondence_no_slithers[[f"{zone_names[0]}_zone_id", f"{zone_names[1]}_zone_id", f"{zone_names[0]}_to_{zone_names[1]}"]]
+            new_zone_corr = spatial_correspondence_no_slithers[
+                [
+                    f"{zone_names[0]}_zone_id",
+                    f"{zone_names[1]}_zone_id",
+                    f"{zone_names[0]}_to_{zone_names[1]}",
+                ]
+            ]
 
     # TODO finish this main function
-        
-
 
 
 if __name__ == "__main__":
