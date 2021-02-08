@@ -10,6 +10,10 @@ Nest two shapefiles to produce adjustment factors from one zone to another.
 import geopandas as gpd
 import pandas as pd
 
+# TODO add in point list input option for point zone handling
+# TODO check all docstrings accurate
+# TODO link with GUI
+
 
 def read_zone_shapefiles(zone_1_path, zone_2_path, zone_1_name, zone_2_name):
     """Reads in zone system shapefiles, sets zone id and area column names,
@@ -64,7 +68,6 @@ def read_zone_shapefiles(zone_1_path, zone_2_path, zone_1_name, zone_2_name):
 
         # set gbfm crs data to same as noham crs data (they should be the
         # same but gbfm data is incomplete)
-        # TODO might change this to just set all to this crs by default
         if not zone_list[i].crs:
             zone_list[i].crs = "EPSG:27700"
 
@@ -435,6 +438,30 @@ def point_zone_handling(
     lsoa_data_path,
     tolerance,
 ):
+    """Performs zone correspondence non-spatially for point zones, with LSOA data instead.
+
+    Parameters
+    ----------
+    spatial_correspondence_no_slithers : gpd.GeoDataFrame
+        Spatial zone correspondence GeoDataFrame produced with spatial_zone_correspondence, with slithers filtered out using find_slithers
+    point_tolerance : float
+        Tolerance to find point zones, must be between 0.0 and 1.0, where point zones are defined as having zone_1_to_zone_2 < 1 - point_tolerance & zone_2_to_zone_1 > point_tolerance.
+    zone_list : [type]
+        [description]
+    zone_names : [type]
+        [description]
+    lsoa_shapefile_path : [type]
+        [description]
+    lsoa_data_path : [type]
+        [description]
+    tolerance : [type]
+        [description]
+
+    Returns
+    -------
+    [type]
+        [description]
+    """
     # get zone 2 point and non-point zone data
     (
         non_point_zone_2_var,
@@ -532,6 +559,20 @@ def point_zone_handling(
 
 
 def round_zone_correspondence(zone_corr_no_slithers, zone_names):
+    """Changes zone_1_to_zone_2 adjustment factors such that they sum to 1 for every zone in zone 1.
+
+    Parameters
+    ----------
+    zone_corr_no_slithers : pd.DataFrame
+        3 column (zone 1 id, zone 2 id, zone 1 to zone 2) zone correspondence DataFrame, with slithers filtered out
+    zone_names : List[str, str]
+        List of zone 1 and zone 2 names
+
+    Returns
+    -------
+    pd.DataFrame
+        3 column zone correspondence DataFrame with zone_1_to_zone_2 values which sum to 1 for each zone 1 id.
+    """
     # find number of zone 2 zones that each zone 1 zone divides into
     gbfm_counts = zone_corr_no_slithers.groupby(f"{zone_names[0]}_zone_id").size()
 
@@ -598,8 +639,6 @@ def round_zone_correspondence(zone_corr_no_slithers, zone_names):
 
     return zone_corr_rounded
 
-    # TODO fix NaNs appearing in rounded zone corr, e.g. for gbfm zone 31274
-
 
 def main_zone_correspondence(
     zone_1_path,
@@ -614,6 +653,42 @@ def main_zone_correspondence(
     lsoa_data_path="",
     rounding=True,
 ):
+    """Performs zone correspondence between two zoning systems, zone 1 and
+    zone 2. Default correspondence is spatial (by zone area), but includes
+    options for handling point zones with different data (for example LSOA
+    employment data). Also includes option to check adjustment factors from
+    zone 1 to zone 2 add to 1.
+
+    Parameters
+    ----------
+    zone_1_path : str
+        Path to first zone shapefile
+    zone_2_path : str
+        Path to second zone shapefile
+    zone_1_name : str, optional
+        First zone name, by default "gbfm"
+    zone_2_name : str, optional
+        Second zone name, by default "noham"
+    tolerance : float, optional
+        Tolerance for filtering out small zone overlaps, by default 0.98
+    out_path : str, optional
+        Path to folder to save output files, by default ""
+    point_handling : bool, optional
+        Whether to perform specialised point zone handling, by default False
+    point_tolerance : float, optional
+        Tolerance to find point zones by, where a point zone is defined as having zone_1_to_zone_2 < 1 - point_tolerance & zone_2_to_zone_1 > point_tolerance, by default 0.95
+    lsoa_shapefile_path : str, optional
+        Path to LSOA (or other chosen zone system for other data) shapefile, only necessary if point_handling True, by default ""
+    lsoa_data_path : str, optional
+        Path to LSOA or other chosen data, only necessary if point_handling True, by default ""
+    rounding : bool, optional
+        Whether to perform rounding, which is the check that adjustment factors from zone 1 to zone 2 add to 1, by default True
+
+    Returns
+    -------
+    pd.DataFrame
+        Zone correspondence dataFrame with 3 columns, {zone_1_name}_zone_id, {zone_2_name}_zone_id and {zone_1_name}_to_{zone_2_name} adjustment factor.
+    """
     # read in zone shapefiles
     print("Reading in zone shapefiles")
     zone_list, zone_names = read_zone_shapefiles(
@@ -653,6 +728,12 @@ def main_zone_correspondence(
                 tolerance,
             )
 
+            print("Saving zone correspondence with point handling")
+            new_zone_corr.to_csv(
+                f"{out_path}/{zone_names[0]}_to_{zone_names[1]}_point_handled_correspondence.csv",
+                index=False,
+            )
+
             print("Saving point zone handling information")
             point_zones_info.to_csv(
                 f"{out_path}/{zone_names[1]}_point_handling.csv", index=False
@@ -667,7 +748,34 @@ def main_zone_correspondence(
                 ]
             ]
 
-    # TODO finish this main function
+        if rounding:
+            print("Checking all adjustment factors add to 1")
+            final_zone_corr = round_zone_correspondence(new_zone_corr, zone_names)
+        else:
+            zone_corr_slithers = spatial_correspondence_slithers[
+                [
+                    f"{zone_names[0]}_zone_id",
+                    f"{zone_names[1]}_zone_id",
+                    f"{zone_names[0]}_to_{zone_names[1]}",
+                ]
+            ]
+
+            final_zone_corr = pd.concat(
+                [new_zone_corr, zone_corr_slithers]
+            ).sort_values(by=[f"{zone_names[0]}_zone_id"])
+
+        print("Saving final zone correspondence")
+        final_zone_corr.to_csv(
+            f"{out_path}/{zone_names[0]}_to_{zone_names[1]}_zone_correspondence.csv",
+            index=False,
+        )
+
+        print("Zone correspondence finished.")
+        return final_zone_corr
+
+    else:
+        print("Zone correspondence finished.")
+        return spatial_correspondence
 
 
 if __name__ == "__main__":
@@ -676,9 +784,17 @@ if __name__ == "__main__":
         "C:/WSP_projects/Freight/zone_shapefiles/NoHAM/noham_zones_freeze_2.10.shp"
     )
     output_dir = (
-        "C:/WSP_projects/Freight/local_freight_tool/Outputs/Zone correspondence test"
+        "C:/WSP_projects/Freight/local_freight_tool/Outputs/new_zone_correspondence"
     )
     lsoa_shapefile_path = "C:/WSP_projects/Freight/zone_shapefiles/LSOA/Lower_Layer_Super_Output_Areas__December_2011__Boundaries_Full_Extent__BFE__EW_V3.shp"
     lsoa_data_path = "C:/WSP_projects/Freight/zone_shapefiles/LSOA Employment/lsoa_employment_2018.csv"
-    tolerance = 0.98
-    point_tolerance = 0.95
+
+    zone_correspondence = main_zone_correspondence(
+        gbfm_path,
+        noham_path,
+        out_path=output_dir,
+        point_handling=True,
+        lsoa_shapefile_path=lsoa_shapefile_path,
+        lsoa_data_path=lsoa_data_path,
+        rounding=True,
+    )
