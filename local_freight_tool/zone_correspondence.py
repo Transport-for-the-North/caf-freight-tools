@@ -13,7 +13,7 @@ import pandas as pd
 # TODO add in point list input option for point zone handling
 # TODO check all docstrings accurate
 # TODO link with GUI
-
+# TODO fix .loc issues
 
 def read_zone_shapefiles(zone_1_path, zone_2_path, zone_1_name, zone_2_name):
     """Reads in zone system shapefiles, sets zone id and area column names,
@@ -301,23 +301,14 @@ def point_zone_filter(
     )
 
     # create dataframe to track point zone data
-    point_zones_information = pd.DataFrame(
-        columns=[f"{zone_names[1]}_zone_id", "zone_type", "correspondence", "notes"]
-    )
-    point_zones_information[f"{zone_names[1]}_zone_id"] = non_spatial_corr[
-        f"{zone_names[1]}_zone_id"
-    ]
+    point_zones_information = non_spatial_corr[[f"{zone_names[0]}_zone_id", f"{zone_names[1]}_zone_id"]]
     point_zones_information["correspondence"] = "LSOA"
     point_zones_information["notes"] = ""
     point_zones_information["zone_type"] = "non-point"
-    point_zones_information.at[
-        point_zones_information[f"{zone_names[1]}_zone_id"].isin(
-            zone_2_point_zones_correspondence[f"{zone_names[1]}_zone_id"]
-        ),
-        "zone_type",
-    ] = "point"
+    point_zones_information.at[point_zones_information[f"{zone_names[1]}_zone_id"].isin(zone_2_point_zones_correspondence[f"{zone_names[1]}_zone_id"]), "zone_type"] = "point"
+    
     point_zones_information = point_zones_information.sort_values(
-        by=[f"{zone_names[1]}_zone_id"]
+        by=[f"{zone_names[0]}_zone_id"]
     )
 
     # read in lsoa data
@@ -639,6 +630,13 @@ def round_zone_correspondence(zone_corr_no_slithers, zone_names):
 
     return zone_corr_rounded
 
+def missing_zones_check(zone_list, zone_names, zone_correspondence):
+    missing_zone_1 = zone_list[0].loc[~zone_list[0][f"{zone_names[0]}_zone_id"].isin(zone_correspondence[f"{zone_names[0]}_zone_id"]), f"{zone_names[0]}_zone_id"]
+    missing_zone_2 = zone_list[1].loc[~zone_list[1][f"{zone_names[1]}_zone_id"].isin(zone_correspondence[f"{zone_names[1]}_zone_id"]), f"{zone_names[1]}_zone_id"]
+    missing_zone_1_zones = pd.DataFrame(data=missing_zone_1, columns=[f"{zone_names[0]}_zone_id"])
+    missing_zone_2_zones = pd.DataFrame(data=missing_zone_2, columns=[f"{zone_names[1]}_zone_id"])
+    
+    return missing_zone_1_zones, missing_zone_2_zones
 
 def main_zone_correspondence(
     zone_1_path,
@@ -689,6 +687,14 @@ def main_zone_correspondence(
     pd.DataFrame
         Zone correspondence dataFrame with 3 columns, {zone_1_name}_zone_id, {zone_2_name}_zone_id and {zone_1_name}_to_{zone_2_name} adjustment factor.
     """
+    # create log
+    log_data = {'Parameters': ['Zone 1 name', 'Zone 2 name', 'Zone 1 shapefile', 'Zone 2 Shapefile', 'Output directory', 
+                           'Tolerance', 'Point handling', 'Point tolerance', 'LSOA data', 'LSOA shapefile', 'Rounding'],
+                'Values': [zone_1_name, zone_2_name, zone_1_path, zone_2_path, out_path, tolerance, point_handling, point_tolerance,
+                     lsoa_data_path, lsoa_shapefile_path, rounding]}
+
+    log_df = pd.DataFrame(data=log_data)
+
     # read in zone shapefiles
     print("Reading in zone shapefiles")
     zone_list, zone_names = read_zone_shapefiles(
@@ -734,11 +740,6 @@ def main_zone_correspondence(
                 index=False,
             )
 
-            print("Saving point zone handling information")
-            point_zones_info.to_csv(
-                f"{out_path}/{zone_names[1]}_point_handling.csv", index=False
-            )
-
         else:
             new_zone_corr = spatial_correspondence_no_slithers[
                 [
@@ -770,12 +771,25 @@ def main_zone_correspondence(
             index=False,
         )
 
-        print("Zone correspondence finished.")
-        return final_zone_corr
-
     else:
-        print("Zone correspondence finished.")
-        return spatial_correspondence
+        final_zone_corr = spatial_correspondence
+    
+    print("Checking for missing zones")
+    missing_zones_1, missing_zones_2 = missing_zones_check(zone_list, zone_names, final_zone_corr)
+
+    print("Creating log file")
+    log_file = f"{output_dir}/zone_correspondence_log.xlsx"
+    writer =  pd.ExcelWriter(log_file, engine='xlsxwriter')
+    log_df.to_excel(writer, sheet_name='Parameters', index=False)
+    missing_zones_1.to_excel(writer, sheet_name=f"{zone_names[0]}_missing", index=False)
+    missing_zones_2.to_excel(writer, sheet_name=f"{zone_names[1]}_missing", index=False)
+    if point_handling:
+        point_zones_info.to_excel(writer, sheet_name="point_handling", index=False)
+    writer.save()
+
+    print("Zone correspondence finished.")
+
+    return final_zone_corr
 
 
 if __name__ == "__main__":
