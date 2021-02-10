@@ -28,7 +28,6 @@ import zone_correspondence as zcorr
 import textwrap
 
 # TODO add check for file type
-# TODO add point zone csv reading
 
 class ProduceGBFMCorrespondence(QtWidgets.QWidget):
     """Produce GBFM correspodence user interface.
@@ -336,6 +335,7 @@ class background_thread(QThread):
             zone_1_name=self.zone1_name,
             zone_2_name=self.zone2_name,
             tolerance=self.tolerance,
+            point_zones_path=self.point_zones,
             out_path=self.outpath,
             point_handling=self.point_handling,
             lsoa_shapefile_path=self.lsoa_shapefile_path,

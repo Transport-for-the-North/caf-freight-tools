@@ -10,9 +10,7 @@ Nest two shapefiles to produce adjustment factors from one zone to another.
 import geopandas as gpd
 import pandas as pd
 
-# TODO add in point list input option for point zone handling
 # TODO check all docstrings accurate
-# TODO link with GUI
 # TODO fix .loc issues
 
 
@@ -243,7 +241,7 @@ def remove_minor_point_zone_mappings(point_zone_correspondence, zone_names):
 
 def point_zone_filter(
     spatial_correspondence_no_slithers,
-    point_tolerance,
+    point_tolerance, point_zones_path,
     zone_list,
     zone_names,
     lsoa_shapefile_path,
@@ -262,9 +260,11 @@ def point_zone_filter(
         Spatial zone correspondence between zone systems 1 and 2, produced
         with spatial_zone_correspondence with the small overlaps filtered out
         using find_slithers.
-    point_tolerance : float
+    point_tolerance : float, optional
         Tolerance level for filtering out point zones, a number between 0 and
-        1.
+        1, defaults to 0.95
+    point_zones : str, optional
+        Path to csv file with list of point zones with column name zone_id, defaults to ""
     zone_list : List[GeoDataFrame, GeoDataFrame]
         List containing zone 1 and zone 2 GeoDataFrames.
     zone_names : List[str, str]
@@ -289,14 +289,19 @@ def point_zone_filter(
        The last GeoDataFrame is the spatial correspondence initially input,
        but with point-affected zones filtered out.
     """
-    # find point zones
-    zone_2_point_zone_filter = (
-        spatial_correspondence_no_slithers[f"{zone_names[1]}_to_{zone_names[0]}"]
-        > point_tolerance
-    ) & (
-        spatial_correspondence_no_slithers[f"{zone_names[0]}_to_{zone_names[1]}"]
-        < (1 - point_tolerance)
-    )
+    # if point zone list given, read in and use to find point zone correspondence
+    if point_zones_path != "":
+        point_list = pd.read_csv(point_zones_path)
+        zone_2_point_zone_filter = spatial_correspondence_no_slithers[f"{zone_names[1]}_zone_id"].isin(point_list.zone_id)
+    # if no point zone list given, find point zones with point tolerance
+    else:
+        zone_2_point_zone_filter = (
+            spatial_correspondence_no_slithers[f"{zone_names[1]}_to_{zone_names[0]}"]
+            > point_tolerance
+        ) & (
+            spatial_correspondence_no_slithers[f"{zone_names[0]}_to_{zone_names[1]}"]
+            < (1 - point_tolerance)
+        )
 
     zone_2_point_zones_correspondence = spatial_correspondence_no_slithers[
         zone_2_point_zone_filter
@@ -461,7 +466,7 @@ def point_zone_filter(
 
 def point_zone_handling(
     spatial_correspondence_no_slithers,
-    point_tolerance,
+    point_tolerance, point_zones_path,
     zone_list,
     zone_names,
     lsoa_shapefile_path,
@@ -482,6 +487,8 @@ def point_zone_handling(
         Tolerance to find point zones, must be between 0.0 and 1.0, where
         point zones are defined as having zone_1_to_zone_2 < 1 -
         point_tolerance & zone_2_to_zone_1 > point_tolerance.
+    point_zones : str, optional
+        Path to csv file with list of point zones with column name zone_id, defaults to ""
     zone_list : List[gpd.GeoDataFrame, gpd.GeoDataFrame]
         Zone 1 and zone 2 GeoDataFrames from shapefiles.
     zone_names : List[str, str]
@@ -515,7 +522,7 @@ def point_zone_handling(
         spatial_corr_no_pts,
     ) = point_zone_filter(
         spatial_correspondence_no_slithers,
-        point_tolerance,
+        point_tolerance, point_zones_path,
         zone_list,
         zone_names,
         lsoa_shapefile_path,
@@ -601,6 +608,7 @@ def point_zone_handling(
     )
 
     return new_zone_corr, point_zones_info
+
 
 
 def round_zone_correspondence(zone_corr_no_slithers, zone_names):
@@ -736,6 +744,7 @@ def main_zone_correspondence(
     out_path="",
     point_handling=False,
     point_tolerance=0.95,
+    point_zones_path="",
     lsoa_shapefile_path="",
     lsoa_data_path="",
     rounding=True,
@@ -793,6 +802,7 @@ def main_zone_correspondence(
             "Output directory",
             "Tolerance",
             "Point handling",
+            "Point list",
             "Point tolerance",
             "LSOA data",
             "LSOA shapefile",
@@ -806,6 +816,7 @@ def main_zone_correspondence(
             out_path,
             tolerance,
             point_handling,
+            point_zones_path,
             point_tolerance,
             lsoa_data_path,
             lsoa_shapefile_path,
@@ -846,7 +857,7 @@ def main_zone_correspondence(
             # handle point zones non-spatially
             new_zone_corr, point_zones_info = point_zone_handling(
                 spatial_correspondence_no_slithers,
-                point_tolerance,
+                point_tolerance, point_zones_path,
                 zone_list,
                 zone_names,
                 lsoa_shapefile_path,
@@ -914,16 +925,17 @@ if __name__ == "__main__":
         "C:/WSP_projects/Freight/zone_shapefiles/NoHAM/noham_zones_freeze_2.10.shp"
     )
     output_dir = (
-        "C:/WSP_projects/Freight/local_freight_tool/Outputs/new_zone_correspondence"
+        "C:/WSP_projects/Freight/local_freight_tool/Outputs/new_zone_correspondence1"
     )
     lsoa_shapefile_path = "C:/WSP_projects/Freight/zone_shapefiles/LSOA/Lower_Layer_Super_Output_Areas__December_2011__Boundaries_Full_Extent__BFE__EW_V3.shp"
     lsoa_data_path = "C:/WSP_projects/Freight/zone_shapefiles/LSOA Employment/lsoa_employment_2018.csv"
+    point_zone_path = "C:/WSP_projects/Freight/local_freight_tool/Outputs/noham_point_zones.csv"
 
     zone_correspondence = main_zone_correspondence(
         gbfm_path,
         noham_path,
         out_path=output_dir,
-        point_handling=True,
+        point_handling=True, point_zones_path=point_zone_path,
         lsoa_shapefile_path=lsoa_shapefile_path,
         lsoa_data_path=lsoa_data_path,
         rounding=True,
