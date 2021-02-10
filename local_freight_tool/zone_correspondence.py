@@ -99,8 +99,7 @@ def read_lsoa_data(lsoa_shapefile_path, lsoa_data_path):
     lsoa_data = lsoa_data[["lsoa_zone_id", "var"]]
     lsoa_data["var"] = lsoa_data["var"].astype(float)
     lsoa_zones_var = lsoa_zones.merge(
-        lsoa_data, how="inner", left_on="lsoa_zone_id",
-        right_on="lsoa_zone_id"
+        lsoa_data, how="inner", left_on="lsoa_zone_id", right_on="lsoa_zone_id"
     )
     lsoa_zones_var["lsoa_area"] = lsoa_zones_var.area
 
@@ -143,19 +142,17 @@ def spatial_zone_correspondence(zone_list, zone_names):
     # create geodataframe with spatial adjusted factors
     spatial_correspondence = zone_overlay[column_list]
     spatial_correspondence[f"{zone_names[0]}_to_{zone_names[1]}"] = (
-        zone_overlay["intersection_area"] / 
-        zone_overlay[f"{zone_names[0]}_area"]
+        zone_overlay["intersection_area"] / zone_overlay[f"{zone_names[0]}_area"]
     )
     spatial_correspondence[f"{zone_names[1]}_to_{zone_names[0]}"] = (
-        zone_overlay["intersection_area"] / 
-        zone_overlay[f"{zone_names[1]}_area"]
+        zone_overlay["intersection_area"] / zone_overlay[f"{zone_names[1]}_area"]
     )
 
     return spatial_correspondence
 
 
 def find_slithers(spatial_correspondence, zone_names, tolerance):
-    """Finds overlap areas between zones which are very small slithers, 
+    """Finds overlap areas between zones which are very small slithers,
     filters them out of the spatial zone correspondence GeoDataFrame, and
     returns the filtered zone correspondence as well as the GeoDataFrame with
     only the slithers.
@@ -262,7 +259,7 @@ def point_zone_filter(
     Parameters
     ----------
     spatial_correspondence_no_slithers : GeoDataFrame
-        Spatial zone correspondence between zone systems 1 and 2, produced 
+        Spatial zone correspondence between zone systems 1 and 2, produced
         with spatial_zone_correspondence with the small overlaps filtered out
         using find_slithers.
     point_tolerance : float
@@ -273,8 +270,8 @@ def point_zone_filter(
     zone_names : List[str, str]
         List containing zone 1 and zone 2 names.
     lsoa_shapefile_path : str
-        Path to LSOA shapefile (or the shapefile associated with the data to 
-        be used in point zone handling). Zone ID column must be called 
+        Path to LSOA shapefile (or the shapefile associated with the data to
+        be used in point zone handling). Zone ID column must be called
         LSOA11CD.
     lsoa_data_path : str
         Path to csv file containing LSOA ID column as lsoa11cd and desired
@@ -284,7 +281,7 @@ def point_zone_filter(
     -------
     (gpd.GeoDataFrame, gpd.GeoDataFrame, pd.DataFrame, gpd.GeoDataFrame)
        The first GeoDataFrame is the LSOA data for zones in zone 2 that map to
-       the same zone 1 zone as point zones, the second GeoDataFrame is LSOA 
+       the same zone 1 zone as point zones, the second GeoDataFrame is LSOA
        data for point zones.
        The pd.DataFrame contains information on these zones, their zone 1 zone
        ID, zone 2 zone ID, zone type (point or non-point), correspondence type
@@ -483,7 +480,7 @@ def point_zone_handling(
         find_slithers
     point_tolerance : float
         Tolerance to find point zones, must be between 0.0 and 1.0, where
-        point zones are defined as having zone_1_to_zone_2 < 1 - 
+        point zones are defined as having zone_1_to_zone_2 < 1 -
         point_tolerance & zone_2_to_zone_1 > point_tolerance.
     zone_list : List[gpd.GeoDataFrame, gpd.GeoDataFrame]
         Zone 1 and zone 2 GeoDataFrames from shapefiles.
@@ -897,7 +894,7 @@ def main_zone_correspondence(
     )
 
     print("Creating log file")
-    log_file = f"{output_dir}/zone_correspondence_log.xlsx"
+    log_file = f"{out_path}/zone_correspondence_log.xlsx"
     writer = pd.ExcelWriter(log_file, engine="xlsxwriter")
     log_df.to_excel(writer, sheet_name="Parameters", index=False)
     missing_zones_1.to_excel(writer, sheet_name=f"{zone_names[0]}_missing", index=False)
