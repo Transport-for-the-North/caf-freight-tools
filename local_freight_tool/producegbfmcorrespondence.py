@@ -26,8 +26,7 @@ import zone_correspondence as zcorr
 
 # Other packages
 import textwrap
-
-# TODO add check for file type
+import os
 
 class ProduceGBFMCorrespondence(QtWidgets.QWidget):
     """Produce GBFM correspodence user interface.
@@ -106,7 +105,7 @@ class ProduceGBFMCorrespondence(QtWidgets.QWidget):
 
         # Add file path to point zone list
         self.point_zones = Utilities.add_file_selection(
-            self, self.y2 + self.yspace*3, "Select point zone csv:"
+            self, self.y2 + self.yspace*3, "(Optional) Select point zone csv:"
         )
 
         # Disable these boxes until point handling is checked
@@ -195,9 +194,6 @@ class ProduceGBFMCorrespondence(QtWidgets.QWidget):
         run_button.clicked.connect(self.run_button_clicked)
 
         self.show()
-    
-    def tol_val_change(self):
-        print(f"value is {self.uppertolbox.value()}")
 
     def point_handling_clickbox(self, state):
         """Changes UI display and assigns point_handling bool according to
@@ -251,11 +247,31 @@ class ProduceGBFMCorrespondence(QtWidgets.QWidget):
 
     def run_button_clicked(self):
         """Initialises process once run button is clicked."""
+        # get file extensions for all file path inputs
+        name, zone_1_shp = os.path.splitext(self.first_zones_path.text())
+        name, zone_2_shp = os.path.splitext(self.second_zones_path.text())
 
+        name, lsoa_data_csv = os.path.splitext(self.lsoa_data_path.text())
+        name, lsoa_shp = os.path.splitext(self.lsoa_shapefile_path.text())
+        name, point_csv = os.path.splitext(self.point_zones.text())
+        
+        # Error messages when not enough inputs or wrong file types
         if self.first_zones_path.text() == "" or self.second_zones_path.text() == "":
             alert = QtWidgets.QMessageBox(self)
             alert.setWindowTitle("Zone Correspondence Tool")
-            alert.setText("Error: you must specify both shapefiles first")
+            alert.setText("Error: you must specify both zone system shapefiles first")
+            alert.show()
+        
+        elif (zone_1_shp != '.shp') | (zone_2_shp != '.shp'):
+            alert = QtWidgets.QMessageBox(self)
+            alert.setWindowTitle("Zone Correspondence Tool")
+            alert.setText("Error: the zone system shapefiles specified are not .shp files")
+            alert.show()
+        
+        elif os.path.isdir(self.outpath.text()) == False:
+            alert = QtWidgets.QMessageBox(self)
+            alert.setWindowTitle("Zone Correspondence Tool")
+            alert.setText("Error: you must specify an output directory")
             alert.show()
         
         elif self.point_handling & ((self.lsoa_data_path.text() == "") | (self.lsoa_shapefile_path.text() == "")):
@@ -263,6 +279,18 @@ class ProduceGBFMCorrespondence(QtWidgets.QWidget):
             alert.setWindowTitle("Zone Correspondence Tool")
             alert.setText("Error: you must specify LSOA shapefile and data \
             when point handling is on")
+            alert.show()
+
+        elif self.point_handling & ((lsoa_data_csv != '.csv') | (lsoa_shp != '.shp')):
+            alert = QtWidgets.QMessageBox(self)
+            alert.setWindowTitle("Zone Correspondence Tool")
+            alert.setText("Error: the LSOA zones file specified must be in .shp format, and the LSOA data must be in .csv format.")
+            alert.show()
+        
+        elif self.point_handling & (self.point_zones.text() != "") & (point_csv != '.csv'):
+            alert = QtWidgets.QMessageBox(self)
+            alert.setWindowTitle("Zone Correspondence Tool")
+            alert.setText("Error: the point zone file specified is not a csv.")
             alert.show()
 
         else:
@@ -303,7 +331,20 @@ class ProduceGBFMCorrespondence(QtWidgets.QWidget):
 
 
 class background_thread(QThread):
+    """Thread which calls functions from zone_correspondence.main_zone_correspondence.
+
+    Parameters
+    ----------
+    QThread
+    """
     def __init__(self, ProduceGBFMCorrespondence):
+        """Initialise class
+
+        Parameters
+        ----------
+        ProduceGBFMCorrespondence : Class
+            GUI class for zone correspondence
+        """
         QThread.__init__(self)
 
         self.progress_label = ProduceGBFMCorrespondence.progress.label
@@ -321,6 +362,8 @@ class background_thread(QThread):
         self.rounding = ProduceGBFMCorrespondence.rounding
 
     def run(self):
+        """Runs zone correspondence
+        """
         if self.textbox_zone1 == "" or self.textbox_zone2 == "":
             self.zone1_name = "gbfm"
             self.zone2_name = "noham"
