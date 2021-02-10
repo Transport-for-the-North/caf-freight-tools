@@ -70,7 +70,7 @@ class tier_converter(QtWidgets.QWidget):
         
         # Create a push buttons for menu options
         next_button = QtWidgets.QPushButton(self)
-        next_button.setText('0: Produce GBFM Zone Correspondence')
+        next_button.setText('0: Produce Zone Correspondence')
         next_button.setGeometry(10, 90, 480, 30)     
         next_button.clicked.connect(self.on_click_ProduceGBFMCorrespondence)   
 
