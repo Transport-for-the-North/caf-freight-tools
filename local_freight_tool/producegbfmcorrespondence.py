@@ -16,7 +16,7 @@ zoning system.
 # PyQt imports
 from PyQt5 import QtWidgets, QtGui
 from PyQt5.QtCore import pyqtSlot, QThread, Qt
-from PyQt5.QtWidgets import QLineEdit, QCheckBox
+from PyQt5.QtWidgets import QLineEdit, QCheckBox, QDoubleSpinBox
 
 
 # User-defined imports
@@ -27,7 +27,6 @@ import zone_correspondence as zcorr
 # Other packages
 import textwrap
 
-# TODO fix spinboxes
 # TODO add check for file type
 # TODO add point zone csv reading
 
@@ -54,7 +53,7 @@ class ProduceGBFMCorrespondence(QtWidgets.QWidget):
 
     def initUI(self):
         """Initialises UI"""
-        self.setGeometry(500, 320, 510, 600)
+        self.setGeometry(500, 320, 510+110, 540)
         self.setWindowTitle("Zone Correspondence Tool")
         self.setWindowIcon(QtGui.QIcon("icon.jpg"))
 
@@ -103,12 +102,12 @@ class ProduceGBFMCorrespondence(QtWidgets.QWidget):
             self, self.y2 + self.yspace*5, "Select the LSOA shapefile:"
         )
         self.lsoa_data_path = Utilities.add_file_selection(
-            self, self.y2 + self.yspace*6, "Select the LSOA employment data csv:"
+            self, self.y2 + self.yspace*4, "Select the LSOA employment data csv:"
         )
 
         # Add file path to point zone list
         self.point_zones = Utilities.add_file_selection(
-            self, self.y2 + self.yspace*4, "Select point zone csv:"
+            self, self.y2 + self.yspace*3, "Select point zone csv:"
         )
 
         # Disable these boxes until point handling is checked
@@ -122,85 +121,78 @@ class ProduceGBFMCorrespondence(QtWidgets.QWidget):
             self, self.y2 + self.yspace*2, "Select the output directory:", directory=True
         )
 
-        self.y3 = self.y2 + self.yspace*3 - 25
-
+        self.x3 = 510
         # Add numerical input boxes for tolerance
-        self.uppertolbox = QtWidgets.QDoubleSpinBox(
+        self.uppertolbox = QDoubleSpinBox(
             self,
             suffix="%",
             decimals=1,
             maximum=100,
             minimum=85,
             singleStep=0.5,
-            value=99,
+            value=99
         )
-        self.uppertolbox.move(340, self.y3)
+        self.uppertolbox.move(self.x3, 375)
         self.uppertolbox.resize(60, 25)
-        self.uppertolbox.valueChanged.connect(self.tol_val_change)
+        self.uppertolbox.show()
 
         # Add instructions for tolerance
         self.labeluptol = QtWidgets.QLabel(self)
         self.labeluptol.setText("Tolerance:")
-        self.labeluptol.setGeometry(self.x2, self.y3 - 5, 400, 30)
+        self.labeluptol.setGeometry(self.x3, 350, 400, 30)
         self.labeluptol.show()
 
         # disable tolerance until rounding and point handling are selected
         self.labeluptol.setDisabled(True)
+        self.uppertolbox.setDisabled(True)
 
         # Add numerical input box for point tolerance
-        self.pointtolbox = QtWidgets.QDoubleSpinBox(
-            self,
-            suffix="%",
-            decimals=0,
-            maximum=100,
-            minimum=85,
-            singleStep=1,
-            value=95,
-        )
-        self.yspace2 = 28
-        self.pointtolbox.move(340, self.y3 + self.yspace2)
+        self.pointtolbox = QDoubleSpinBox(self, suffix="%", decimals=0, maximum=100, minimum=85,
+            singleStep=1, value=95)
+        self.pointtolbox.move(self.x3, 425)
         self.pointtolbox.resize(60, 25)
 
         # Add instructions for point tolerance
         self.labelpointtol = QtWidgets.QLabel(self)
         self.labelpointtol.setText("Point tolerance:")
-        self.labelpointtol.setGeometry(self.x2, self.y3 + self.yspace2 - 5, 400, 30)
+        self.labelpointtol.setGeometry(self.x3, 400, 400, 30)
         self.labelpointtol.show()
 
         # disable this box until point handling is checked
         self.labelpointtol.setDisabled(True)
+        self.pointtolbox.setDisabled(True)
 
         # Create checkboxes for rounding and point handling
         # point handling
         self.point_handling = False
-        self.pointhandlingbox = QCheckBox("LSOA point handling", self)
-        self.pointhandlingbox.move(self.x1 + 5, self.y3 + self.yspace2 - 10)
+        self.pointhandlingbox = QCheckBox("Point handling", self)
+        self.pointhandlingbox.move(self.x3, 95)
         self.pointhandlingbox.resize(200, 40)
         self.pointhandlingbox.stateChanged.connect(self.point_handling_clickbox)
 
         # rounding
         self.rounding = False
         self.roundingbox = QCheckBox("Rounding", self)
-        self.roundingbox.move(self.x1 + 5, self.y3 - 10)
+        self.roundingbox.move(self.x3, 65)
         self.roundingbox.resize(200, 40)
         self.roundingbox.stateChanged.connect(self.rounding_clickbox)
 
         # Create a push button for 'info'
         Info_button = QtWidgets.QPushButton(self)
         Info_button.setText("Info")
-        Info_button.setGeometry(620, 10, 90, 30)
+        Info_button.setGeometry(520, 10, 90, 30)
         Info_button.clicked.connect(self.on_click_Info)
 
         # Create a push button to move back to the menu
         back_button = QtWidgets.QPushButton(self)
         back_button.setText("Back")
-        back_button.setGeometry(10, 550, 100, 30)
+        back_button.setGeometry(10, 500, 100, 30)
         back_button.clicked.connect(self.back_button_clicked)
 
         # Create a push button to run the process
         run_button = QtWidgets.QPushButton(self)
         run_button.setText("Run")
-        run_button.setGeometry(140, 550, 350, 30)
+        run_button.setGeometry(140, 500, 450, 30)
         run_button.clicked.connect(self.run_button_clicked)
 
         self.show()
@@ -223,7 +215,9 @@ class ProduceGBFMCorrespondence(QtWidgets.QWidget):
             self.lsoa_shapefile_path.setDisabled(False)
             self.labelpointtol.setDisabled(False)
             self.labeluptol.setDisabled(False)
+            self.uppertolbox.setDisabled(False)
             self.point_zones.setDisabled(False)
+            self.pointtolbox.setDisabled(False)
             
         else:
             self.point_handling = False
@@ -231,9 +225,11 @@ class ProduceGBFMCorrespondence(QtWidgets.QWidget):
             self.lsoa_shapefile_path.setDisabled(True)
             self.labelpointtol.setDisabled(True)
             self.point_zones.setDisabled(True)
+            self.pointtolbox.setDisabled(True)
 
             if not self.rounding:
                 self.labeluptol.setDisabled(True)
+                self.uppertolbox.setDisabled(True)
 
     def rounding_clickbox(self, state):
         """Changes UI display and assigns rounding bool according to
