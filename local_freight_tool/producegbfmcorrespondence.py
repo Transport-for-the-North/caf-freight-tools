@@ -259,7 +259,7 @@ class ProduceGBFMCorrespondence(QtWidgets.QWidget):
             alert.setText("Error: you must specify both shapefiles first")
             alert.show()
         
-        elif self.point_handling & (self.lsoa_data_path == "" | self.lsoa_shapefile_path == ""):
+        elif self.point_handling & ((self.lsoa_data_path.text() == "") | (self.lsoa_shapefile_path.text() == "")):
             alert = QtWidgets.QMessageBox(self)
             alert.setWindowTitle("Zone Correspondence Tool")
             alert.setText("Error: you must specify LSOA shapefile and data \
@@ -312,10 +312,10 @@ class background_thread(QThread):
         self.second_zones_path = ProduceGBFMCorrespondence.second_zones_path.text()
         self.textbox_zone1 = ProduceGBFMCorrespondence.textbox_zone1.text()
         self.textbox_zone2 = ProduceGBFMCorrespondence.textbox_zone2.text()
-        self.lsoa_shapefile_path = ProduceGBFMCorrespondence.lsoa_shapefile_path
+        self.lsoa_shapefile_path = ProduceGBFMCorrespondence.lsoa_shapefile_path.text()
         self.lsoa_data_path = ProduceGBFMCorrespondence.lsoa_data_path.text()
         self.outpath = ProduceGBFMCorrespondence.outpath.text()
-        self.point_zones = ProduceGBFMCorrespondence.point_zones
+        self.point_zones = ProduceGBFMCorrespondence.point_zones.text()
         self.tolerance = (ProduceGBFMCorrespondence.uppertolbox.value()) / 100.0
         self.point_tolerance = (ProduceGBFMCorrespondence.pointtolbox.value()) / 100.0
         self.point_handling = ProduceGBFMCorrespondence.point_handling
@@ -328,9 +328,6 @@ class background_thread(QThread):
         else:
             self.zone1_name = str(self.textbox_zone1)
             self.zone2_name = str(self.textbox_zone2)
-
-        if self.lsoa_data_path == "":
-            self.lsoa_data_path = "U:/Lot3_LFT/Zone_Translation/Import/LSOA Employment/lsoa_employment_2018.csv"
 
         self.progress_label.setText("Applying the zone correspondence process...")
         self.zone_correspondence = zcorr.main_zone_correspondence(
