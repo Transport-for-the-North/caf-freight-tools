@@ -7,7 +7,7 @@ Download [Anaconda](https://www.anaconda.com/products/individual#Downloads).
 ### Create conda environment
 Open Anaconda Prompt, accessible from Start Menu or Windows search. Navigate to directory containing requirements.txt file.  
 
-Create new conda environment with `conda create --name freightenv --file requirements.txt`. Use y to proceed if required.
+Create new conda environment with `conda create -f environment.yml`. Use y to proceed if required.
 
 ## Launching the tool
 Use Anaconda Prompt to navigate to Scripts directory with `cd /d U:\Lot3_LFT\MVP-NoHAM\Scripts`.  
