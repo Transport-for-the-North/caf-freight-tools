@@ -100,7 +100,7 @@ class ProduceGBFMCorrespondence(QtWidgets.QWidget):
             self, self.y2 + self.yspace*5, "Select the LSOA shapefile:"
         )
         self.lsoa_data_path = Utilities.add_file_selection(
-            self, self.y2 + self.yspace*4, "Select the LSOA employment data csv:"
+            self, self.y2 + self.yspace*4, "Select the LSOA data csv:"
         )
 
         # Add file path to point zone list
