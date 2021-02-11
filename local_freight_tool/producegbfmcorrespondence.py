@@ -28,6 +28,7 @@ import zone_correspondence as zcorr
 import textwrap
 import os
 
+
 class ProduceGBFMCorrespondence(QtWidgets.QWidget):
     """Produce GBFM correspodence user interface.
 
@@ -51,7 +52,7 @@ class ProduceGBFMCorrespondence(QtWidgets.QWidget):
 
     def initUI(self):
         """Initialises UI"""
-        self.setGeometry(500, 320, 510+110, 540)
+        self.setGeometry(500, 320, 510 + 110, 540)
         self.setWindowTitle("Zone Correspondence Tool")
         self.setWindowIcon(QtGui.QIcon("icon.jpg"))
 
@@ -97,15 +98,15 @@ class ProduceGBFMCorrespondence(QtWidgets.QWidget):
         # Add file paths to LSOA data
 
         self.lsoa_shapefile_path = Utilities.add_file_selection(
-            self, self.y2 + self.yspace*5, "Select the LSOA shapefile:"
+            self, self.y2 + self.yspace * 5, "Select the LSOA shapefile:"
         )
         self.lsoa_data_path = Utilities.add_file_selection(
-            self, self.y2 + self.yspace*4, "Select the LSOA data csv:"
+            self, self.y2 + self.yspace * 4, "Select the LSOA data csv:"
         )
 
         # Add file path to point zone list
         self.point_zones = Utilities.add_file_selection(
-            self, self.y2 + self.yspace*3, "(Optional) Select point zone csv:"
+            self, self.y2 + self.yspace * 3, "(Optional) Select point zone csv:"
         )
 
         # Disable these boxes until point handling is checked
@@ -116,7 +117,10 @@ class ProduceGBFMCorrespondence(QtWidgets.QWidget):
 
         # Folder path for the outputs
         self.outpath = Utilities.add_file_selection(
-            self, self.y2 + self.yspace*2, "Select the output directory:", directory=True
+            self,
+            self.y2 + self.yspace * 2,
+            "Select the output directory:",
+            directory=True,
         )
 
         self.x3 = 510
@@ -128,7 +132,7 @@ class ProduceGBFMCorrespondence(QtWidgets.QWidget):
             maximum=100,
             minimum=85,
             singleStep=0.5,
-            value=99
+            value=99,
         )
         self.uppertolbox.move(self.x3, 375)
         self.uppertolbox.resize(60, 25)
@@ -145,8 +149,15 @@ class ProduceGBFMCorrespondence(QtWidgets.QWidget):
         self.uppertolbox.setDisabled(True)
 
         # Add numerical input box for point tolerance
-        self.pointtolbox = QDoubleSpinBox(self, suffix="%", decimals=0, maximum=100, minimum=85,
-            singleStep=1, value=95)
+        self.pointtolbox = QDoubleSpinBox(
+            self,
+            suffix="%",
+            decimals=0,
+            maximum=100,
+            minimum=85,
+            singleStep=1,
+            value=95,
+        )
         self.pointtolbox.move(self.x3, 425)
         self.pointtolbox.resize(60, 25)
 
@@ -213,7 +224,7 @@ class ProduceGBFMCorrespondence(QtWidgets.QWidget):
             self.uppertolbox.setDisabled(False)
             self.point_zones.setDisabled(False)
             self.pointtolbox.setDisabled(False)
-            
+
         else:
             self.point_handling = False
             self.lsoa_data_path.setDisabled(True)
@@ -254,40 +265,53 @@ class ProduceGBFMCorrespondence(QtWidgets.QWidget):
         name, lsoa_data_csv = os.path.splitext(self.lsoa_data_path.text())
         name, lsoa_shp = os.path.splitext(self.lsoa_shapefile_path.text())
         name, point_csv = os.path.splitext(self.point_zones.text())
-        
+
         # Error messages when not enough inputs or wrong file types
         if self.first_zones_path.text() == "" or self.second_zones_path.text() == "":
             alert = QtWidgets.QMessageBox(self)
             alert.setWindowTitle("Zone Correspondence Tool")
             alert.setText("Error: you must specify both zone system shapefiles first")
             alert.show()
-        
-        elif (zone_1_shp != '.shp') | (zone_2_shp != '.shp'):
+
+        elif (zone_1_shp != ".shp") | (zone_2_shp != ".shp"):
             alert = QtWidgets.QMessageBox(self)
             alert.setWindowTitle("Zone Correspondence Tool")
-            alert.setText("Error: the zone system shapefiles specified are not .shp files")
+            alert.setText(
+                "Error: the zone system shapefiles specified are not .shp files"
+            )
             alert.show()
-        
+
         elif os.path.isdir(self.outpath.text()) == False:
             alert = QtWidgets.QMessageBox(self)
             alert.setWindowTitle("Zone Correspondence Tool")
             alert.setText("Error: you must specify an output directory")
             alert.show()
-        
-        elif self.point_handling & ((self.lsoa_data_path.text() == "") | (self.lsoa_shapefile_path.text() == "")):
+
+        elif self.point_handling & (
+            (self.lsoa_data_path.text() == "") | (self.lsoa_shapefile_path.text() == "")
+        ):
             alert = QtWidgets.QMessageBox(self)
             alert.setWindowTitle("Zone Correspondence Tool")
-            alert.setText("Error: you must specify LSOA shapefile and data \
-            when point handling is on")
+            alert.setText(
+                "Error: you must specify LSOA shapefile and data \
+            when point handling is on"
+            )
             alert.show()
 
-        elif self.point_handling & ((lsoa_data_csv != '.csv') | (lsoa_shp != '.shp')):
+        elif self.point_handling & ((lsoa_data_csv != ".csv") | (lsoa_shp != ".shp")):
             alert = QtWidgets.QMessageBox(self)
             alert.setWindowTitle("Zone Correspondence Tool")
-            alert.setText("Error: the LSOA zones file specified must be in .shp format, and the LSOA data must be in .csv format.")
+            alert.setText(
+                "Error: the LSOA zones file specified must be in .shp format,\
+                 and the LSOA data must be in .csv format."
+            )
             alert.show()
-        
-        elif self.point_handling & (self.point_zones.text() != "") & (point_csv != '.csv'):
+
+        elif (
+            self.point_handling
+            & (self.point_zones.text() != "")
+            & (point_csv != ".csv")
+        ):
             alert = QtWidgets.QMessageBox(self)
             alert.setWindowTitle("Zone Correspondence Tool")
             alert.setText("Error: the point zone file specified is not a csv.")
@@ -337,6 +361,7 @@ class background_thread(QThread):
     ----------
     QThread
     """
+
     def __init__(self, ProduceGBFMCorrespondence):
         """Initialise class
 
@@ -362,8 +387,7 @@ class background_thread(QThread):
         self.rounding = ProduceGBFMCorrespondence.rounding
 
     def run(self):
-        """Runs zone correspondence
-        """
+        """Runs zone correspondence"""
         if self.textbox_zone1 == "" or self.textbox_zone2 == "":
             self.zone1_name = "gbfm"
             self.zone2_name = "noham"
@@ -371,7 +395,10 @@ class background_thread(QThread):
             self.zone1_name = str(self.textbox_zone1)
             self.zone2_name = str(self.textbox_zone2)
 
-        self.progress_label.setText("Applying the zone correspondence process...")
+        self.progress_label.setText(
+            "Applying the zone correspondence process\
+        ..."
+        )
         self.zone_correspondence = zcorr.main_zone_correspondence(
             self.first_zones_path,
             self.second_zones_path,
@@ -383,7 +410,7 @@ class background_thread(QThread):
             point_handling=self.point_handling,
             lsoa_shapefile_path=self.lsoa_shapefile_path,
             lsoa_data_path=self.lsoa_data_path,
-            rounding=self.rounding
+            rounding=self.rounding,
         )
 
         self.progress_label.setText(
