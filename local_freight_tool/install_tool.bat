@@ -4,13 +4,12 @@ set anaconda_path=%USERPROFILE%\Anaconda3
 set miniconda_path=%USERPROFILE%\Miniconda3
 set anaconda_activate=%anaconda_path%\Scripts\activate.bat
 set miniconda_activate=%miniconda_path%\Scripts\activate.bat
-set env_name=freighttoolenv
-set env_requirements=requirements.txt
+set env_name=freighttool
+set env_file=environment.yml
 set python_script=tc_main_menu.py
 
 
 IF EXIST %anaconda_activate% (
-    set env_path=%anaconda_path%\envs\%env_name%
     set activate=%anaconda_activate%
 ) ELSE (
     IF EXIST %miniconda_activate% (
@@ -27,16 +26,8 @@ IF EXIST %anaconda_activate% (
     )
 )
 
-IF EXIST %env_path% (
-    echo %env_name% environment exists
-) ELSE (
-    echo %env_name% environment doesn't exist.
-    call %activate%
-    echo Creating %env_name%
-    call conda create -y --name %env_name% --file %env_requirements%
-    pause
-)
-
-call %activate% %env_name%
-python %python_script%
+call %activate%
+echo Creating %env_name%
+call conda create -y -f %env_file%
+echo %env_name% created, you may exit this installer and use run_freight_tool.
 pause

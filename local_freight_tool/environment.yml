@@ -1,0 +1,10 @@
+name: freighttool
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - pyqt
+  - openpyxl
+  - pandas
+  - geopandas
+prefix: C:\Users\UKCPL003\Anaconda3\envs\freighttool
