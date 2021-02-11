@@ -129,7 +129,7 @@ def spatial_zone_correspondence(zone_list, zone_names):
     zone_overlay = gpd.overlay(
         zone_list[0], zone_list[1], how="intersection"
     ).reset_index()
-    zone_overlay["intersection_area"] = zone_overlay.area
+    zone_overlay.loc[:, "intersection_area"] = zone_overlay.area
 
     # columns to include in spatial correspondence
     column_list = [f"{zone_names[0]}_zone_id", f"{zone_names[1]}_zone_id"]
@@ -139,11 +139,13 @@ def spatial_zone_correspondence(zone_list, zone_names):
 
     # create geodataframe with spatial adjusted factors
     spatial_correspondence = zone_overlay[column_list]
-    spatial_correspondence[f"{zone_names[0]}_to_{zone_names[1]}"] = (
-        zone_overlay["intersection_area"] / zone_overlay[f"{zone_names[0]}_area"]
+    spatial_correspondence.loc[:, f"{zone_names[0]}_to_{zone_names[1]}"] = (
+        zone_overlay.loc[:, "intersection_area"]
+        / zone_overlay.loc[:, f"{zone_names[0]}_area"]
     )
-    spatial_correspondence[f"{zone_names[1]}_to_{zone_names[0]}"] = (
-        zone_overlay["intersection_area"] / zone_overlay[f"{zone_names[1]}_area"]
+    spatial_correspondence.loc[:, f"{zone_names[1]}_to_{zone_names[0]}"] = (
+        zone_overlay.loc[:, "intersection_area"]
+        / zone_overlay.loc[:, f"{zone_names[1]}_area"]
     )
 
     return spatial_correspondence
@@ -179,8 +181,8 @@ def find_slithers(spatial_correspondence, zone_names, tolerance):
     ) & (
         spatial_correspondence[f"{zone_names[1]}_to_{zone_names[0]}"] < (1 - tolerance)
     )
-    slithers = spatial_correspondence[slither_filter]
-    no_slithers = spatial_correspondence[~slither_filter]
+    slithers = spatial_correspondence.loc[slither_filter]
+    no_slithers = spatial_correspondence.loc[~slither_filter]
 
     return slithers, no_slithers
 
@@ -232,7 +234,7 @@ def remove_minor_point_zone_mappings(point_zone_correspondence, zone_names):
 
     zones_to_remove = duplicated_point_mappings.loc[lesser_zones_cond]
 
-    point_zone_correspondence = point_zone_correspondence[
+    point_zone_correspondence = point_zone_correspondence.loc[
         ~point_zone_correspondence.index.isin(zones_to_remove.index)
     ]
 
@@ -241,7 +243,8 @@ def remove_minor_point_zone_mappings(point_zone_correspondence, zone_names):
 
 def point_zone_filter(
     spatial_correspondence_no_slithers,
-    point_tolerance, point_zones_path,
+    point_tolerance,
+    point_zones_path,
     zone_list,
     zone_names,
     lsoa_shapefile_path,
@@ -292,7 +295,9 @@ def point_zone_filter(
     # if point zone list given, read in and use to find point zone correspondence
     if point_zones_path != "":
         point_list = pd.read_csv(point_zones_path)
-        zone_2_point_zone_filter = spatial_correspondence_no_slithers[f"{zone_names[1]}_zone_id"].isin(point_list.zone_id)
+        zone_2_point_zone_filter = spatial_correspondence_no_slithers[
+            f"{zone_names[1]}_zone_id"
+        ].isin(point_list.zone_id)
     # if no point zone list given, find point zones with point tolerance
     else:
         zone_2_point_zone_filter = (
@@ -303,12 +308,12 @@ def point_zone_filter(
             < (1 - point_tolerance)
         )
 
-    zone_2_point_zones_correspondence = spatial_correspondence_no_slithers[
+    zone_2_point_zones_correspondence = spatial_correspondence_no_slithers.loc[
         zone_2_point_zone_filter
     ]
 
     # remove point zones from spatial correspondence
-    spatial_corr_no_slithers_no_pts = spatial_correspondence_no_slithers[
+    spatial_corr_no_slithers_no_pts = spatial_correspondence_no_slithers.loc[
         ~zone_2_point_zone_filter
     ]
 
@@ -338,15 +343,15 @@ def point_zone_filter(
     point_zones_information = non_spatial_corr[
         [f"{zone_names[0]}_zone_id", f"{zone_names[1]}_zone_id"]
     ]
-    point_zones_information["correspondence"] = "LSOA"
-    point_zones_information["zone_type"] = "non-point"
+    point_zones_information.loc[:, "correspondence"] = "LSOA"
+    point_zones_information.loc[:, "zone_type"] = "non-point"
     point_zones_information.at[
         point_zones_information[f"{zone_names[1]}_zone_id"].isin(
             zone_2_point_zones_correspondence[f"{zone_names[1]}_zone_id"]
         ),
         "zone_type",
     ] = "point"
-    point_zones_information["notes"] = ""
+    point_zones_information.loc[:, "notes"] = ""
 
     point_zones_information = point_zones_information.sort_values(
         by=[f"{zone_names[0]}_zone_id"]
@@ -356,7 +361,7 @@ def point_zone_filter(
     lsoa_zone_data = read_lsoa_data(lsoa_shapefile_path, lsoa_data_path)
 
     # get geodataframe of point zones and point-affected zones
-    pt_adjacent_zones = zone_list[1][
+    pt_adjacent_zones = zone_list[1].loc[
         zone_list[1][f"{zone_names[1]}_zone_id"].isin(
             non_spatial_corr[f"{zone_names[1]}_zone_id"]
         )
@@ -396,30 +401,30 @@ def point_zone_filter(
     # so the correspondence shall have to remain spatial
 
     # find non-point zones mapped to only one LSOA
-    lsoa_non_point_single_mapping = lsoa_zone_2_non_point_corr[
+    lsoa_non_point_single_mapping = lsoa_zone_2_non_point_corr.loc[
         ~lsoa_zone_2_non_point_corr[f"{zone_names[1]}_zone_id"].duplicated(keep=False)
     ]
 
     if not lsoa_non_point_single_mapping.empty:
         # remove zones from lsoa correspondences
-        zones_to_remove = lsoa_non_point_single_mapping[
+        zones_to_remove = lsoa_non_point_single_mapping.loc[
             lsoa_non_point_single_mapping["lsoa_zone_id"].isin(
                 lsoa_zone_2_point_corr["lsoa_zone_id"]
             )
         ]
-        lsoa_zone_2_non_point_corr = lsoa_zone_2_non_point_corr[
+        lsoa_zone_2_non_point_corr = lsoa_zone_2_non_point_corr.loc[
             ~lsoa_zone_2_non_point_corr["lsoa_zone_id"].isin(
                 zones_to_remove["lsoa_zone_id"]
             )
         ]
-        lsoa_zone_2_point_corr = lsoa_zone_2_point_corr[
+        lsoa_zone_2_point_corr = lsoa_zone_2_point_corr.loc[
             ~lsoa_zone_2_point_corr["lsoa_zone_id"].isin(
                 zones_to_remove["lsoa_zone_id"]
             )
         ]
 
         # add zones back to spatial correspondence
-        zone_corr_back_to_spatial = non_spatial_corr[
+        zone_corr_back_to_spatial = non_spatial_corr.loc[
             non_spatial_corr[f"{zone_names[1]}_zone_id"].isin(
                 zones_to_remove[f"{zone_names[1]}_zone_id"]
             )
@@ -442,7 +447,7 @@ def point_zone_filter(
     point_zone_lsoa_filter = ~lsoa_zone_2_non_point_corr["lsoa_zone_id"].isin(
         lsoa_zone_2_point_corr["lsoa_zone_id"]
     )
-    lsoa_zone_2_non_point_corr = lsoa_zone_2_non_point_corr[point_zone_lsoa_filter]
+    lsoa_zone_2_non_point_corr = lsoa_zone_2_non_point_corr.loc[point_zone_lsoa_filter]
 
     # group LSOA var data per zone 2 zone
     non_point_zone_2_var = (
@@ -466,7 +471,8 @@ def point_zone_filter(
 
 def point_zone_handling(
     spatial_correspondence_no_slithers,
-    point_tolerance, point_zones_path,
+    point_tolerance,
+    point_zones_path,
     zone_list,
     zone_names,
     lsoa_shapefile_path,
@@ -522,7 +528,8 @@ def point_zone_handling(
         spatial_corr_no_pts,
     ) = point_zone_filter(
         spatial_correspondence_no_slithers,
-        point_tolerance, point_zones_path,
+        point_tolerance,
+        point_zones_path,
         zone_list,
         zone_names,
         lsoa_shapefile_path,
@@ -538,7 +545,7 @@ def point_zone_handling(
         f"{zone_names[1]}_zone_id"
     ].isin(non_point_zone_2_var.index)
 
-    spatial_corr_pt_adjacent_zones = spatial_correspondence_no_slithers[
+    spatial_corr_pt_adjacent_zones = spatial_correspondence_no_slithers.loc[
         point_zone_corr_filter | non_point_zone_corr_filter
     ]
 
@@ -582,14 +589,14 @@ def point_zone_handling(
         [f"{zone_names[0]}_zone_id", f"{zone_names[1]}_zone_id"]
     ]
 
-    lsoa_zone_corr[f"{zone_names[0]}_to_{zone_names[1]}"] = (
-        all_pt_adjacent_data_merged[f"{zone_names[0]}_to_{zone_names[1]}_sum"]
-        * all_pt_adjacent_data_merged["var"]
-        / all_pt_adjacent_data_merged["var_sum"]
+    lsoa_zone_corr.loc[:, f"{zone_names[0]}_to_{zone_names[1]}"] = (
+        all_pt_adjacent_data_merged.loc[:, f"{zone_names[0]}_to_{zone_names[1]}_sum"]
+        * all_pt_adjacent_data_merged.loc[:, "var"]
+        / all_pt_adjacent_data_merged.loc[:, "var_sum"]
     )
 
     # filter out all zones in lsoa zone correpsondence from the spatial correspondence
-    spatial_corr = spatial_corr_no_pts[
+    spatial_corr = spatial_corr_no_pts.loc[
         ~spatial_corr_no_pts[f"{zone_names[1]}_zone_id"].isin(
             lsoa_zone_corr[f"{zone_names[1]}_zone_id"]
         )
@@ -608,7 +615,6 @@ def point_zone_handling(
     )
 
     return new_zone_corr, point_zones_info
-
 
 
 def round_zone_correspondence(zone_corr_no_slithers, zone_names):
@@ -650,7 +656,7 @@ def round_zone_correspondence(zone_corr_no_slithers, zone_names):
     ] = 1.0
 
     # calculate missing zone 1 to zone 2 adjustments for those that don't have a one to one mapping
-    rest_to_round = zone_corr_rounded[
+    rest_to_round = zone_corr_rounded.loc[
         zone_corr_rounded[f"{zone_names[0]}_zone_id"].isin(
             gbfm_counts[gbfm_counts > 1].index
         )
@@ -665,11 +671,12 @@ def round_zone_correspondence(zone_corr_no_slithers, zone_names):
     )
 
     # add counts to differences
-    differences["counts"] = gbfm_counts[gbfm_counts > 1].astype(int)
+    differences.loc[:, "counts"] = gbfm_counts.loc[gbfm_counts > 1].astype(int)
 
     # calculate portion of adjustment factor to add to each noham zone
-    differences["correction"] = (
-        differences[f"{zone_names[0]}_to_{zone_names[1]}"] / differences["counts"]
+    differences.loc[:, "correction"] = (
+        differences.loc[:, f"{zone_names[0]}_to_{zone_names[1]}"]
+        / differences.loc[:, "counts"]
     )
 
     # add correction to adjustment factor
@@ -680,9 +687,9 @@ def round_zone_correspondence(zone_corr_no_slithers, zone_names):
         right_on=differences.index,
     ).set_index(rest_to_round.index)
 
-    rest_to_round[f"{zone_names[0]}_to_{zone_names[1]}"] = (
-        rest_to_round[f"{zone_names[0]}_to_{zone_names[1]}"]
-        + rest_to_round["correction"]
+    rest_to_round.loc[:, f"{zone_names[0]}_to_{zone_names[1]}"] = (
+        rest_to_round.loc[:, f"{zone_names[0]}_to_{zone_names[1]}"]
+        + rest_to_round.loc[:, "correction"]
     )
 
     rest_to_round = rest_to_round.drop(labels="correction", axis=1)
@@ -857,7 +864,8 @@ def main_zone_correspondence(
             # handle point zones non-spatially
             new_zone_corr, point_zones_info = point_zone_handling(
                 spatial_correspondence_no_slithers,
-                point_tolerance, point_zones_path,
+                point_tolerance,
+                point_zones_path,
                 zone_list,
                 zone_names,
                 lsoa_shapefile_path,
@@ -924,18 +932,19 @@ if __name__ == "__main__":
     noham_path = (
         "C:/WSP_projects/Freight/zone_shapefiles/NoHAM/noham_zones_freeze_2.10.shp"
     )
-    output_dir = (
-        "C:/WSP_projects/Freight/local_freight_tool/Outputs/new_zone_correspondence1"
-    )
+    output_dir = "C:/WSP_projects/Freight/local_freight_tool/Outputs/zone_corr_loc_test"
     lsoa_shapefile_path = "C:/WSP_projects/Freight/zone_shapefiles/LSOA/Lower_Layer_Super_Output_Areas__December_2011__Boundaries_Full_Extent__BFE__EW_V3.shp"
     lsoa_data_path = "C:/WSP_projects/Freight/zone_shapefiles/LSOA Employment/lsoa_employment_2018.csv"
-    point_zone_path = "C:/WSP_projects/Freight/local_freight_tool/Outputs/noham_point_zones.csv"
+    point_zone_path = (
+        "C:/WSP_projects/Freight/local_freight_tool/Outputs/noham_point_zones.csv"
+    )
 
     zone_correspondence = main_zone_correspondence(
         gbfm_path,
         noham_path,
         out_path=output_dir,
-        point_handling=True, point_zones_path=point_zone_path,
+        point_handling=True,
+        point_zones_path=point_zone_path,
         lsoa_shapefile_path=lsoa_shapefile_path,
         lsoa_data_path=lsoa_data_path,
         rounding=True,
