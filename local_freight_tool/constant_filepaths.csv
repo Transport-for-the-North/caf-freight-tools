@@ -1,11 +1,5 @@
 Name,Filepath
 gbfm_nuts,U:/Lot3_LFT/MVP-NoHAM/Inputs/Rigid artic split/NTMv5_NUTS1.txt
 artic_proportions,U:/Lot3_LFT/MVP-NoHAM/Inputs/Rigid artic split/artic_proportions.csv
-localLSOAPopulationsPath,U:/Lot3_LFT/Zone_Translation/Import/LSOA Populations/lsoa__populations_2017.csv
-localMSOAPopulationsPath,U:/Lot3_LFT/Zone_Translation/Import/MSOA Populations/msoa_populations_2011.csv
-localLSOAAllPath,U:/Lot3_LFT/Zone_Translation/Import/LSOA Employment/lsoa_employment_2018.csv
-localLSOACommutePath,U:/Lot3_LFT/Zone_Translation/Import/LSOA Employment/commuteAttractionsLSOA.csv
-localLSOABusinessPath,U:/Lot3_LFT/Zone_Translation/Import/businessAttractionsLSOA.csv
-localLSOAOtherPath,U:/Lot3_LFT/Zone_Translation/Import/otherAttractionsLSOA.csv
 profiles,U:/Lot3_LFT/MVP-NoHAM/Scripts/allprofiles.csv
 ruc_gbfm,U:/Lot3_LFT/MVP-NoHAM/Scripts/gbfm_classed.csv
