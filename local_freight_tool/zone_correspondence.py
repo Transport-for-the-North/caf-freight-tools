@@ -17,7 +17,8 @@ def read_zone_shapefiles(zone_1_path, zone_2_path, zone_1_name, zone_2_name):
     """Reads in zone system shapefiles, sets zone id and area column names,
     sets to same crs.
 
-
+    If the provided shapefiles don't contain CRS information then they're assumed to
+    be "EPSG:27700".
     Parameters
     ----------
     zone_1_path : str
@@ -283,15 +284,15 @@ def point_zone_filter(
 
     Returns
     -------
-    (gpd.GeoDataFrame, gpd.GeoDataFrame, pd.DataFrame, gpd.GeoDataFrame)
-       The first GeoDataFrame is the LSOA data for zones in zone 2 that map to
-       the same zone 1 zone as point zones, the second GeoDataFrame is LSOA
-       data for point zones.
-       The pd.DataFrame contains information on these zones, their zone 1 zone
-       ID, zone 2 zone ID, zone type (point or non-point), correspondence type
-       (LSOA or spatial) and any notes.
-       The last GeoDataFrame is the spatial correspondence initially input,
-       but with point-affected zones filtered out.
+    gpd.GeoDataFrame
+       LSOA data for zones in zone 2 that map to the same zone 1 zone as point zones.
+    gpd.GeoDataFrame
+       LSOA data for point zones.
+    pd.DataFrame
+       Contains information on these zones, their zone 1 zone ID, zone 2 zone ID, zone
+       type (point or non-point), correspondence type (LSOA or spatial) and any notes.
+   gpd.GeoDataFrame
+       The spatial correspondence initially input, but with point-affected zones filtered out.
     """
     # if point zone list given, read in and use to find point zone correspondence
     if point_zones_path != "":
