@@ -82,9 +82,11 @@ def read_lsoa_data(lsoa_shapefile_path, lsoa_data_path):
     Parameters
     ----------
     lsoa_shapefile_path : str
-        Path to LSOA zones shapefile
+        Path to LSOA zones shapefile, which is assumed to have a column named
+        "LSOA11CD" with zone IDs.
     lsoa_data_path : str
-        Path to desired LSOA data to perform point zone handling with
+        Path to desired LSOA data to perform point zone handling with. This
+        file is assumed to be a csv with columns named "lsoa11cd" and "var".
 
     Returns
     -------
