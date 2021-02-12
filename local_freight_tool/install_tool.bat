@@ -28,6 +28,7 @@ IF EXIST %anaconda_activate% (
 
 call %activate%
 echo Creating %env_name%
-call conda create -y -f %env_file%
+call conda env create -f %env_file%
 echo %env_name% created, you may exit this installer and use run_freight_tool.
+echo If an error occurred, consult user guide.
 pause
