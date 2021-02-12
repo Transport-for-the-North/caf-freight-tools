@@ -1,5 +1,5 @@
-# NorMITs-Freight
-Freight tools for model integration.
+# Local Freight Tool
+Freight tools for developing HGV and LGV freight demand matrices for model integration.
 
 ## Installation
 Download [Anaconda](https://www.anaconda.com/products/individual#Downloads).  
@@ -12,7 +12,8 @@ Run `install_tool.bat` by double-clicking on it in the scripts directory. If thi
 - Create new conda environment with `conda env create -f environment.yml`. Use y to proceed if required.
 
 ### Packages required
-If you wish to create your own environment for the tool, the required packages are:
+If you wish to create your own environment for the tool, the required packages are
+(detailed version information can be found in local_freight_tool/environment.yml):
 - PyQT
 - Pandas
 - GeoPandas
