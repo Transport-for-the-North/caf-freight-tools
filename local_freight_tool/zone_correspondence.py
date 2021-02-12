@@ -11,7 +11,6 @@ import geopandas as gpd
 import pandas as pd
 
 # TODO check all docstrings accurate
-# TODO fix .loc issues
 
 
 def read_zone_shapefiles(zone_1_path, zone_2_path, zone_1_name, zone_2_name):
@@ -345,7 +344,7 @@ def point_zone_filter(
     ]
     point_zones_information.loc[:, "correspondence"] = "LSOA"
     point_zones_information.loc[:, "zone_type"] = "non-point"
-    point_zones_information.at[
+    point_zones_information.loc[
         point_zones_information[f"{zone_names[1]}_zone_id"].isin(
             zone_2_point_zones_correspondence[f"{zone_names[1]}_zone_id"]
         ),
@@ -438,8 +437,8 @@ def point_zone_filter(
         removed_zones_filter = point_zones_information[f"{zone_names[1]}_zone_id"].isin(
             zones_to_remove[f"{zone_names[1]}_zone_id"]
         )
-        point_zones_information.at[removed_zones_filter, "correspondence"] = "spatial"
-        point_zones_information.at[
+        point_zones_information.loc[removed_zones_filter, "correspondence"] = "spatial"
+        point_zones_information.loc[
             removed_zones_filter, "notes"
         ] = f"{zone_names[1]} zone and point zone share single LSOA"
 
