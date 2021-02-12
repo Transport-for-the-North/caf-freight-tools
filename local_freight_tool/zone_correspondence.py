@@ -805,37 +805,21 @@ def main_zone_correspondence(
     """
     # create log
     log_data = {
-        "Parameters": [
-            "Zone 1 name",
-            "Zone 2 name",
-            "Zone 1 shapefile",
-            "Zone 2 Shapefile",
-            "Output directory",
-            "Tolerance",
-            "Point handling",
-            "Point list",
-            "Point tolerance",
-            "LSOA data",
-            "LSOA shapefile",
-            "Rounding",
-        ],
-        "Values": [
-            zone_1_name,
-            zone_2_name,
-            zone_1_path,
-            zone_2_path,
-            out_path,
-            tolerance,
-            point_handling,
-            point_zones_path,
-            point_tolerance,
-            lsoa_data_path,
-            lsoa_shapefile_path,
-            rounding,
-        ],
+            "Zone 1 name": zone_1_name,
+            "Zone 2 name": zone_2_name,
+            "Zone 1 shapefile": zone_1_path,
+            "Zone 2 Shapefile": zone_2_path,
+            "Output directory": out_path,
+            "Tolerance": tolerance,
+            "Point handling": point_handling,
+            "Point list": point_zones_path,
+            "Point tolerance": point_tolerance,
+            "LSOA data": lsoa_data_path,
+            "LSOA shapefile": lsoa_shapefile_path,
+            "Rounding": rounding,
     }
 
-    log_df = pd.DataFrame(data=log_data)
+    log_df = pd.DataFrame({"Parameters": log_data.keys(), "Values": log_data.values()})
 
     # read in zone shapefiles
     print("Reading in zone shapefiles")
