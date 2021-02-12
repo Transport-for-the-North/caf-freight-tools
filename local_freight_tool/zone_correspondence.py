@@ -719,8 +719,10 @@ def missing_zones_check(zone_list, zone_names, zone_correspondence):
 
     Returns
     -------
-    pd.DataFrame, pd.DataFrame
-        Zone 1 missing zones and zone 2 missing zones.
+    pd.DataFrame
+        Zone 1 missing zones.
+    pd.DataFrame
+        Zone 2 missing zones.
     """
     missing_zone_1 = zone_list[0].loc[
         ~zone_list[0][f"{zone_names[0]}_zone_id"].isin(
