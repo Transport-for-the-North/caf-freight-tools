@@ -6,7 +6,6 @@ set anaconda_activate=%anaconda_path%\Scripts\activate.bat
 set miniconda_activate=%miniconda_path%\Scripts\activate.bat
 set env_name=freighttool
 set env_file=environment.yml
-set python_script=tc_main_menu.py
 
 
 IF EXIST %anaconda_activate% (
