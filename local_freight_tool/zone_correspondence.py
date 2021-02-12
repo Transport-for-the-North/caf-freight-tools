@@ -66,6 +66,8 @@ def read_zone_shapefiles(zone_1_path, zone_2_path, zone_1_name, zone_2_name):
 
         # set gbfm crs data to same as noham crs data (they should be the
         # same but gbfm data is incomplete)
+        # this does not change the CRS, we are assuming it is already 
+        # ESPG:27700
         if not zone_list[i].crs:
             zone_list[i].crs = "EPSG:27700"
 
