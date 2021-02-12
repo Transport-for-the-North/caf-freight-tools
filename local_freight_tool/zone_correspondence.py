@@ -926,27 +926,3 @@ def main_zone_correspondence(
     print("Zone correspondence finished.")
 
     return final_zone_corr
-
-
-if __name__ == "__main__":
-    gbfm_path = "C:/WSP_projects/Freight/zone_shapefiles/GBFM/Zones.shp"
-    noham_path = (
-        "C:/WSP_projects/Freight/zone_shapefiles/NoHAM/noham_zones_freeze_2.10.shp"
-    )
-    output_dir = "C:/WSP_projects/Freight/local_freight_tool/Outputs/zone_corr_loc_test"
-    lsoa_shapefile_path = "C:/WSP_projects/Freight/zone_shapefiles/LSOA/Lower_Layer_Super_Output_Areas__December_2011__Boundaries_Full_Extent__BFE__EW_V3.shp"
-    lsoa_data_path = "C:/WSP_projects/Freight/zone_shapefiles/LSOA Employment/lsoa_employment_2018.csv"
-    point_zone_path = (
-        "C:/WSP_projects/Freight/local_freight_tool/Outputs/noham_point_zones.csv"
-    )
-
-    zone_correspondence = main_zone_correspondence(
-        gbfm_path,
-        noham_path,
-        out_path=output_dir,
-        point_handling=True,
-        point_zones_path=point_zone_path,
-        lsoa_shapefile_path=lsoa_shapefile_path,
-        lsoa_data_path=lsoa_data_path,
-        rounding=True,
-    )
