@@ -110,7 +110,8 @@ def read_lsoa_data(lsoa_shapefile_path, lsoa_data_path):
 
 def spatial_zone_correspondence(zone_list, zone_names):
     """Finds the spatial zone corrrespondence through calculating adjustment
-    factors with areas only.
+    factors with areas only. LSOA data is assumed to be in a column named 
+    "var".
 
     Parameters
     ----------
@@ -118,9 +119,6 @@ def spatial_zone_correspondence(zone_list, zone_names):
         List of zone 1 and zone 2 GeoDataFrames
     zone_names : List[str, str]
         List of zone names
-    extra_cols : str, optional
-        Names of extra column to include in correspondence data, by default ''
-
 
     Returns
     -------
