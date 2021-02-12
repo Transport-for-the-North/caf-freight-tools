@@ -106,7 +106,7 @@ class ProduceGBFMCorrespondence(QtWidgets.QWidget):
 
         # Add file path to point zone list
         self.point_zones = Utilities.add_file_selection(
-            self, self.y2 + self.yspace * 3, "(Optional) Select point zone csv:"
+            self, self.y2 + self.yspace * 3, "(Optional) Select point zone csv:", filetype="Comma-separated Values (*.csv *.CSV *.txt *.TXT)"
         )
 
         # Disable these boxes until point handling is checked
