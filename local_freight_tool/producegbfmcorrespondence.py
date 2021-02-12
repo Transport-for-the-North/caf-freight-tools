@@ -77,7 +77,7 @@ class ProduceGBFMCorrespondence(QtWidgets.QWidget):
         self.yspace = 60
         self.y2 = self.y1 + 80
         self.first_zones_path = Utilities.add_file_selection(
-            self, self.y2, "Select the first zone system shapefile:"
+            self, self.y2, "Select the first zone system shapefile:", filetype="Shapefile (*.shp *.SHP)"
         )
 
         # Zone 2
@@ -92,7 +92,7 @@ class ProduceGBFMCorrespondence(QtWidgets.QWidget):
         self.textbox_zone2.resize(235, 30)
 
         self.second_zones_path = Utilities.add_file_selection(
-            self, self.y2 + self.yspace, "Select the second zone system shapefile:"
+            self, self.y2 + self.yspace, "Select the second zone system shapefile:", filetype="Shapefile (*.shp *.SHP)"
         )
 
         # Add file paths to LSOA data
