@@ -514,11 +514,12 @@ def point_zone_handling(
 
     Returns
     -------
-    pd.DataFrame, pd.DataFrame
-        First DataFrame is the new zone correspondence with point-handling,
+    pd.DataFrame
+        DataFrame is the new zone correspondence with point-handling,
         with 3 columns, zone 1 zone id, zone 2 zone id and zone 1 to zone 2
         adjustment factor.
-        Second DataFrame is the point zone information DataFrame for the log
+    pd.DataFrame
+        DataFrame is the point zone information DataFrame for the log
         file.
     """
     # get zone 2 point and non-point zone data
