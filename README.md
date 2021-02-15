@@ -1,6 +1,6 @@
 # Local Freight Tool
 
-This tool aims to improve the accuracy of the annual tonnage to local goods vehicle traffic conversion process. It includes processes to produce the zone correspondence between GBFM and NoHAM zones, and apply different operations to O-D trip matrices. There is more information in the tool's [`README`](local_freight_tool\README.md)
+This tool aims to improve the accuracy of the annual tonnage to local goods vehicle traffic conversion process. It includes processes to produce the zone correspondence between GBFM and NoHAM zones, and apply different operations to O-D trip matrices. There is more information in the tool's [`README`](local_freight_tool/README.md)
 
 # WebTRIS Processing
 
