@@ -296,7 +296,11 @@ def point_zone_filter(
     """
     # if point zone list given, read in and use to find point zone correspondence
     if point_zones_path != "":
-        point_list = pd.read_csv(point_zones_path)
+        try:
+            pd.read_csv("point_zones.csv", usecols=["zone_id"])
+        except ValueError as e:
+            loc = str(e).find("columns expected")
+            raise ValueError(f"Point zones file, {str(e)[loc:]}") from e
         zone_2_point_zone_filter = spatial_correspondence_no_slithers[
             f"{zone_names[1]}_zone_id"
         ].isin(point_list.zone_id)
