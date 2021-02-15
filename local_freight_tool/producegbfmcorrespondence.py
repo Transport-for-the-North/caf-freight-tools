@@ -77,7 +77,8 @@ class ProduceGBFMCorrespondence(QtWidgets.QWidget):
         self.yspace = 60
         self.y2 = self.y1 + 80
         self.first_zones_path = Utilities.add_file_selection(
-            self, self.y2, "Select the first zone system shapefile:", filetype="Shapefile (*.shp *.SHP)"
+            self, self.y2, "Select the first zone system shapefile:",
+            filetype="Shapefile (*.shp *.SHP)"
         )
 
         # Zone 2
@@ -92,21 +93,25 @@ class ProduceGBFMCorrespondence(QtWidgets.QWidget):
         self.textbox_zone2.resize(235, 30)
 
         self.second_zones_path = Utilities.add_file_selection(
-            self, self.y2 + self.yspace, "Select the second zone system shapefile:", filetype="Shapefile (*.shp *.SHP)"
+            self, self.y2 + self.yspace, "Select the second zone system shapefile:",
+            filetype="Shapefile (*.shp *.SHP)"
         )
 
         # Add file paths to LSOA data
 
         self.lsoa_shapefile_path = Utilities.add_file_selection(
-            self, self.y2 + self.yspace * 5, "Select the LSOA shapefile:"
+            self, self.y2 + self.yspace * 5, "Select the LSOA shapefile:",
+            filetype="Shapefile (*.shp *.SHP)"
         )
         self.lsoa_data_path = Utilities.add_file_selection(
-            self, self.y2 + self.yspace * 4, "Select the LSOA data csv:"
+            self, self.y2 + self.yspace * 4, "Select the LSOA data csv:",
+            filetype="Comma-separated Values (*.csv *.CSV *.txt *.TXT)"
         )
 
         # Add file path to point zone list
         self.point_zones = Utilities.add_file_selection(
-            self, self.y2 + self.yspace * 3, "(Optional) Select point zone csv:", filetype="Comma-separated Values (*.csv *.CSV *.txt *.TXT)"
+            self, self.y2 + self.yspace * 3, "(Optional) Select point zone csv:",
+            filetype="Comma-separated Values (*.csv *.CSV *.txt *.TXT)"
         )
 
         # Disable these boxes until point handling is checked
@@ -355,7 +360,8 @@ class ProduceGBFMCorrespondence(QtWidgets.QWidget):
 
 
 class background_thread(QThread):
-    """Thread which calls functions from zone_correspondence.main_zone_correspondence.
+    """Thread which calls functions from 
+    zone_correspondence.main_zone_correspondence.
 
     Parameters
     ----------
