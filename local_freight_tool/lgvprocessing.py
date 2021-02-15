@@ -30,6 +30,7 @@ from text_info import LGV_Processing_Text
 import os
 import textwrap
 import pandas as pd
+
 class LGVProcessing(QtWidgets.QWidget):
     
     def __init__(self, tier_converter):
@@ -179,6 +180,11 @@ class LGVProcessing(QtWidgets.QWidget):
             alert.setWindowTitle('LGV Apply Global Factors')
             alert.setText('Error: you must specify both file paths first')
             alert.show()
+        elif (self.textbox_Freight == '' or self.textbox_NonFreight== ''):        
+            alert = QtWidgets.QMessageBox(self)
+            alert.setWindowTitle('LGV Apply Global Factors')
+            alert.setText('Error: you must specify both factors first')
+            alert.show()
         else:
             # Start a progress window
             self.progress = progress_window('Applying Global Factors Tool')
@@ -195,6 +201,7 @@ class LGVProcessing(QtWidgets.QWidget):
             alert.setWindowTitle('LGV Aggregation')
             alert.setText('Error: you must specify both file paths first')
             alert.show()
+            
         else:
             # Start a progress window
             self.progress = progress_window('Applying Global Factors Tool')
@@ -222,23 +229,17 @@ class background_thread(QThread):
         df2 = Utilities.read_csv(self.gbfm_LGV_Non_Freight)    
         df.columns = ['origin', 'destination', 'Trips']
         df2.columns = ['origin', 'destination', 'Trips']
-        self.progress_label.setText('Applying the global factors to the matrices...') 
-        if (self.textbox_Freight == '' or self.textbox_NonFreight== ''):        
-            alert = QtWidgets.QMessageBox(self)
-            alert.setWindowTitle('LGV Apply Global Factors')
-            alert.setText('Error: you must specify both factors first')
-            alert.show()
-        else:              
-            Freight = float(self.textbox_Freight)   
-            Non_Freight = float(self.textbox_NonFreight)
-            df["Trips"] = Freight * df["Trips"]                
-            df2["Trips"] = Non_Freight * df2["Trips"]
-            print(df)
-            print(df2)
-            dir = os.getcwd()
-            self.progress_label.setText('Saving the factored matrices to file...') 
-            df.to_csv(dir + '/Output_Freight_Global_Factor_Applied.csv', index=False)    
-            df2.to_csv(dir + '/Output_Non_Freight_Global_Factor_Applied.csv', index=False)    
+        self.progress_label.setText('Applying the global factors to the matrices...')              
+        Freight = float(self.textbox_Freight)   
+        Non_Freight = float(self.textbox_NonFreight)
+        df["Trips"] = Freight * df["Trips"]                
+        df2["Trips"] = Non_Freight * df2["Trips"]
+        print(df)
+        print(df2)
+        dir = os.getcwd()
+        self.progress_label.setText('Saving the factored matrices to file...') 
+        df.to_csv(dir + '/Output_Freight_Global_Factor_Applied.csv', index=False)    
+        df2.to_csv(dir + '/Output_Non_Freight_Global_Factor_Applied.csv', index=False)    
         self.progress_label.setText('Applying Global Factors process complete. You may exit the program.')          
                 
          

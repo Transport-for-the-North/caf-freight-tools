@@ -39,8 +39,8 @@ class Utilities(QtWidgets.QWidget):
         else:
             event.ignore()
             
-            
-    def add_file_selection(self, y_position, label_txt, multiple_files=False, directory=False):
+    # TODO: check file extension, default filepaths        
+    def add_file_selection(self, y_position, label_txt, multiple_files=False, directory=False, filetype=None):
         def browse_file():
             if directory == True:
                 selected_file = QtWidgets.QFileDialog(self).getExistingDirectory(self, label_txt)
@@ -48,10 +48,10 @@ class Utilities(QtWidgets.QWidget):
                 if multiple_files == True: # for multiple files, separate with ' % '
                     file_dialog = QtWidgets.QFileDialog(self)
                     file_dialog.setFileMode(QtWidgets.QFileDialog.ExistingFiles)
-                    selected_file, _ = file_dialog.getOpenFileNames(self, label_txt)
+                    selected_file, _ = file_dialog.getOpenFileNames(self, label_txt, "./", filetype)
                     selected_file = ' % '.join(selected_file)
                 else:
-                    selected_file, _ = QtWidgets.QFileDialog(self).getOpenFileName(self, label_txt)
+                    selected_file, _ = QtWidgets.QFileDialog(self).getOpenFileName(self, label_txt, "./", filetype)
                 
             # Update text box
             file_path.setText(selected_file)

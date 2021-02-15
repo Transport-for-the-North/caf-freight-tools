@@ -222,7 +222,7 @@ class set_tp_selections(QtWidgets.QWidget):
          self.progress = info_window('GBFM to Model PCU')   
          self.progress_label = self.progress.label
          dedented_text = textwrap.dedent(GBFM2ModelPCU_Text).strip()          
-         line= textwrap.fill(dedented_text, width=140)
+         line = textwrap.fill(dedented_text, width=140)
          self.progress_label.setText(line)      
          self.progress.show()
          
@@ -252,19 +252,3 @@ class background_thread(QThread):
                                self.log_name,
                                self.message_box,
                                self.path)
-                
-    @pyqtSlot()
-    def on_click_Info(self):
-         self.progress = info_window('GBFM to Model PCU')   
-         self.progress_label = self.progress.label
-         self.progress_labelA = self.progress.labelA
-         dedented_text = textwrap.dedent(GBFM2ModelPCU_Text).strip()          
-         line= textwrap.fill(dedented_text, width=140)
-         self.progress_label.setText(line)     
-         self.progress_label.move(10,40)
-         self.progress_labelA.setText('GBFM Annual PCU to Model Time Period PCU Tool')  
-         self.progress_labelA.setFont(QtGui.QFont("Arial", 10, QtGui.QFont.Bold))
-         self.progress.show()
-         
-         def closeEvent(self, event):
-             Utilities.closeEvent(self, event)

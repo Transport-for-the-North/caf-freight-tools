@@ -1,27 +1,6 @@
-# NorMITs-Freight
-Freight tools for model integration.
+# Local Freight Tool
 
-## Installation
-Download [Anaconda](https://www.anaconda.com/products/individual#Downloads).  
-
-### Create conda environment
-Open Anaconda Prompt, accessible from Start Menu or Windows search. Navigate to directory containing requirements.txt file.  
-
-Create new conda environment with `conda create --name freightenv --file requirements.txt`. Use y to proceed if required.
-
-## Launching the tool
-Use Anaconda Prompt to navigate to Scripts directory with `cd /d U:\Lot3_LFT\MVP-NoHAM\Scripts`.  
-
-Activate the conda environment using `conda activate freightenv`.  
-
-Launch the menu using `python tc_main_meny.py`.  
-
-Tip: start writing the file name and press tab, the command prompt will autocomplete it for you.
-
-## Resources
-
-[Command Prompt Cheatsheet](http://www.cs.columbia.edu/~sedwards/classes/2017/1102-spring/Command%20Prompt%20Cheatsheet.pdf)
-
+This tool aims to improve the accuracy of the annual tonnage to local goods vehicle traffic conversion process. It includes processes to produce the zone correspondence between GBFM and NoHAM zones, and apply different operations to O-D trip matrices. There is more information in the tool's [`README`](local_freight_tool\README.md)
 
 # WebTRIS Processing
 
@@ -97,3 +76,4 @@ We use [SemVer](http://semver.org/) for versioning.
 
 * **Michael Addyman** - *Initial work* - *Atkins*
 * **Alex Harrison** - *Further development* - *Atkins*
+* **Cara Lynch** - *Further development* - *WSP*
