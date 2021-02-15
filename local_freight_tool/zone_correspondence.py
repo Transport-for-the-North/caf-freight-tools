@@ -297,7 +297,7 @@ def point_zone_filter(
     # if point zone list given, read in and use to find point zone correspondence
     if point_zones_path != "":
         try:
-            pd.read_csv("point_zones.csv", usecols=["zone_id"])
+            point_list = pd.read_csv(point_zones_path, usecols=["zone_id"])
         except ValueError as e:
             loc = str(e).find("columns expected")
             raise ValueError(f"Point zones file, {str(e)[loc:]}") from e
