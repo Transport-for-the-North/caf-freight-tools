@@ -95,11 +95,40 @@ class ODMatrix:
         return matrix
     
     def scalar_factor(self, factor):
+        """Apply a scalar factor to every element of a matrix.
+        This does not update the matrix itself, but creates a new ODMatrix
+        instance.
+
+        Parameters
+        ----------
+        factor : float
+            Factor to multiply each element of the matrix by.
+
+        Returns
+        -------
+        ODMatrix.Object
+            New factored instance of the ODMatrix Class
+        """
         factored = self.pivoted_matrix * factor
         return self(factored)
     
     @classmethod
     def matrix_addition(cls, matrix_1, matrix_2):
+        """Add two ODMatrix objects, element-wise. This first aligns the
+        matrices then sums them.
+
+        Parameters
+        ----------
+        matrix_1 : ODMatrix.Object
+            First matrix instance
+        matrix_2 : ODMatrix.Object
+            Second matrix instance
+
+        Returns
+        -------
+        ODMatrix.Object
+            Sum of input matrices
+        """
         matrix_1_aligned, matrix_2_aligned = cls.align(matrix_1, matrix_2)
         sum = matrix_1_aligned + matrix_2_aligned
 
@@ -107,6 +136,20 @@ class ODMatrix:
     
     @classmethod
     def matrix_factoring(cls, matrix_1, matrix_2):
+        """Factor two matrices element-wise.
+
+        Parameters
+        ----------
+        matrix_1 : ODMatrix.Object
+            First matrix instance
+        matrix_2 : ODMatrix.Object
+            Second matrix instance
+
+        Returns
+        -------
+        ODMatrix.Object
+            Factored matrix instance
+        """
         matrix_1_aligned, matrix_2_aligned = cls.align(matrix_1, matrix_2)
         factored = matrix_1_aligned*matrix_2_aligned
 
@@ -114,6 +157,23 @@ class ODMatrix:
 
     @staticmethod
     def align(matrix_1, matrix_2):
+        """Aligns the pivot dataframes of two ODMatrix instances via an outer
+        join.
+
+        Parameters
+        ----------
+        matrix_1 : ODMatrix.Object
+            First matrix instance
+        matrix_2 : ODMatrix.Object
+            Second matrix instance
+
+        Returns
+        -------
+        pd.DataFrame
+            Aligned version of matrix_1's pivoted DataFrame
+        pd.DataFrame
+            Aligned version of matrix_2's pivoted DataFrame
+        """
         return matrix_1.pivoted_matrix.align(matrix_2.pivoted_matrix, join='outer', fill_value = 0)
 
     @staticmethod
