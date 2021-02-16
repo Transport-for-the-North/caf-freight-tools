@@ -19,7 +19,7 @@ from PyQt5.QtCore import pyqtSlot
 # User-defined imports
 from profile_builder import Profile_Builder
 from annualtonne2pcu import AnnualTonne2PCU
-from matrixprocessing import MatrixProcessing
+from matrix_utilities_ui import MatrixUtilities
 from gbfm2modelpcu import GBFM2ModelPCU
 from lgvprocessing import LGVProcessing
 from producegbfmcorrespondence import ProduceGBFMCorrespondence 
@@ -105,9 +105,9 @@ class tier_converter(QtWidgets.QWidget):
         next_button.clicked.connect(self.on_click_Model2GBFMPCU)   
          
         next_button = QtWidgets.QPushButton(self)
-        next_button.setText('5: Matrix Factoring')
+        next_button.setText('4: Matrix Utilities')
         next_button.setGeometry(10, 370, 480, 30)
-        next_button.clicked.connect(self.on_click_MatrixProcessing)   
+        next_button.clicked.connect(self.on_click_MatrixUtilities)   
 
         next_button = QtWidgets.QPushButton(self)
         next_button.setText('6: Delta Process')
@@ -168,8 +168,8 @@ class tier_converter(QtWidgets.QWidget):
         self.selections_window.show()
         
     @pyqtSlot()
-    def on_click_MatrixProcessing(self):
-        self.selections_window = MatrixProcessing(self)
+    def on_click_MatrixUtilities(self):
+        self.selections_window = MatrixUtilities(self)
         self.selections_window.show()
         
     @pyqtSlot()
