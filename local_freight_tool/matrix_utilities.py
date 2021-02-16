@@ -131,26 +131,6 @@ class ODMatrix:
             column_matrix = column_matrix[column_matrix.trips != 0]
         return column_matrix
 
-    
-    def scalar_factor(self, factor):
-        """Apply a scalar factor to every element of a matrix.
-        This does not update the matrix itself, but creates a new ODMatrix
-        instance.
-
-        Parameters
-        ----------
-        factor : float
-            Factor to multiply each element of the matrix by.
-
-        Returns
-        -------
-        ODMatrix.Object
-            New factored instance of the ODMatrix Class
-        """
-        factored = self.matrix * factor
-        factored_od_matrix = ODMatrix(factored)
-        return factored_od_matrix
-
     def fill_missing_zones(self, missing_zones):
         """Updates OD matrix to include missing zones. Missing zone values are
         set to 0.
