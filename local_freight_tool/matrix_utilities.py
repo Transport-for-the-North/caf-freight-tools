@@ -146,15 +146,18 @@ class ODMatrix:
             Updated ODMatrix with missing zones included
         """
         # check if zones given as list or DataFrame
-        if type(missing_zones) == pd.DataFrame:
-            missing_zones = list(missing_zones[0])
+        if type(missing_zones) != list:
+            try:
+                missing_zones = list(missing_zones[0])
+            except:
+                raise TypeError('Missing zones are not a list or pandas dataframe')
         
         # check that the zones are missing, if there are any that appear in
         # the matrix, remove them from the missing zones list
-        shared_zones = self.matrix[self.matrix.index.isin(missing_zones)]
+        shared_zones = self.matrix.loc[self.matrix.index.isin(missing_zones)].index
         if len(shared_zones) > 0:
-            missing_zones = missing_zones.remove(shared_zones.index)
-
+            missing_zones.remove(shared_zones)
+        
         # add 0 value columns and rows to matrix 
         columns_to_add = pd.DataFrame(0, index=self.matrix.index, columns=missing_zones)
         self.matrix = pd.concat([self.matrix, columns_to_add], axis=1, join='outer')
@@ -162,9 +165,10 @@ class ODMatrix:
         self.matrix = pd.concat([self.matrix, rows_to_add], axis=0, join='outer')
 
         return self
+        
 
     def remove_external_trips(self, external_zones):
-        """Sets external-external trips to 0. Returns a new O-D matrix.
+        """Updates the O-D matrix. Sets external-external trips to 0.
 
         Parameters
         ----------
@@ -174,21 +178,24 @@ class ODMatrix:
         Returns
         -------
         ODMatrix
-            New ODMatrix with the external-external trips set to 0.
+            ODMatrix with the external-external trips set to 0.
         """
         # check if zones given as list or DataFrame
-        if type(external_zones) == pd.DataFrame:
-            external_zones = list(external_zones[0])
+        if type(external_zones) != list:
+            try:
+                external_zones = list(external_zones[0])
+            except:
+                raise TypeError('External zones are not a list or a pandas dataframe.')
         
         # only set trips to 0 for zones that are already in the matrix
-        shared_zones = self.matrix[self.matrix.index.isin(external_zones)]
-        external_zones = list(shared_zones.index)
+        shared_zones = self.matrix.loc[self.matrix.index.isin(external_zones)].index
+        external_zones = list(shared_zones)
 
         # set external-external trip values to 0
-        ee_trips_removed = self.matrix.loc[external_zones, external_zones]
+        self.matrix.loc[external_zones, external_zones] = 0
 
-        return ODMatrix(ee_trips_removed)
-
+        return self
+        
     def export_to_csv(self, filepath, include_zeros=True):
         """Export column matrix to csv file
 
