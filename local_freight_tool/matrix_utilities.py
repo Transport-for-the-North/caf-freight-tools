@@ -11,17 +11,19 @@ missing zones, removing external-external trips, and converting to UFM.
 
 """
 
-# TODO add convert to UFM
+# TODO add convert to UFM - check MX.bat exists in SATURN EXES folder, add CSV_2_UFM_KEY, update_env() and csv_to_ufm
 # TODO add rezoning
-# TODO add main function to call?
+# TODO add summary - total, mean, stdev, number of 0 cells, number of nans
 
 import pandas as pd
+import os
+import subprocess as sp
 
 class ODMatrix:
     """O-D matrix class for creating O-D matrix objects and performing
     operations with them.
     """
-    def __init__(self, dataframe, pivoted=True):
+    def __init__(self, dataframe, name=None, pivoted=True):
         """Intialises an O-D matrix object from a pandas dataframe, creating
         both column and pivoted matrices.
 
@@ -32,10 +34,13 @@ class ODMatrix:
             'trips' if pivoted is false, otherwise with origins as the row
             indices, destinations as the column name and trips as the values
             if pivoted is true.
+        name: str, optional
+            Name of matrix, default None
         pivoted : bool, optional
             Indicates whether the input dataframe is a column matrix or
             pivoted matrix, by default True
         """
+        self.name = name
         if not pivoted:
             # create pivoted version of dataframe
             self.matrix = dataframe.pivot_table(index='origin', columns='destination', values='trips', fill_value=0)
@@ -51,7 +56,7 @@ class ODMatrix:
             string representation of column matrix with columns 'origin',
             'destination' and 'trips,
         """
-        return f'{self.column_matrix()}'
+        return f'{self.name}\n{self.column_matrix()}'
 
     def __repr__(self):
         """Sets the pivoted matrix as the representation of the OD matrix.
@@ -81,8 +86,9 @@ class ODMatrix:
         """
         matrix_1_aligned, matrix_2_aligned = self.align(self, other_matrix)
         sum = matrix_1_aligned + matrix_2_aligned
+        name = f'{self.name}_add_{other_matrix.name}'
 
-        return ODMatrix(sum)
+        return ODMatrix(sum, name=name)
     
     def __sub__(self, other_matrix):
         """Subract a matrix from the current matrix instance, element-wise. This first aligns the
@@ -102,19 +108,50 @@ class ODMatrix:
         """
         matrix_1_aligned, matrix_2_aligned = self.align(self, other_matrix)
         subtracted = matrix_1_aligned - matrix_2_aligned
+        name = f'{self.name}_sub_{other_matrix.name}'
 
-        return ODMatrix(subtracted)
+        return ODMatrix(subtracted, name=name)
     
     def __mul__(self, factor):
         if (type(factor) == int) | (type(factor) == float):
             factored = self.matrix * factor
+            name = f"{self.name}_by_{factor}"
         elif type(factor) == ODMatrix:
             matrix_1_aligned, matrix_2_aligned = ODMatrix.align(self, factor)
             factored = matrix_1_aligned*matrix_2_aligned
+            name = f"{self.name}_by_{factor.name}"
         else:
             raise TypeError('Can only multiply an O-D matrix by a scalar or another O-D matrix')
         
-        return ODMatrix(factored)
+        return ODMatrix(factored, name=name)
+    
+    def summary(self):
+        """Calculates total number of trips, the mean, standard deviation,
+        number of 0 counts and number of NaNs in the ODMatrix. Returns a
+        dictionary.
+
+        Returns
+        -------
+        dict
+            dictionary with 'Total', 'Mean', 'Standard deviation', '0 count'
+            and 'NaN count' of the O-D trip matrix.
+        """
+        column_matrix = self.column_matrix()
+        total = column_matrix.trips.sum()
+        mean = column_matrix.trips.mean()
+        standard_dev = column_matrix.trips.std()
+        zero_count = (column_matrix.trips == 0).sum()
+        null_counts = column_matrix.trips.isna().sum()
+        summary = {
+            'Total': total,
+            'Mean': mean,
+            'Standard deviation': standard_dev,
+            '0 count': zero_count,
+            'NaN count': null_counts
+        }
+        
+        return summary
+                
     
     def column_matrix(self, include_zeros=True):
         """Transforms the matrix of the ODMatrix instance into a 3 column 
@@ -173,7 +210,7 @@ class ODMatrix:
         Parameters
         ----------
         external_zones : list or pd.DataFrane
-            List or 1 column DataFrame of external zones
+            List or 1 column DataFrame of external zones with header ext_zones
 
         Returns
         -------
@@ -183,7 +220,7 @@ class ODMatrix:
         # check if zones given as list or DataFrame
         if type(external_zones) != list:
             try:
-                external_zones = list(external_zones[0])
+                external_zones = list(external_zones.ext_zones)
             except:
                 raise TypeError('External zones are not a list or a pandas dataframe.')
         
@@ -196,7 +233,7 @@ class ODMatrix:
 
         return self
         
-    def export_to_csv(self, filepath, include_zeros=True):
+    def export_to_csv(self, filepath, include_zeros=True, include_headers=True):
         """Export column matrix to csv file
 
         Parameters
@@ -207,7 +244,7 @@ class ODMatrix:
             Whether to include zero-value trips, by default True
         """
         column_matrix = self.column_matrix(include_zeros=include_zeros)
-        column_matrix.to_csv(filepath, index=False)
+        column_matrix.to_csv(filepath, header=include_headers, index=False)
 
     @classmethod
     def read_OD_file(cls, filepath):
@@ -227,7 +264,8 @@ class ODMatrix:
         """
         whitespace, header_row = cls.check_file_header(filepath)
         matrix_dataframe = pd.read_csv(filepath, delim_whitespace=whitespace, header=header_row, names=['origin', 'destination', 'trips'], usecols=[0, 1, 2])
-        matrix = cls(matrix_dataframe, pivoted=False)
+        name = os.path.basename(os.path.splitext(filepath)[0])
+        matrix = cls(matrix_dataframe, name, pivoted=False)
         return matrix
 
     @staticmethod
@@ -251,10 +289,100 @@ class ODMatrix:
         """
         return matrix_1.matrix.align(matrix_2.matrix, join='outer', fill_value = 0)
 
+    def export_to_ufm(self, saturn_exes_path, outpath):
+        """Export ODMatrix as UFM using TBA22UFM.
+
+        Parameters
+        ----------
+        saturn_exes_path: str
+            Path to SATURN EXES folder.
+        outpath:
+            Path to folder to save UFM to.
+
+        Returns
+        -------
+        out_mat: str
+            Path to output file
+        
+        Raises
+        ------
+        FileNotFoundError
+            If the UFM file isn't created correctly.
+        """
+
+        CSV_2_UFM_KEY = """\
+            1
+        {csv_file}
+            2
+            7
+            1
+            14
+            1
+        {ufm_file}
+        {mat_nm}
+            0
+            0
+        y
+        """
+
+        def update_env(saturn_exes_path):
+            """Creates a copy of environment variables and adds SATURN path.
+
+            Parameters
+            ----------
+            saturn_exes_path : str
+                Path to SATURN exes folder.
+
+            Returns
+            -------
+            saturn_env:
+                Updated environment variables.
+            """
+            new_env = os.environ.copy()
+            sat_paths = f"{saturn_exes_path};{saturn_exes_path}/BATS;"
+            new_env["PATH"] = sat_paths + new_env["PATH"]
+            return new_env
+        
+        # export matrix as csv in TUBA2 format
+        temp_filepath = f"{outpath}/temp_matrix.csv"
+        self.export_to_csv(temp_filepath, include_headers=False)
+
+        # write SATURN MX key file
+        out_mat = f"{outpath}/{self.name}.UFM"
+        key_path = f"{outpath}/MX_KEY.KEY"
+        with open(key_path, 'wt') as f:
+            f.write(CSV_2_UFM_KEY.format(
+                csv_file=temp_filepath,
+                ufm_file=out_mat,
+                mat_nm=self.name,
+            ))
+        
+        # Run saturn batch file to convert to ufm
+        sp.run(["call", "MX", "I", "KEY", key_path, "VDU", self.name],
+            env=update_env(),
+            check=True,
+            shell=True,
+            stdout=sp.DEVNULL,
+        )
+
+        # check created ufm exists and remove temp csv and key file
+        if not os.path.isfile(out_mat):
+            raise FileNotFoundError(f"{out_mat} was not created successfully")
+        os.remove(temp_filepath)
+        os.remove(key_path)
+
+        return out_mat
+
+
+
+    
     @staticmethod
     def check_file_header(filepath):
+        # TODO add to utilities
         """Checks whether the O-D matrix input file is delimited by commas or
         tabs, and whether there is a header row or not.
+        A header row is checked for based on whether the first element can be
+        converted to an integer.
 
         Parameters
         ----------
