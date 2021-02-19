@@ -37,8 +37,9 @@ def read_zone_shapefiles(zone_1_path, zone_2_path, zone_1_name, zone_2_name):
         the zones
     """
     # zone column lookups
-    gbfm_lookup = {"ID": "zone_id"}
-    noham_lookup = {"zone_id": "empty", "unique_id": "zone_id"}
+    OLD_GBFM_LOOKUP = {"ID": "zone_id"}
+    NEW_GBFM_LOOKUP = {"UniqueID": "zone_id"}
+    NOHAM_LOOKUP = {"zone_id": "empty", "unique_id": "zone_id"}
 
     # create geodataframes from zone shapefiles
     zone_1 = gpd.read_file(zone_1_path)
@@ -51,12 +52,15 @@ def read_zone_shapefiles(zone_1_path, zone_2_path, zone_1_name, zone_2_name):
     # rename zone number columns, add area column, complete crs data
     for i in range(2):
 
-        if "ID" in zone_list[i].columns:
+        if "UniqueID" in zone_list[i].columns:
             # this uses GBFM zone ID column name
-            zone_list[i] = zone_list[i].rename(columns=gbfm_lookup)
+            zone_list[i] = zone_list[i].rename(columns=NEW_GBFM_LOOKUP)
+        elif "ID" in zone_list[i].columns:
+            # this uses GBFM zone ID column name
+            zone_list[i] = zone_list[i].rename(columns=OLD_GBFM_LOOKUP)
         elif "unique_id" in zone_list[i].columns:
             # this uses NoHAM zone ID column name
-            zone_list[i] = zone_list[i].rename(columns=noham_lookup)
+            zone_list[i] = zone_list[i].rename(columns=NOHAM_LOOKUP)
         else:
             print("no lookup for this zone system, need to know column names")
 
