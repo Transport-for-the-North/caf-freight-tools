@@ -402,10 +402,10 @@ class background_thread(QThread):
             self.zone2_name = str(self.textbox_zone2)
 
         self.progress_label.setText(
-            "Applying the zone correspondence process\
-        ..."
+            "Applying the zone correspondence process..."
         )
-        self.zone_correspondence = zcorr.main_zone_correspondence(
+
+        log_file, zone_1_missing, zone_2_missing = zcorr.main_zone_correspondence(
             self.first_zones_path,
             self.second_zones_path,
             zone_1_name=self.zone1_name,
@@ -419,6 +419,5 @@ class background_thread(QThread):
             rounding=self.rounding,
         )
 
-        self.progress_label.setText(
-            "Zone correspondence process complete. You may exit the program."
-        )
+        self.progress_label.setText(f"Zone correspondence complete. There are {zone_1_missing} unmatched {self.zone1_name} zones and {zone_2_missing} unmatched {self.zone2_name} zones.\nCheck {log_file}. You may now exit the tool.")
+        

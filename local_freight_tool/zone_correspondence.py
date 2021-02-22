@@ -807,10 +807,14 @@ def main_zone_correspondence(
 
     Returns
     -------
-    pd.DataFrame
-        Zone correspondence dataFrame with 3 columns, {zone_1_name}_zone_id,
-        {zone_2_name}_zone_id and {zone_1_name}_to_{zone_2_name} adjustment
-        factor.
+    log_file: str
+        Path to log file with parameters and missing zones sheet.
+    len(missing_zones_1): int
+        Number of zones from first zoning system missing from the final zone
+        correspondence.
+    len(missing_zones_2): int
+        Number of zones from the second zoning system missing from the final
+        zone correspondence.
     """
     # create log
     log_data = {
@@ -921,4 +925,4 @@ def main_zone_correspondence(
 
     print("Zone correspondence finished.")
 
-    return final_zone_corr
+    return log_file, len(missing_zones_1.index), len(missing_zones_2.index)
