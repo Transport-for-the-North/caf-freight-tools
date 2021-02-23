@@ -13,12 +13,17 @@ missing zones, removing external-external trips, and converting to UFM.
 
 # TODO add convert to UFM - check MX.bat exists in SATURN EXES folder, add CSV_2_UFM_KEY, update_env() and csv_to_ufm
 # TODO add rezoning
-# TODO add summary - total, mean, stdev, number of 0 cells, number of nans
 
-import pandas as pd
+##### IMPORTS #####
+# Standard imports
 import os
 import subprocess as sp
+from pathlib import Path
 
+# Third party imports
+import pandas as pd
+
+##### CLASS #####
 class ODMatrix:
     """O-D matrix class for creating O-D matrix objects and performing
     operations with them.
@@ -246,6 +251,114 @@ class ODMatrix:
         column_matrix = self.column_matrix(include_zeros=include_zeros)
         column_matrix.to_csv(filepath, header=include_headers, index=False)
 
+    def export_to_ufm(self, saturn_exes_path, outpath):
+        """Export ODMatrix as UFM using TBA22UFM.
+
+        Parameters
+        ----------
+        saturn_exes_path: str
+            Path to SATURN EXES folder.
+        outpath:
+            Path to folder to save UFM to.
+
+        Returns
+        -------
+        out_mat: str
+            Path to output file
+        
+        Raises
+        ------
+        FileNotFoundError
+            If the UFM file isn't created correctly.
+        """
+        CSV_2_UFM_KEY = (
+            "    1\n"
+            "{csv_file}\n"
+            "    2\n"
+            "    7\n"
+            "    1\n"
+            "    14\n"
+            "    1\n"
+            "{ufm_file}\n"
+            "{mat_nm}\n"
+            "    0\n"
+            "    0\n"
+            "y"
+            )
+
+        def update_env(saturn_exes_path):
+            """Creates a copy of environment variables and adds SATURN path.
+
+            Parameters
+            ----------
+            saturn_exes_path : str
+                Path to SATURN exes folder.
+
+            Returns
+            -------
+            saturn_env:
+                Updated environment variables.
+            """
+            new_env = os.environ.copy()
+            sat_paths = fr"{saturn_exes_path};{saturn_exes_path}\BATS;"
+            new_env["PATH"] = sat_paths + new_env["PATH"]
+            return new_env
+        
+        # turn input strings into paths
+        saturn_exes_path = Path(saturn_exes_path)
+        outpath = Path(outpath)
+        mx_bat_path = saturn_exes_path.joinpath("MX.BAT")
+        
+        if not mx_bat_path.exists():
+            raise FileNotFoundError(f"{saturn_exes_path} does not contain MX.BAT")
+
+        # export matrix as csv in TUBA2 format
+        temp_filepath = outpath.joinpath("temp_matrix.csv")
+        print(f"temp csv: {temp_filepath}")
+        self.export_to_csv(temp_filepath, include_headers=False)
+
+        # if the matrix has no name, assign a name
+        if not self.name:
+            self.name = f"{outpath.stem}_odmatrix"
+
+        # write SATURN MX key file
+        out_mat = outpath.joinpath(f"{self.name}.UFM")
+        key_path = outpath.joinpath("MX_KEY.KEY")
+        vdu_path = outpath.joinpath(f"{self.name}_VDU")
+
+        with open(key_path, 'wt') as f:
+            f.write(CSV_2_UFM_KEY.format(
+                csv_file=temp_filepath.resolve(),
+                ufm_file=out_mat.resolve(),
+                mat_nm=self.name,
+            ))
+        
+        # Run saturn batch file to convert to ufm
+        sp.run(["call", "MX", "I", "KEY", str(key_path), "VDU", str(vdu_path)],
+            env=update_env(saturn_exes_path),
+            check=True,
+            shell=True,
+            stdout=sp.DEVNULL,
+        )
+
+        # check created ufm exists and remove temp csv and key file
+        if not out_mat.is_file():
+            raise FileNotFoundError(f"{out_mat} was not created successfully")
+        temp_filepath.unlink()
+        key_path.unlink()
+        
+        # move LPX file from wd to output directory 
+        if not outpath.joinpath("MX.LPX").exists():
+            Path("MX.LPX").rename(str(outpath.joinpath("MX.LPX")))
+        else:
+            # if there's already an MX.LPX file in output directory, rename it
+            i = 0
+            while outpath.joinpath(f"MX_{i}.LPX").exists():
+                i += 1
+            Path("MX.LPX").rename(str(outpath.joinpath(f"MX_{i}.LPX")))
+
+        return out_mat
+
     @classmethod
     def read_OD_file(cls, filepath):
         """Creates an O-D matrix instance from a csv file.
@@ -288,93 +401,6 @@ class ODMatrix:
             Aligned version of matrix_2's pivoted DataFrame
         """
         return matrix_1.matrix.align(matrix_2.matrix, join='outer', fill_value = 0)
-
-    def export_to_ufm(self, saturn_exes_path, outpath):
-        """Export ODMatrix as UFM using TBA22UFM.
-
-        Parameters
-        ----------
-        saturn_exes_path: str
-            Path to SATURN EXES folder.
-        outpath:
-            Path to folder to save UFM to.
-
-        Returns
-        -------
-        out_mat: str
-            Path to output file
-        
-        Raises
-        ------
-        FileNotFoundError
-            If the UFM file isn't created correctly.
-        """
-
-        CSV_2_UFM_KEY = """\
-            1
-        {csv_file}
-            2
-            7
-            1
-            14
-            1
-        {ufm_file}
-        {mat_nm}
-            0
-            0
-        y
-        """
-
-        def update_env(saturn_exes_path):
-            """Creates a copy of environment variables and adds SATURN path.
-
-            Parameters
-            ----------
-            saturn_exes_path : str
-                Path to SATURN exes folder.
-
-            Returns
-            -------
-            saturn_env:
-                Updated environment variables.
-            """
-            new_env = os.environ.copy()
-            sat_paths = f"{saturn_exes_path};{saturn_exes_path}/BATS;"
-            new_env["PATH"] = sat_paths + new_env["PATH"]
-            return new_env
-        
-        # export matrix as csv in TUBA2 format
-        temp_filepath = f"{outpath}/temp_matrix.csv"
-        self.export_to_csv(temp_filepath, include_headers=False)
-
-        # write SATURN MX key file
-        out_mat = f"{outpath}/{self.name}.UFM"
-        key_path = f"{outpath}/MX_KEY.KEY"
-        with open(key_path, 'wt') as f:
-            f.write(CSV_2_UFM_KEY.format(
-                csv_file=temp_filepath,
-                ufm_file=out_mat,
-                mat_nm=self.name,
-            ))
-        
-        # Run saturn batch file to convert to ufm
-        sp.run(["call", "MX", "I", "KEY", key_path, "VDU", self.name],
-            env=update_env(),
-            check=True,
-            shell=True,
-            stdout=sp.DEVNULL,
-        )
-
-        # check created ufm exists and remove temp csv and key file
-        if not os.path.isfile(out_mat):
-            raise FileNotFoundError(f"{out_mat} was not created successfully")
-        os.remove(temp_filepath)
-        os.remove(key_path)
-
-        return out_mat
-
-
-
     
     @staticmethod
     def check_file_header(filepath):

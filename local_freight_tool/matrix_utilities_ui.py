@@ -598,11 +598,11 @@ class background_thread(QThread):
             saturn_exes_path = self.processes.loc[self.processes.name == 'convert to UFM', 'input'][0]
             # check this is the path to a folder
             if os.path.isdir(saturn_exes_path):
-                # TODO need to write convert to ufm function
-                print('saturn path is folder')
+                ufm_path = od_matrix.export_to_ufm(saturn_exes_path, self.outpath)
                 self.processes.loc[self.processes.name == 'convert to UFM', 'completed'] = 'yes'
+                self.progress_label.setText(f"UFM saved to {ufm_path}")
             else:
-                self.progress_label.setText("Error: SATURN EXES path given is not a folder. Please provide the path to a folder. Process couldn't complete")
+                self.progress_label.setText("Error: SATURN EXES path given is not a folder. Conversion process couldn't complete.")
 
         if len(self.processes.name) > 0:
             self.progress_label.setText("Saving process log")
