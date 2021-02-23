@@ -48,10 +48,10 @@ class Utilities(QtWidgets.QWidget):
                 if multiple_files == True: # for multiple files, separate with ' % '
                     file_dialog = QtWidgets.QFileDialog(self)
                     file_dialog.setFileMode(QtWidgets.QFileDialog.ExistingFiles)
-                    selected_file, _ = file_dialog.getOpenFileNames(self, label_txt, "./", filetype)
+                    selected_file, _ = file_dialog.getOpenFileNames(self, label_txt, None, filetype)
                     selected_file = ' % '.join(selected_file)
                 else:
-                    selected_file, _ = QtWidgets.QFileDialog(self).getOpenFileName(self, label_txt, "./", filetype)
+                    selected_file, _ = QtWidgets.QFileDialog(self).getOpenFileName(self, label_txt, None, filetype)
                 
             # Update text box
             file_path.setText(selected_file)
@@ -247,7 +247,7 @@ class Parameters:
                             'Trips':'Annual_PCU/Annual_Tonnage'}}
     _LOOKUP = {'FILEPATH':'',
                 'INPUT_FORMAT':'TSV/CSV',
-                'INPUT_COLUMNS':{'Old':'', 'New':'', 'SplittingFactor':''}}
+                'INPUT_COLUMNS':{'old':'', 'new':'', 'splitting_factor':''}}
     _ZONE_LOOKUP = {'_comment':'Parameters for the rezoning process, optional.',
                     **_LOOKUP}
     _SECTOR_LOOKUP = {'_comment':('Parameters for the sector OD tables to be produced,'
