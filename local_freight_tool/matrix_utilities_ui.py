@@ -575,13 +575,13 @@ class background_thread(QThread):
                     "Rezoning unsuccessful, zone correspondence lookup not found"
                 )
                 raise FileNotFoundError(
-                    "Rezoning unsuccessful, zone correspondence lookup not found"
+                    f"Rezoning unsuccessful, zone correspondence lookup not found."
                 )
             except Exception as e:
                 self.progress_label.setText(
                     f"Rezoning unsuccessful, {e.__class__} occurred."
                 )
-                print(f"Rezoning unsuccessful, {e.__class__} occurred.")
+                raise Exception(f"Rezoning unsuccessful, {e.__class__} occurred.")
 
         if "addition" in self.processes.name.values:
             print("####\nAddition")
