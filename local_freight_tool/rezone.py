@@ -13,6 +13,8 @@ import sys
 from utilities import Loggers, getSeparator, Parameters
 from errors import IncorrectParameterError, MissingLookupValuesError
 
+# TODO modify if necessary for new matrix utils
+
 ##### CLASS #####
 class Rezone:
     """
@@ -34,14 +36,14 @@ class Rezone:
                     either CSV or TSV.
                 columns: dict
                     Column names in the lookup file should contain 3 keys,
-                    OldZone, NewZone, SplittingFactor.
+                    old, new, splitting_factor.
             Returns:
                 lookup: pandas.DataFrame
                     DataFrame object with the Old, New and
                     SplittingFactor columns read from the file.
         """
         # Check columns given
-        cols = Parameters.checkParams(columns, ('Old', 'New', 'SplittingFactor'),
+        cols = Parameters.checkParams(columns, ('old', 'new', 'splitting_factor'),
                                         name='INPUT_COLUMNS')
 
         # Read file checking if there are any format errors
@@ -62,8 +64,8 @@ class Rezone:
         return df
 
     @staticmethod
-    def _rezone(df, lookup, dfCol, lookupOld='Old',
-                lookupNew='New', splitCol='SplittingFactor'):
+    def _rezone(df, lookup, dfCol, lookupOld='old',
+                lookupNew='new', splitCol='splitting_factor'):
         """
             Rezones a dataframe with a lookup dataframe, using splitting factors.
 
@@ -97,12 +99,12 @@ class Rezone:
         # Set the column to the new zones
         merged[dfCol] = merged[lookupNew]
         # Convert the split columns
-        merged['Trips'] = merged['Trips'] * merged['SplittingFactor']
+        merged['trips'] = merged['trips'] * merged['splitting_factor']
 
         return merged[originalCols], missing
 
     @classmethod
-    def rezoneOD(cls, df, lookup, dfCols=['Origin', 'Destination'], **kwargs):
+    def rezoneOD(cls, df, lookup, dfCols=['origin', 'destination'], **kwargs):
         """
             Rezones the matrix on both the origin and destination columns,
             using the _rezone method.

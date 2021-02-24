@@ -20,6 +20,9 @@ import os
 import subprocess as sp
 from pathlib import Path
 
+# User-defined imports
+from rezone import Rezone
+
 # Third party imports
 import pandas as pd
 
@@ -237,8 +240,43 @@ class ODMatrix:
         self.matrix.loc[external_zones, external_zones] = 0
 
         return self
+    
+    def rezone(self, zone_correspondence_path):
+        """Rezones O-D matrix using a zone correspondence lookup. Returns a
+        new rezoned O-D matrix instance and saves it to a csv.
+
+        Parameters
+        ----------
+        zone_correspondence_path : str
+            Path to zone correspondence lookup csv. Must have 3 columns: the
+            old zoning system zone IDs, the new zoning system zone IDs, and
+            the splitting factor. The column names do not matter, but they
+            must be in the specified order.
+        outpath : str
+            Path to output folder to save the rezoned csv into.
+
+        Returns
+        -------
+        rezoned_od_matrix: ODMatrix
+            Rezoned ODMatrix instance.
+        """
+        print("Rezone started")
+        try:
+            whitespace, header_row = ODMatrix.check_file_header(zone_correspondence_path)
+            zone_correspondence = pd.read_csv(zone_correspondence_path, delim_whitespace=whitespace, header=header_row, names=['old', 'new', 'splitting_factor'], usecols=[0,1,2])
+        except FileNotFoundError:
+            raise FileNotFoundError(f"Zone correspondence file not found at {zone_correspondence_path}.")
+        except ValueError as e:
+            loc = str(e).find("columns expected")
+            raise ValueError(f"Zone correspondence file, {str(e)[loc:]}") from e
+
+        column_matrix = self.column_matrix()
+        rezoned_matrix = Rezone.rezoneOD(column_matrix, zone_correspondence)
+        rezoned_od_matrix = ODMatrix(rezoned_matrix, name=self.name, pivoted=False)
+        print("Rezone finished")
+        return rezoned_od_matrix
         
-    def export_to_csv(self, filepath, include_zeros=True, include_headers=True):
+    def export_to_csv(self, outpath, include_zeros=True, include_headers=True):
         """Export column matrix to csv file
 
         Parameters
@@ -249,7 +287,7 @@ class ODMatrix:
             Whether to include zero-value trips, by default True
         """
         column_matrix = self.column_matrix(include_zeros=include_zeros)
-        column_matrix.to_csv(filepath, header=include_headers, index=False)
+        column_matrix.to_csv(outpath, header=include_headers, index=False)
 
     def export_to_ufm(self, saturn_exes_path, outpath):
         """Export ODMatrix as UFM using TBA22UFM.

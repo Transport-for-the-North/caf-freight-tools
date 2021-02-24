@@ -20,14 +20,13 @@ from PyQt5.QtWidgets import QLineEdit, QCheckBox, QDoubleSpinBox
 from utilities import Utilities, info_window, progress_window
 from text_info import Matrix_Utilities_Text
 from matrix_utilities import ODMatrix
+from rezone import Rezone
 
 # Other packages
 import textwrap
 import os
 import pandas as pd
 
-# TODO add summary
-# TODO disable inputs
 # TODO add try-excepts and message if things failed
 
 class MatrixUtilities(QtWidgets.QWidget):
@@ -490,34 +489,38 @@ class background_thread(QThread):
 
     def run(self):
         """Runs matrix processes"""
+
         # create log file for matrix summaries and processes information
         log_file = f"{self.outpath}/matrix_info.xlsx"
         writer = pd.ExcelWriter(log_file, engine="openpyxl")
-        
+
         # read in the O-D matrix and create an ODMatrix instance
+        self.progress_label.setText("Reading in input matrix")
         od_matrix = ODMatrix.read_OD_file(self.od_matrix_path)
 
         # keep track of changes to matrix and outputs to log
         matrix_changes = 0
-        outputs_list = []
         self.processes['completed'] = 'no'
 
         if self.summary:
             self.progress_label.setText("Summarising input matrix")
+            print("Summarising input")
             input_summary = od_matrix.summary()
             input_summary = pd.DataFrame(data=input_summary.values(), index=input_summary.keys(), columns=['Value'])
             input_summary.to_excel(writer, sheet_name="input_summary")
+            writer.save()
 
         if 'rezoning' in self.processes.name.values:
-            self.progress_label.setText("Rezoning OD matrix")
-            # TODO need to link rezone.py and call that
+            self.progress_label.setText(f"Rezoning OD matrix and saving to {self.outpath}/{od_matrix.name}_rezoned.csv")
             try:
-                # add rezoning stuff here
+                zone_correspondence_path = self.processes.loc[self.processes.name == 'rezoning', 'input'][0]
+                od_matrix = od_matrix.rezone(zone_correspondence_path)
+                od_matrix.export_to_csv(f"{self.outpath}/{od_matrix.name}_rezoned.csv")
                 matrix_changes += 1
                 self.processes.loc[self.processes.name == 'rezoning', 'completed'] = 'yes'
             except:
-                # any errors
-                self.progress_label("Rezoning unsuccessful")
+            # any errors
+                self.progress_label.setText("Rezoning unsuccessful")
         
         if 'addition' in self.processes.name.values:
             self.progress_label.setText("Performing matrix addition")
@@ -528,7 +531,7 @@ class background_thread(QThread):
                 matrix_changes += 1
                 self.processes.loc[self.processes.name == 'addition', 'completed'] = 'yes'
             except:
-                self.progress_label("Addition unsuccessful")
+                self.progress_label.setText("Addition unsuccessful")
         
         if 'factor' in self.processes.name.values:
             self.progress_label.setText("Factoring OD matrix")
@@ -542,7 +545,7 @@ class background_thread(QThread):
                 matrix_changes += 1
                 self.processes.loc[self.processes.name == 'factor', 'completed'] = 'yes'
             except:
-                self.progress_label("Factoring unsuccessful")
+                self.progress_label.setText("Factoring unsuccessful")
         
         if 'fill missing zones' in self.processes.name.values:
             self.progress_label.setText("Filling missing zones")
@@ -581,17 +584,19 @@ class background_thread(QThread):
             except:
                 self.progress_label.setText("Removing EE trips unsuccessful")
 
-        if matrix_changes > 0:
-            # if there have been changes to the o-d matrix, save the output
+        # if there have been changes to the o-d matrix, save the output
+        if (('rezoning' in self.processes.name.values) & matrix_changes > 1) | (('rezoning' not in self.processes.name.values) & matrix_changes > 0):
             self.progress_label.setText("Saving output matrix to csv")
-            od_matrix.export_to_csv(f"{self.outpath}/output_matrix.csv")
+            od_matrix.export_to_csv(f"{self.outpath}/{od_matrix.name}_operations_applied.csv")
 
-            # if summary is checked, produced summary of output matrix
-            if self.summary:
-                self.progress_label.setText("Summarising output")
-                output_summary = od_matrix.summary()
-                output_summary = pd.DataFrame(data=output_summary.values(), index=input_summary.keys(), columns=['Value'])
-                output_summary.to_excel(writer, sheet_name="output_summary")
+        # if summary is checked, produced summary of output matrix
+        if self.summary & (matrix_changes > 0):
+            self.progress_label.setText("Summarising output")
+            print("Summarising output")
+            output_summary = od_matrix.summary()
+            output_summary = pd.DataFrame(data=output_summary.values(), index=output_summary.keys(), columns=['Value'])
+            output_summary.to_excel(writer, sheet_name="output_summary")
+            writer.save()
         
         if 'convert to UFM' in self.processes.name.values:
             self.progress_label.setText("Converting to UFM")
@@ -607,6 +612,7 @@ class background_thread(QThread):
         if len(self.processes.name) > 0:
             self.progress_label.setText("Saving process log")
             self.processes.to_excel(writer, sheet_name="inputs", index=False)
+            writer.save()
 
         self.progress_label.setText(
             "Matrix operations complete. You may exit the program."
