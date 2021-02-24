@@ -29,6 +29,7 @@ import pandas as pd
 
 # TODO add try-excepts and message if things failed
 
+
 class MatrixUtilities(QtWidgets.QWidget):
     """Matrix utilities user interface.
 
@@ -64,8 +65,10 @@ class MatrixUtilities(QtWidgets.QWidget):
 
         # Input matrix
         self.od_matrix_path = Utilities.add_file_selection(
-            self, y+45, "Select the O-D Matrix csv",
-            filetype="Comma-separated Values (*.csv *.CSV *.txt *.TXT)"
+            self,
+            y + 45,
+            "Select the O-D Matrix csv",
+            filetype="Comma-separated Values (*.csv *.CSV *.txt *.TXT)",
         )
 
         spacing = 75
@@ -86,7 +89,6 @@ class MatrixUtilities(QtWidgets.QWidget):
         self.summary_box.resize(30, 30)
         self.summary_box.stateChanged.connect(self.summary_clickbox)
 
-
         # Rezoning
         y += spacing - 50
         rezoning_label = QtWidgets.QLabel(self)
@@ -103,8 +105,10 @@ class MatrixUtilities(QtWidgets.QWidget):
 
         # zone correspondence file
         self.zone_correspondence_path = Utilities.add_file_selection(
-            self, y+45, "Select the zone correspondence file",
-            filetype="Comma-separated Values (*.csv *.CSV *.txt *.TXT)"
+            self,
+            y + 45,
+            "Select the zone correspondence file",
+            filetype="Comma-separated Values (*.csv *.CSV *.txt *.TXT)",
         )
         # set disabled until rezoning box is checked
         self.zone_correspondence_path.setDisabled(True)
@@ -125,8 +129,10 @@ class MatrixUtilities(QtWidgets.QWidget):
 
         # Second matrix or scalar value
         self.matrix_to_add_path = Utilities.add_file_selection(
-            self,y+45, "Select the second matrix",
-            filetype="Comma-separated Values (*.csv *.CSV *.txt *.TXT)"
+            self,
+            y + 45,
+            "Select the second matrix",
+            filetype="Comma-separated Values (*.csv *.CSV *.txt *.TXT)",
         )
         self.matrix_to_add_path.setDisabled(True)
 
@@ -146,8 +152,10 @@ class MatrixUtilities(QtWidgets.QWidget):
 
         # Second matrix or scalar value
         self.matrix_factor_path = Utilities.add_file_selection(
-            self, y+45, "Select the second matrix or input a scalar value",
-            filetype="Comma-separated Values (*.csv *.CSV *.txt *.TXT)"
+            self,
+            y + 45,
+            "Select the second matrix or input a scalar value",
+            filetype="Comma-separated Values (*.csv *.CSV *.txt *.TXT)",
         )
         self.matrix_factor_path.setDisabled(True)
 
@@ -167,12 +175,13 @@ class MatrixUtilities(QtWidgets.QWidget):
 
         # Missing zones file or values
         self.missing_zones_path = Utilities.add_file_selection(
-            self, y+45, "Select missing zones csv or enter zone numbers separated by commas",
-            filetype="Comma-separated Values (*.csv *.CSV *.txt *.TXT)"
+            self,
+            y + 45,
+            "Select missing zones csv or enter zone numbers separated by commas",
+            filetype="Comma-separated Values (*.csv *.CSV *.txt *.TXT)",
         )
         self.missing_zones_path.setDisabled(True)
-        
-        
+
         # Remove external-external trips
         y += spacing
         remove_ee_label = QtWidgets.QLabel(self)
@@ -189,8 +198,10 @@ class MatrixUtilities(QtWidgets.QWidget):
 
         # External zones file or values
         self.external_zones_path = Utilities.add_file_selection(
-            self, y+45, "Select external zones csv or enter zone numbers separated by commas",
-            filetype="Comma-separated Values (*.csv *.CSV *.txt *.TXT)"
+            self,
+            y + 45,
+            "Select external zones csv or enter zone numbers separated by commas",
+            filetype="Comma-separated Values (*.csv *.CSV *.txt *.TXT)",
         )
         self.external_zones_path.setDisabled(True)
 
@@ -210,11 +221,10 @@ class MatrixUtilities(QtWidgets.QWidget):
 
         # Box for path to SATURN exes folder
         self.saturn_exes_path = Utilities.add_file_selection(
-            self, y+45, "Select path to SATURN exes folder",
-            directory=True
+            self, y + 45, "Select path to SATURN exes folder", directory=True
         )
         self.saturn_exes_path.setDisabled(True)
-        
+
         # output directory
         y += spacing
         output_label = QtWidgets.QLabel(self)
@@ -222,15 +232,12 @@ class MatrixUtilities(QtWidgets.QWidget):
         output_label.setText("Output Folder")
         output_label.setGeometry(10, y, 125, 30)
 
-
         # Folder path for the outputs
         self.outpath = Utilities.add_file_selection(
-            self,
-            y+45,
-            "Select the output directory",
-            directory=True)
-        
-        y+= spacing + 20
+            self, y + 45, "Select the output directory", directory=True
+        )
+
+        y += spacing + 20
 
         # Create a push button for 'info'
         Info_button = QtWidgets.QPushButton(self)
@@ -251,7 +258,7 @@ class MatrixUtilities(QtWidgets.QWidget):
         run_button.clicked.connect(self.run_button_clicked)
 
         self.show()
-    
+
     def summary_clickbox(self, state):
         """Changes UI display and assigns summary bool according to
         whether summary checkbox is checked or not.
@@ -334,7 +341,7 @@ class MatrixUtilities(QtWidgets.QWidget):
         else:
             self.fill_missing = False
             self.missing_zones_path.setDisabled(True)
-    
+
     def remove_ee_clickbox(self, state):
         """Changes UI display and assigns remove ee bool according to
         whether fill remove ee trips checkbox is checked or not.
@@ -351,7 +358,7 @@ class MatrixUtilities(QtWidgets.QWidget):
         else:
             self.remove_ee = False
             self.external_zones_path.setDisabled(True)
-    
+
     def ufm_convert_clickbox(self, state):
         """Changes UI display and assigns UFM convert bool according to
         whether convert to UFM checkbox is checked or not.
@@ -371,21 +378,42 @@ class MatrixUtilities(QtWidgets.QWidget):
 
     def run_button_clicked(self):
         """Initialises process once run button is clicked."""
-        
+
         # create dataframe to track processes to perform which require inputs
         processes = {
-            'name': ['rezoning', 'addition', 'factor', 'fill missing zones', 'remove EE trips', 'convert to UFM'],
-            'execute': [self.rezoning, self.addition, self.factoring, self.fill_missing, self.remove_ee, self.ufm_convert],
-            'input': [self.zone_correspondence_path.text(), self.matrix_to_add_path.text(),
-            self.matrix_factor_path.text(), self.missing_zones_path.text(), self.external_zones_path.text(),
-            self.saturn_exes_path.text()]
+            "name": [
+                "rezoning",
+                "addition",
+                "factor",
+                "fill missing zones",
+                "remove EE trips",
+                "convert to UFM",
+            ],
+            "execute": [
+                self.rezoning,
+                self.addition,
+                self.factoring,
+                self.fill_missing,
+                self.remove_ee,
+                self.ufm_convert,
+            ],
+            "input": [
+                self.zone_correspondence_path.text(),
+                self.matrix_to_add_path.text(),
+                self.matrix_factor_path.text(),
+                self.missing_zones_path.text(),
+                self.external_zones_path.text(),
+                self.saturn_exes_path.text(),
+            ],
         }
 
         self.processes = pd.DataFrame(processes)
 
         # remove processes not required
-        self.processes = self.processes.drop(self.processes.loc[self.processes.execute == False].index)
-        self.processes = self.processes.drop(columns='execute')
+        self.processes = self.processes.drop(
+            self.processes.loc[self.processes.execute == False].index
+        )
+        self.processes = self.processes.drop(columns="execute")
 
         # Error messages
         # no processes to run
@@ -405,18 +433,20 @@ class MatrixUtilities(QtWidgets.QWidget):
             inputs_required = self.processes[self.processes.input == ""].name.values
             for i in range(0, len(inputs_required)):
                 if i == 0:
-                    input_str = f'{inputs_required[i]}'
+                    input_str = f"{inputs_required[i]}"
                 elif i == len(inputs_required) - 1:
-                    input_str += f' and {inputs_required[i]}'
+                    input_str += f" and {inputs_required[i]}"
                 else:
-                    input_str += f', {inputs_required[i]}'
+                    input_str += f", {inputs_required[i]}"
             if len(inputs_required) == 1:
-                process_str = 'process'
+                process_str = "process"
             else:
-                process_str = 'processes'
+                process_str = "processes"
             alert = QtWidgets.QMessageBox(self)
             alert.setWindowTitle("Matrix Utilities")
-            alert.setText(f"Error: you must specifiy the inputs for the {input_str} {process_str}.")
+            alert.setText(
+                f"Error: you must specifiy the inputs for the {input_str} {process_str}."
+            )
             alert.show()
         # no output folder
         elif self.outpath.text() == "":
@@ -485,7 +515,6 @@ class background_thread(QThread):
         self.outpath = MatrixUtilities.outpath.text()
         self.summary = MatrixUtilities.summary
         self.processes = MatrixUtilities.processes
-        
 
     def run(self):
         """Runs matrix processes"""
@@ -500,114 +529,220 @@ class background_thread(QThread):
 
         # keep track of changes to matrix and outputs to log
         matrix_changes = 0
-        self.processes['completed'] = 'no'
+        self.processes["completed"] = "no"
 
         if self.summary:
             self.progress_label.setText("Summarising input matrix")
-            print("Summarising input")
+            print("####\nSummarising input")
             input_summary = od_matrix.summary()
-            input_summary = pd.DataFrame(data=input_summary.values(), index=input_summary.keys(), columns=['Value'])
+            input_summary = pd.DataFrame(
+                data=input_summary.values(),
+                index=input_summary.keys(),
+                columns=["Value"],
+            )
             input_summary.to_excel(writer, sheet_name="input_summary")
             writer.save()
 
-        if 'rezoning' in self.processes.name.values:
-            self.progress_label.setText(f"Rezoning OD matrix and saving to {self.outpath}/{od_matrix.name}_rezoned.csv")
+        if "rezoning" in self.processes.name.values:
+            print("####\nRezoning")
+            self.progress_label.setText(
+                f"Rezoning OD matrix and saving to {self.outpath}/{od_matrix.name}_rezoned.csv"
+            )
             try:
-                zone_correspondence_path = self.processes.loc[self.processes.name == 'rezoning', 'input'][0]
+                zone_correspondence_path = self.processes.loc[
+                    self.processes.name == "rezoning", "input"
+                ].values[0]
                 od_matrix = od_matrix.rezone(zone_correspondence_path)
-                od_matrix.export_to_csv(f"{self.outpath}/{od_matrix.name}_rezoned.csv")
-                matrix_changes += 1
-                self.processes.loc[self.processes.name == 'rezoning', 'completed'] = 'yes'
-            except:
-            # any errors
-                self.progress_label.setText("Rezoning unsuccessful")
-        
-        if 'addition' in self.processes.name.values:
+                if (
+                    ("convert to UFM" in self.processes.name.values)
+                    & (len(self.processes.name) > 2)
+                ) | (
+                    ("convert to UFM" not in self.processes.name.values)
+                    & (len(self.processes.name) > 1)
+                ):
+                    print("Saving rezoned matrix")
+                    od_matrix.export_to_csv(
+                        f"{self.outpath}/{od_matrix.name}_rezoned.csv"
+                    )
+                matrix_changes = matrix_changes + 1
+                self.processes.loc[
+                    self.processes.name == "rezoning", "completed"
+                ] = "yes"
+                print("Rezone complete")
+            except FileNotFoundError:
+                # any errors
+                self.progress_label.setText(
+                    "Rezoning unsuccessful, zone correspondence lookup not found"
+                )
+                raise FileNotFoundError(
+                    "Rezoning unsuccessful, zone correspondence lookup not found"
+                )
+            except Exception as e:
+                self.progress_label.setText(
+                    f"Rezoning unsuccessful, {e.__class__} occurred."
+                )
+                print(f"Rezoning unsuccessful, {e.__class__} occurred.")
+
+        if "addition" in self.processes.name.values:
+            print("####\nAddition")
             self.progress_label.setText("Performing matrix addition")
             try:
-                matrix_2_path = self.processes.loc[self.processes.name == 'addition', 'input'][0]
-                matrix_2 = ODMatrix.read_OD_file(self.od_matrix_path)
+                matrix_2_path = self.processes.loc[
+                    self.processes.name == "addition", "input"
+                ].values[0]
+                matrix_2 = ODMatrix.read_OD_file(matrix_2_path)
                 od_matrix = od_matrix + matrix_2
                 matrix_changes += 1
-                self.processes.loc[self.processes.name == 'addition', 'completed'] = 'yes'
-            except:
-                self.progress_label.setText("Addition unsuccessful")
-        
-        if 'factor' in self.processes.name.values:
+                self.processes.loc[
+                    self.processes.name == "addition", "completed"
+                ] = "yes"
+                print("Addition complete")
+            except FileNotFoundError:
+                raise FileNotFoundError(
+                    "Error: could not find second matrix csv. Addition unsuccessful"
+                )
+            except Exception as e:
+                raise Exception(f"Error: addition unsuccessful, {e.__class__} occurred")
+
+        if "factor" in self.processes.name.values:
             self.progress_label.setText("Factoring OD matrix")
+            print("####\nFactoring O-D matrix")
             try:
-                factor_str = self.processes.loc[self.processes.name == 'factor', 'input'][0]
+                factor_str = self.processes.loc[
+                    self.processes.name == "factor", "input"
+                ].values[0]
+                print("Checking whether factor is scalar or matrix")
                 try:
                     factor = float(factor_str)
                 except:
+                    print("Reading in matrix factor")
                     factor = ODMatrix.read_OD_file(factor_str)
+                print("Factoring matrix")
                 od_matrix = od_matrix * factor
                 matrix_changes += 1
-                self.processes.loc[self.processes.name == 'factor', 'completed'] = 'yes'
-            except:
-                self.progress_label.setText("Factoring unsuccessful")
-        
-        if 'fill missing zones' in self.processes.name.values:
+                self.processes.loc[self.processes.name == "factor", "completed"] = "yes"
+            except Exception as e:
+                raise Exception(
+                    f"Error: factoring unsuccessful, {e.__class__} occurred."
+                )
+
+        if "fill missing zones" in self.processes.name.values:
             self.progress_label.setText("Filling missing zones")
+            print("####\nFilling missing zones")
             try:
-                missing_zones_str = self.processes.loc[self.processes.name == 'fill missing zones', 'input'][0]
-                
+                missing_zones_str = self.processes.loc[
+                    self.processes.name == "fill missing zones", "input"
+                ].values[0]
+
                 # see if have been given file or list of zones
                 if os.path.isfile(missing_zones_str):
-                    whitespace, header_row = ODMatrix.check_file_header(missing_zones_str)
-                    missing_zones = pd.read_csv(missing_zones_str, delim_whitespace=whitespace, header=header_row, usecols=[0], names=['zone_id'])
+                    print("Missing zones are file")
+                    whitespace, header_row = ODMatrix.check_file_header(
+                        missing_zones_str
+                    )
+                    print("Reading in file")
+                    missing_zones = pd.read_csv(
+                        missing_zones_str,
+                        delim_whitespace=whitespace,
+                        header=header_row,
+                        usecols=[0],
+                        names=["zone_id"],
+                    )
                     missing_zones = list(missing_zones.zone_id)
                 else:
-                    missing_zones = [int(x) for x in missing_zones_str.split(',')]
-                
+                    print("Missing zones are list")
+                    missing_zones = [int(x) for x in missing_zones_str.split(",")]
+                print("Filling missing zones")
                 od_matrix = od_matrix.fill_missing_zones(missing_zones)
                 matrix_changes += 1
-                self.processes.loc[self.processes.name == 'fill missing zones', 'completed'] = 'yes'
-            except:
-                self.progress_label.setText("Fill missing zones unsuccessful")
-        
-        if 'remove EE trips' in self.processes.name.values:
+                self.processes.loc[
+                    self.processes.name == "fill missing zones", "completed"
+                ] = "yes"
+                print("Missing zones added")
+            except ValueError:
+                raise ValueError(
+                    "Error: Missing zones are neither a file nor a comma-separated list."
+                )
+            except Exception as e:
+                raise Exception(
+                    f"Error: filling missing zones unsuccessful, {e.__class__} occured."
+                )
+
+        if "remove EE trips" in self.processes.name.values:
             try:
                 self.progress_label.setText("Removing EE trips")
-                external_zones_str = self.processes.loc[self.processes.name == 'remove EE trips', 'input'][0]
+                print("####\nRemoving External-External trips")
+                external_zones_str = self.processes.loc[
+                    self.processes.name == "remove EE trips", "input"
+                ].values[0]
                 # see if have been given file or list of zones
                 if os.path.isfile(external_zones_str):
-                    whitespace, header_row = ODMatrix.check_file_header(missing_zones_str)
-                    external_zones = pd.read_csv(external_zones_str, delim_whitespace=whitespace, header=header_row, usecols=[0], names=['zone_id'])
+                    print(f"External zones given as file: {external_zones_str}")
+                    whitespace, header_row = ODMatrix.check_file_header(
+                        external_zones_str
+                    )
+                    external_zones = pd.read_csv(
+                        external_zones_str,
+                        delim_whitespace=whitespace,
+                        header=header_row,
+                        usecols=[0],
+                        names=["zone_id"],
+                    )
                     external_zones = list(external_zones.zone_id)
                 else:
-                    external_zones = [int(x) for x in external_zones_str.split(',')]
-                
+                    external_zones = [int(x) for x in external_zones_str.split(",")]
+                    print(f"External zones given as list: {external_zones}")
                 od_matrix = od_matrix.remove_external_trips(external_zones)
                 matrix_changes += 1
-                self.processes.loc[self.processes.name == "remove EE trips", 'completed'] = 'yes'
-            except:
-                self.progress_label.setText("Removing EE trips unsuccessful")
+                self.processes.loc[
+                    self.processes.name == "remove EE trips", "completed"
+                ] = "yes"
+                print("E-E trips removal complete.")
+            except ValueError:
+                raise ValueError(
+                    "Error: External zones are neither a file nor a comma-separated list."
+                )
+            except Exception as e:
+                raise Exception(
+                    f"Error: Remove external-external trips unsuccessful, {e.__class__} occured."
+                )
 
         # if there have been changes to the o-d matrix, save the output
-        if (('rezoning' in self.processes.name.values) & matrix_changes > 1) | (('rezoning' not in self.processes.name.values) & matrix_changes > 0):
+        print(f"Matrix changes: {matrix_changes}")
+        if matrix_changes > 0:
             self.progress_label.setText("Saving output matrix to csv")
-            od_matrix.export_to_csv(f"{self.outpath}/{od_matrix.name}_operations_applied.csv")
+            print("Saving output to csv")
+            od_matrix.export_to_csv(f"{self.outpath}/{od_matrix.name}_processed.csv")
 
         # if summary is checked, produced summary of output matrix
         if self.summary & (matrix_changes > 0):
             self.progress_label.setText("Summarising output")
             print("Summarising output")
             output_summary = od_matrix.summary()
-            output_summary = pd.DataFrame(data=output_summary.values(), index=output_summary.keys(), columns=['Value'])
+            output_summary = pd.DataFrame(
+                data=output_summary.values(),
+                index=output_summary.keys(),
+                columns=["Value"],
+            )
             output_summary.to_excel(writer, sheet_name="output_summary")
             writer.save()
-        
-        if 'convert to UFM' in self.processes.name.values:
+
+        if "convert to UFM" in self.processes.name.values:
             self.progress_label.setText("Converting to UFM")
-            saturn_exes_path = self.processes.loc[self.processes.name == 'convert to UFM', 'input'][0]
+            saturn_exes_path = self.processes.loc[
+                self.processes.name == "convert to UFM", "input"
+            ].values[0]
             # check this is the path to a folder
             if os.path.isdir(saturn_exes_path):
                 ufm_path = od_matrix.export_to_ufm(saturn_exes_path, self.outpath)
-                self.processes.loc[self.processes.name == 'convert to UFM', 'completed'] = 'yes'
+                self.processes.loc[
+                    self.processes.name == "convert to UFM", "completed"
+                ] = "yes"
                 self.progress_label.setText(f"UFM saved to {ufm_path}")
             else:
-                self.progress_label.setText("Error: SATURN EXES path given is not a folder. Conversion process couldn't complete.")
+                self.progress_label.setText(
+                    "Error: SATURN EXES path given is not a folder. Conversion process couldn't complete."
+                )
 
         if len(self.processes.name) > 0:
             self.progress_label.setText("Saving process log")
@@ -615,5 +750,5 @@ class background_thread(QThread):
             writer.save()
 
         self.progress_label.setText(
-            "Matrix operations complete. You may exit the program."
+            f"Matrix operations complete, all outputs saved to {self.outpath}.\nYou may exit the program, check matrix_info.xlsx for more information."
         )

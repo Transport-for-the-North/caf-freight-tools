@@ -31,6 +31,7 @@ class ODMatrix:
     """O-D matrix class for creating O-D matrix objects and performing
     operations with them.
     """
+
     def __init__(self, dataframe, name=None, pivoted=True):
         """Intialises an O-D matrix object from a pandas dataframe, creating
         both column and pivoted matrices.
@@ -51,10 +52,12 @@ class ODMatrix:
         self.name = name
         if not pivoted:
             # create pivoted version of dataframe
-            self.matrix = dataframe.pivot_table(index='origin', columns='destination', values='trips', fill_value=0)
+            self.matrix = dataframe.pivot_table(
+                index="origin", columns="destination", values="trips", fill_value=0
+            )
         else:
             self.matrix = dataframe
-        
+
     def __str__(self):
         """Sets the column version of the OD matrix as the string output.
 
@@ -64,7 +67,7 @@ class ODMatrix:
             string representation of column matrix with columns 'origin',
             'destination' and 'trips,
         """
-        return f'{self.name}\n{self.column_matrix()}'
+        return f"{self.name}\n{self.column_matrix()}"
 
     def __repr__(self):
         """Sets the pivoted matrix as the representation of the OD matrix.
@@ -74,8 +77,8 @@ class ODMatrix:
         str
             string representation of pivoted O-D matrix.
         """
-        return f'{self.matrix}'
-    
+        return f"{self.matrix}"
+
     def __add__(self, other_matrix):
         """Add two ODMatrix objects, element-wise. This first aligns the
         matrices then sums them.
@@ -92,12 +95,15 @@ class ODMatrix:
         ODMatrix.Object
             Sum of input matrices
         """
+        print("Aligning matrices")
         matrix_1_aligned, matrix_2_aligned = self.align(self, other_matrix)
+        print("Adding matrices")
         sum = matrix_1_aligned + matrix_2_aligned
-        name = f'{self.name}_add_{other_matrix.name}'
+        "Creating name"
+        name = f"{self.name}_add_{other_matrix.name}"
 
         return ODMatrix(sum, name=name)
-    
+
     def __sub__(self, other_matrix):
         """Subract a matrix from the current matrix instance, element-wise. This first aligns the
         matrices then subtracts.
@@ -116,23 +122,28 @@ class ODMatrix:
         """
         matrix_1_aligned, matrix_2_aligned = self.align(self, other_matrix)
         subtracted = matrix_1_aligned - matrix_2_aligned
-        name = f'{self.name}_sub_{other_matrix.name}'
+        name = f"{self.name}_sub_{other_matrix.name}"
 
         return ODMatrix(subtracted, name=name)
-    
+
     def __mul__(self, factor):
         if (type(factor) == int) | (type(factor) == float):
+            print("Factoring by scalar")
             factored = self.matrix * factor
             name = f"{self.name}_by_{factor}"
         elif type(factor) == ODMatrix:
+            print("Aligning matrices")
             matrix_1_aligned, matrix_2_aligned = ODMatrix.align(self, factor)
-            factored = matrix_1_aligned*matrix_2_aligned
+            print("Factoring matrices")
+            factored = matrix_1_aligned * matrix_2_aligned
             name = f"{self.name}_by_{factor.name}"
         else:
-            raise TypeError('Can only multiply an O-D matrix by a scalar or another O-D matrix')
-        
+            raise TypeError(
+                "Can only multiply an O-D matrix by a scalar or another O-D matrix"
+            )
+
         return ODMatrix(factored, name=name)
-    
+
     def summary(self):
         """Calculates total number of trips, the mean, standard deviation,
         number of 0 counts and number of NaNs in the ODMatrix. Returns a
@@ -151,27 +162,30 @@ class ODMatrix:
         zero_count = (column_matrix.trips == 0).sum()
         null_counts = column_matrix.trips.isna().sum()
         summary = {
-            'Total': total,
-            'Mean': mean,
-            'Standard deviation': standard_dev,
-            '0 count': zero_count,
-            'NaN count': null_counts
+            "Total": total,
+            "Mean": mean,
+            "Standard deviation": standard_dev,
+            "0 count": zero_count,
+            "NaN count": null_counts,
         }
-        
+
         return summary
-                
-    
+
     def column_matrix(self, include_zeros=True):
-        """Transforms the matrix of the ODMatrix instance into a 3 column 
+        """Transforms the matrix of the ODMatrix instance into a 3 column
         matrix, ideal for writing the output to a file.
 
         Returns
         -------
         pd.DataFrame
-            3-column dataframe representing an O-D matrix with columns 
+            3-column dataframe representing an O-D matrix with columns
             'origin', 'destination' and 'trips'.
         """
-        column_matrix = self.matrix.melt(value_name='trips', ignore_index=False).reset_index().sort_values(by='origin', ignore_index=True)
+        column_matrix = (
+            self.matrix.melt(value_name="trips", ignore_index=False)
+            .reset_index()
+            .sort_values(by="origin", ignore_index=True)
+        )
         if not include_zeros:
             column_matrix = column_matrix[column_matrix.trips != 0]
         return column_matrix
@@ -194,23 +208,24 @@ class ODMatrix:
         if type(missing_zones) != list:
             try:
                 missing_zones = list(missing_zones[0])
-            except:
-                raise TypeError('Missing zones are not a list or pandas dataframe')
-        
+            except TypeError:
+                raise TypeError("Missing zones are not a list or pandas dataframe")
+
         # check that the zones are missing, if there are any that appear in
         # the matrix, remove them from the missing zones list
         shared_zones = self.matrix.loc[self.matrix.index.isin(missing_zones)].index
         if len(shared_zones) > 0:
             missing_zones.remove(shared_zones)
-        
-        # add 0 value columns and rows to matrix 
+
+        # add 0 value columns and rows to matrix
         columns_to_add = pd.DataFrame(0, index=self.matrix.index, columns=missing_zones)
-        self.matrix = pd.concat([self.matrix, columns_to_add], axis=1, join='outer')
+        columns_to_add.columns.name = "destination"
+        self.matrix = pd.concat([self.matrix, columns_to_add], axis=1, join="outer")
         rows_to_add = pd.DataFrame(0, index=missing_zones, columns=self.matrix.columns)
-        self.matrix = pd.concat([self.matrix, rows_to_add], axis=0, join='outer')
+        rows_to_add.index.name = "origin"
+        self.matrix = pd.concat([self.matrix, rows_to_add], axis=0, join="outer")
 
         return self
-        
 
     def remove_external_trips(self, external_zones):
         """Updates the O-D matrix. Sets external-external trips to 0.
@@ -229,18 +244,19 @@ class ODMatrix:
         if type(external_zones) != list:
             try:
                 external_zones = list(external_zones.ext_zones)
-            except:
-                raise TypeError('External zones are not a list or a pandas dataframe.')
-        
+            except TypeError:
+                raise TypeError("External zones are not a list or a pandas dataframe.")
+
         # only set trips to 0 for zones that are already in the matrix
         shared_zones = self.matrix.loc[self.matrix.index.isin(external_zones)].index
         external_zones = list(shared_zones)
+        print(f"Shared zones: {external_zones}")
 
         # set external-external trip values to 0
         self.matrix.loc[external_zones, external_zones] = 0
 
         return self
-    
+
     def rezone(self, zone_correspondence_path):
         """Rezones O-D matrix using a zone correspondence lookup. Returns a
         new rezoned O-D matrix instance and saves it to a csv.
@@ -262,10 +278,20 @@ class ODMatrix:
         """
         print("Rezone started")
         try:
-            whitespace, header_row = ODMatrix.check_file_header(zone_correspondence_path)
-            zone_correspondence = pd.read_csv(zone_correspondence_path, delim_whitespace=whitespace, header=header_row, names=['old', 'new', 'splitting_factor'], usecols=[0,1,2])
+            whitespace, header_row = ODMatrix.check_file_header(
+                zone_correspondence_path
+            )
+            zone_correspondence = pd.read_csv(
+                zone_correspondence_path,
+                delim_whitespace=whitespace,
+                header=header_row,
+                names=["old", "new", "splitting_factor"],
+                usecols=[0, 1, 2],
+            )
         except FileNotFoundError:
-            raise FileNotFoundError(f"Zone correspondence file not found at {zone_correspondence_path}.")
+            raise FileNotFoundError(
+                f"Zone correspondence file not found at {zone_correspondence_path}."
+            )
         except ValueError as e:
             loc = str(e).find("columns expected")
             raise ValueError(f"Zone correspondence file, {str(e)[loc:]}") from e
@@ -275,7 +301,7 @@ class ODMatrix:
         rezoned_od_matrix = ODMatrix(rezoned_matrix, name=self.name, pivoted=False)
         print("Rezone finished")
         return rezoned_od_matrix
-        
+
     def export_to_csv(self, outpath, include_zeros=True, include_headers=True):
         """Export column matrix to csv file
 
@@ -303,7 +329,7 @@ class ODMatrix:
         -------
         out_mat: str
             Path to output file
-        
+
         Raises
         ------
         FileNotFoundError
@@ -322,7 +348,7 @@ class ODMatrix:
             "    0\n"
             "    0\n"
             "y"
-            )
+        )
 
         def update_env(saturn_exes_path):
             """Creates a copy of environment variables and adds SATURN path.
@@ -341,12 +367,12 @@ class ODMatrix:
             sat_paths = fr"{saturn_exes_path};{saturn_exes_path}\BATS;"
             new_env["PATH"] = sat_paths + new_env["PATH"]
             return new_env
-        
+
         # turn input strings into paths
         saturn_exes_path = Path(saturn_exes_path)
         outpath = Path(outpath)
         mx_bat_path = saturn_exes_path.joinpath("MX.BAT")
-        
+
         if not mx_bat_path.exists():
             raise FileNotFoundError(f"{saturn_exes_path} does not contain MX.BAT")
 
@@ -364,15 +390,18 @@ class ODMatrix:
         key_path = outpath.joinpath("MX_KEY.KEY")
         vdu_path = outpath.joinpath(f"{self.name}_VDU")
 
-        with open(key_path, 'wt') as f:
-            f.write(CSV_2_UFM_KEY.format(
-                csv_file=temp_filepath.resolve(),
-                ufm_file=out_mat.resolve(),
-                mat_nm=self.name,
-            ))
-        
+        with open(key_path, "wt") as f:
+            f.write(
+                CSV_2_UFM_KEY.format(
+                    csv_file=temp_filepath.resolve(),
+                    ufm_file=out_mat.resolve(),
+                    mat_nm=self.name,
+                )
+            )
+
         # Run saturn batch file to convert to ufm
-        sp.run(["call", "MX", "I", "KEY", str(key_path), "VDU", str(vdu_path)],
+        sp.run(
+            ["call", "MX", "I", "KEY", str(key_path), "VDU", str(vdu_path)],
             env=update_env(saturn_exes_path),
             check=True,
             shell=True,
@@ -384,8 +413,8 @@ class ODMatrix:
             raise FileNotFoundError(f"{out_mat} was not created successfully")
         temp_filepath.unlink()
         key_path.unlink()
-        
-        # move LPX file from wd to output directory 
+
+        # move LPX file from wd to output directory
         if not outpath.joinpath("MX.LPX").exists():
             Path("MX.LPX").rename(str(outpath.joinpath("MX.LPX")))
         else:
@@ -414,7 +443,13 @@ class ODMatrix:
             Instance of the ODMatrix Class
         """
         whitespace, header_row = cls.check_file_header(filepath)
-        matrix_dataframe = pd.read_csv(filepath, delim_whitespace=whitespace, header=header_row, names=['origin', 'destination', 'trips'], usecols=[0, 1, 2])
+        matrix_dataframe = pd.read_csv(
+            filepath,
+            delim_whitespace=whitespace,
+            header=header_row,
+            names=["origin", "destination", "trips"],
+            usecols=[0, 1, 2],
+        )
         name = os.path.basename(os.path.splitext(filepath)[0])
         matrix = cls(matrix_dataframe, name, pivoted=False)
         return matrix
@@ -438,8 +473,8 @@ class ODMatrix:
         pd.DataFrame
             Aligned version of matrix_2's pivoted DataFrame
         """
-        return matrix_1.matrix.align(matrix_2.matrix, join='outer', fill_value = 0)
-    
+        return matrix_1.matrix.align(matrix_2.matrix, join="outer", fill_value=0)
+
     @staticmethod
     def check_file_header(filepath):
         # TODO add to utilities
@@ -456,23 +491,23 @@ class ODMatrix:
         Returns
         -------
         whitespace : bool
-            If true then the file is tab-delimited, if false it is 
+            If true then the file is tab-delimited, if false it is
             comma-delimited
         header_row : int
             Indicates the index of the header row of the file, None if there
             is no header.
         """
-        with open(filepath, 'rt') as infile:
+        with open(filepath, "rt") as infile:
             line = infile.readline()
-        
+
         # check whether comma or tab separated
-        if len(line.split(',')) > 1:
+        if len(line.split(",")) > 1:
             whitespace = False
-            linesplit = line.split(',')
+            linesplit = line.split(",")
         else:
             whitespace = True
-            linesplit = line.split('\t')
-        
+            linesplit = line.split("\t")
+
         # check whether there is a header row
         try:
             int(linesplit[0])
