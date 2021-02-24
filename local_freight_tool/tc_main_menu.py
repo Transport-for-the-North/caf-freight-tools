@@ -22,8 +22,8 @@ from annualtonne2pcu import AnnualTonne2PCU
 from matrix_utilities_ui import MatrixUtilities
 from gbfm2modelpcu import GBFM2ModelPCU
 from lgvprocessing import LGVProcessing
+from combine_shapefiles_ui import CombineShapefiles
 from producegbfmcorrespondence import ProduceGBFMCorrespondence 
-from model2gbfmpcu import Model2GBFMPCU
 from deltaprocess import DeltaProcess 
 from utilities import Utilities, info_window
 from text_info import Tier_Converter_Text
@@ -70,42 +70,42 @@ class tier_converter(QtWidgets.QWidget):
         
         # Create a push buttons for menu options
         next_button = QtWidgets.QPushButton(self)
-        next_button.setText('0: Produce Zone Correspondence')
+        next_button.setText('0: Combine Centroid and Polygon Shapefiles')
         next_button.setGeometry(10, 90, 480, 30)     
+        next_button.clicked.connect(self.on_click_CombineShapefiles)  
+
+        next_button = QtWidgets.QPushButton(self)
+        next_button.setText('1: Produce Zone Correspondence')
+        next_button.setGeometry(10, 130, 480, 30)     
         next_button.clicked.connect(self.on_click_ProduceGBFMCorrespondence)   
 
         next_button = QtWidgets.QPushButton(self)
-        next_button.setText('1: Annual Tonne to Annual PCU Conversion')
-        next_button.setGeometry(10, 130, 480, 30)     
+        next_button.setText('2: Annual Tonne to Annual PCU Conversion')
+        next_button.setGeometry(10, 170, 480, 30)     
         next_button.clicked.connect(self.on_click_AnnualTonne2PCU)   
 
         next_button = QtWidgets.QPushButton(self)
-        next_button.setText('2: LGV Processing')
-        next_button.setGeometry(10, 170, 480, 30)
+        next_button.setText('3: LGV Processing')
+        next_button.setGeometry(10, 210, 480, 30)
         next_button.clicked.connect(self.on_click_LGVProcessing)   
         
         labelC = QtWidgets.QLabel(self)
         labelC.setText('Conversion')
         labelC.setFont(QtGui.QFont("Arial", 12, QtGui.QFont.Bold))
-        labelC.setGeometry(10, 210, 700, 30)
+        labelC.setGeometry(10, 250, 700, 30)
          
         next_button = QtWidgets.QPushButton(self)
-        next_button.setText('3: GBFM Annual PCU to Model Time Period PCU')
-        next_button.setGeometry(10, 250, 480, 30)
+        next_button.setText('4: GBFM Annual PCU to Model Time Period PCU')
+        next_button.setGeometry(10, 290, 480, 30)
         next_button.clicked.connect(self.on_click_GBFM2ModelPCU)      
                  
         labelD = QtWidgets.QLabel(self)
         labelD.setText('Utilities')
         labelD.setFont(QtGui.QFont("Arial", 12, QtGui.QFont.Bold))
-        labelD.setGeometry(10, 290, 700, 30)
-        
-        next_button = QtWidgets.QPushButton(self)
-        next_button.setText('4: Matrix Rezoning Tool')
-        next_button.setGeometry(10, 330, 480, 30)
-        next_button.clicked.connect(self.on_click_Model2GBFMPCU)   
+        labelD.setGeometry(10, 330, 700, 30)
          
         next_button = QtWidgets.QPushButton(self)
-        next_button.setText('4: Matrix Utilities')
+        next_button.setText('5: Matrix Utilities')
         next_button.setGeometry(10, 370, 480, 30)
         next_button.clicked.connect(self.on_click_MatrixUtilities)   
 
@@ -142,6 +142,11 @@ class tier_converter(QtWidgets.QWidget):
          def closeEvent(self, event):
             Utilities.closeEvent(self, event)             
              
+    @pyqtSlot()
+    def on_click_CombineShapefiles(self):
+        self.selections_window = CombineShapefiles(self)
+        self.selections_window.show()
+    
     @pyqtSlot()
     def on_click_ProduceGBFMCorrespondence(self):
         self.selections_window = ProduceGBFMCorrespondence(self)
