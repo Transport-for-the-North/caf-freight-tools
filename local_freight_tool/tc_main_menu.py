@@ -22,7 +22,7 @@ from annualtonne2pcu import AnnualTonne2PCU
 from matrix_utilities_ui import MatrixUtilities
 from gbfm2modelpcu import GBFM2ModelPCU
 from lgvprocessing import LGVProcessing
-from combine_shapefiles_ui import CombineShapefiles
+from combine_shapefiles import CombineShapefiles
 from producegbfmcorrespondence import ProduceGBFMCorrespondence 
 from deltaprocess import DeltaProcess 
 from utilities import Utilities, info_window
