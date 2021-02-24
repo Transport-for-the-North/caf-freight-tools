@@ -413,6 +413,9 @@ class ODMatrix:
             raise FileNotFoundError(f"{out_mat} was not created successfully")
         temp_filepath.unlink()
         key_path.unlink()
+        mx_log_path = Path('MX.LOG')
+        if mx_log_path.exists():
+            mx_log_path.unlink()
 
         # move LPX file from wd to output directory
         if not outpath.joinpath("MX.LPX").exists():
