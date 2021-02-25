@@ -85,7 +85,8 @@ Matrix_Processing_Text = '''
 Matrix_Utilities_Text=(
         "The matrix utilities tool can be used to perform a number of operations on a selected O-D trip matrix.\n"
         "This includes rezoning the matrix, adding it to another matrix, factoring it by a scalar or another matrix, filling in the missing zones in the matrix, removing external-external trips, and converting to UFM.\n"
-        "Care must be taken to ensure that any matrices being added or factored are in the same zoning system.\n"
+        "When rezoning, the zone correspondence file must contain all zones to be mapped from the first zoning system or an error will be raised.\n"
+        "Additionally, care must be taken to ensure that any matrices being added or factored are in the same zoning system\n"
         "Please consult the User Guide for more detailed information."
         )
         
