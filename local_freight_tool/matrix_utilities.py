@@ -85,8 +85,6 @@ class ODMatrix:
 
         Parameters
         ----------
-        self : ODMatrix.Object
-            First matrix instance
         other_matrix : ODMatrix.Object
             Second matrix instance
 
@@ -110,8 +108,6 @@ class ODMatrix:
 
         Parameters
         ----------
-        self : ODMatrix.Object
-            Matrix instance to subtract from
         other_matrix : ODMatrix.Object
             Matrix to subtract
 
@@ -127,6 +123,26 @@ class ODMatrix:
         return ODMatrix(subtracted, name=name)
 
     def __mul__(self, factor):
+        """Multiply the current matrix by a scalar or matrix factor,
+        element-wise. This determines whether the factor is a scalar or a
+        matrix, if the latter it aligns them, then multiplies them
+        element-wise.
+
+        Parameters
+        ----------
+        factor : float or ODMatrix
+            Factor to multiply the matrix by, either scalar or another matrix.
+
+        Returns
+        -------
+        ODMatrix
+            Factored ODMatrix.
+
+        Raises
+        ------
+        TypeError
+            Raised if the factor is neither a number nor an ODMatrix.
+        """
         if (type(factor) == int) | (type(factor) == float):
             print("Factoring by scalar")
             factored = self.matrix * factor
@@ -175,6 +191,11 @@ class ODMatrix:
         """Transforms the matrix of the ODMatrix instance into a 3 column
         matrix, ideal for writing the output to a file.
 
+        Parameters
+        ----------
+        include_zeros: bool
+            Whether to include 0-value trips in column dataframe, default True.
+
         Returns
         -------
         pd.DataFrame
@@ -197,17 +218,23 @@ class ODMatrix:
         Parameters
         ----------
         missing_zones : list or pd.DataFrame
-            list of missing zones or 1 column DataFrame of missing zones
+            list of missing zones or 1 column DataFrame of missing zones with
+            header zone_id
 
         Returns
         -------
         ODMatrix
             Updated ODMatrix with missing zones included
+
+        Raises
+        ------
+        TypeError
+            Raised if the missing zones are neither a list nor a pd.DataFrame.
         """
         # check if zones given as list or DataFrame
         if type(missing_zones) != list:
             try:
-                missing_zones = list(missing_zones[0])
+                missing_zones = list(missing_zones.zone_id)
             except TypeError:
                 raise TypeError("Missing zones are not a list or pandas dataframe")
 
@@ -233,17 +260,24 @@ class ODMatrix:
         Parameters
         ----------
         external_zones : list or pd.DataFrane
-            List or 1 column DataFrame of external zones with header ext_zones
+            List or 1 column DataFrame of external zones with header
+            zone_id.
 
         Returns
         -------
         ODMatrix
             ODMatrix with the external-external trips set to 0.
+
+        Raises
+        ------
+        TypeError
+            Raised if the external zones are neither a list nor a
+            pd.DataFrame.
         """
         # check if zones given as list or DataFrame
         if type(external_zones) != list:
             try:
-                external_zones = list(external_zones.ext_zones)
+                external_zones = list(external_zones.zone_id)
             except TypeError:
                 raise TypeError("External zones are not a list or a pandas dataframe.")
 
@@ -275,6 +309,14 @@ class ODMatrix:
         -------
         rezoned_od_matrix: ODMatrix
             Rezoned ODMatrix instance.
+
+        Raises
+        ------
+        FileNotFoundError
+            Raised if the zone correspondence csv could not be found.
+        ValueError
+            Raised if the zone correspondence csv is not of expected format.
+
         """
         print("Rezone started")
         try:
@@ -307,10 +349,13 @@ class ODMatrix:
 
         Parameters
         ----------
-        filepath : str
+        outpath : str
             Path to save output file to
         include_zeros : bool, optional
             Whether to include zero-value trips, by default True
+        include_headers: bool, optional
+            Whether to include the column headers in the sabed file, by
+            default True
         """
         column_matrix = self.column_matrix(include_zeros=include_zeros)
         column_matrix.to_csv(outpath, header=include_headers, index=False)
@@ -360,7 +405,7 @@ class ODMatrix:
 
             Returns
             -------
-            saturn_env:
+            new_env:
                 Updated environment variables.
             """
             new_env = os.environ.copy()
@@ -442,7 +487,7 @@ class ODMatrix:
 
         Returns
         -------
-        ODMatrix.Object
+        ODMatrix
             Instance of the ODMatrix Class
         """
         whitespace, header_row = cls.check_file_header(filepath)
@@ -455,6 +500,7 @@ class ODMatrix:
         )
         name = os.path.basename(os.path.splitext(filepath)[0])
         matrix = cls(matrix_dataframe, name, pivoted=False)
+
         return matrix
 
     @staticmethod
@@ -464,9 +510,9 @@ class ODMatrix:
 
         Parameters
         ----------
-        matrix_1 : ODMatrix.Object
+        matrix_1 : ODMatrix
             First matrix instance
-        matrix_2 : ODMatrix.Object
+        matrix_2 : ODMatrix
             Second matrix instance
 
         Returns
@@ -480,16 +526,14 @@ class ODMatrix:
 
     @staticmethod
     def check_file_header(filepath):
-        # TODO add to utilities
-        """Checks whether the O-D matrix input file is delimited by commas or
-        tabs, and whether there is a header row or not.
-        A header row is checked for based on whether the first element can be
-        converted to an integer.
+        """Checks whether a csv is delimited by commas or tabs, and whether
+        there is a header row or not. A header row is checked for based on
+        whether the first element can be converted to an integer.
 
         Parameters
         ----------
         filepath : str
-            Path to O-D matrix csv file.
+            Path to csv file.
 
         Returns
         -------
@@ -500,6 +544,7 @@ class ODMatrix:
             Indicates the index of the header row of the file, None if there
             is no header.
         """
+        # TODO add to utilities?
         with open(filepath, "rt") as infile:
             line = infile.readline()
 

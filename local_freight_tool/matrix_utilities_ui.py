@@ -1,8 +1,10 @@
 """
 
 Created on: Tue Feb 16 2021
+Last update: Thurs Feb 25 2021
 
-Original author: Cara
+Original author: CaraLynch
+Last updated by: CaraLynch
 
 File purpose:
 Gui to enable user to access utility functions relevant to O-D matrices,
@@ -26,8 +28,6 @@ from rezone import Rezone
 import textwrap
 import os
 import pandas as pd
-
-# TODO add try-excepts and message if things failed
 
 
 class MatrixUtilities(QtWidgets.QWidget):
@@ -538,7 +538,7 @@ class MatrixUtilities(QtWidgets.QWidget):
 
 
 class background_thread(QThread):
-    """Thread which calls functions from matrix_utilities
+    """Thread which runs selected matrix processes.
 
     Parameters
     ----------
