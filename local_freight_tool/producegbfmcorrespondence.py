@@ -2,10 +2,10 @@
 """
 
 Created on: Tue Mar  3 09:56:44 2020
-Updated on: Wed Dec 23 15:31:50 2020
+Updated on: Thurs Feb 25 10:50 2020
 
 Original author: racs
-Last update made by: cara
+Last update made by: CaraLynch
 
 File purpose:
 Produces zone_correspondence.csv which can be used within the GBFM Annual PCU
@@ -351,6 +351,15 @@ class ProduceGBFMCorrespondence(QtWidgets.QWidget):
             alert.show()
 
         else:
+            if self.point_handling & (self.point_zones.text() == ""):
+                alert = QtWidgets.QMessageBox(self)
+                alert.setWindowTitle("Warning")
+                alert.setText(
+                    "No point zones csv specified, the tool will attempt to find point zones with the point zone tolerance.\n"
+                    "This method is not as accurate as supplying a list of zone 2 point zones. Check user manual for more information. \n"
+                    "You may close this window, zone correspondence is running."
+                )
+                alert.show()
             # Start a progress window
             self.progress = progress_window("Zone Correspondence Tool")
             self.hide()
@@ -444,7 +453,13 @@ class background_thread(QThread):
             lsoa_data_path=self.lsoa_data_path,
             rounding=self.rounding,
         )
-
-        self.progress_label.setText(
-            f"Zone correspondence complete. There are {zone_1_missing} unmatched {self.zone1_name} zones and {zone_2_missing} unmatched {self.zone2_name} zones.\nCheck {log_file}. You may now exit the tool."
-        )
+        if self.point_handling:
+            self.progress_label.setText(
+                f"Zone correspondence complete. There are {zone_1_missing} unmatched {self.zone1_name} zones and {zone_2_missing} unmatched {self.zone2_name} zones."
+                f"\nCheck {log_file} for missing and point zones, and check against the correspondence outputs. You may now exit the tool."
+            )
+        else:
+            self.progress_label.setText(
+                f"Zone correspondence complete. There are {zone_1_missing} unmatched {self.zone1_name} zones and {zone_2_missing} unmatched {self.zone2_name} zones."
+                f"\nCheck {log_file} for missing zones. You may now exit the tool."
+            )

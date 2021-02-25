@@ -1,7 +1,9 @@
 """
 Created on: Thurs Jan 28 2021
+Updated on: Thurs Feb 25 10:50 2020
 
 Original author: CaraLynch
+Last update made by: CaraLynch
 
 File purpose:
 Nest two shapefiles to produce adjustment factors from one zone to another.
@@ -71,7 +73,7 @@ def read_zone_shapefiles(zone_1_path, zone_2_path, zone_1_name, zone_2_name):
 
         # set gbfm crs data to same as noham crs data (they should be the
         # same but gbfm data is incomplete)
-        # this does not change the CRS, we are assuming it is already 
+        # this does not change the CRS, we are assuming it is already
         # ESPG:27700
         if not zone_list[i].crs:
             zone_list[i].crs = "EPSG:27700"
@@ -114,7 +116,7 @@ def read_lsoa_data(lsoa_shapefile_path, lsoa_data_path):
 
 def spatial_zone_correspondence(zone_list, zone_names):
     """Finds the spatial zone corrrespondence through calculating adjustment
-    factors with areas only. LSOA data is assumed to be in a column named 
+    factors with areas only. LSOA data is assumed to be in a column named
     "var".
 
     Parameters
@@ -258,45 +260,45 @@ def point_zone_filter(
     tolerance,
 ):
     """Finds zone system 2 point and associated zones (sharing a zone system 1
-    zone), reads in LSOA data, computes intersection, filters out slithers,
-    makes sure each point zone is the only one associated with that LSOA.
-    Returns var data for zone 2 zones as dataframes with zone ids as indices,
-    var as column.
+     zone), reads in LSOA data, computes intersection, filters out slithers,
+     makes sure each point zone is the only one associated with that LSOA.
+     Returns var data for zone 2 zones as dataframes with zone ids as indices,
+     var as column.
 
-    Parameters
-    ----------
-    spatial_correspondence_no_slithers : GeoDataFrame
-        Spatial zone correspondence between zone systems 1 and 2, produced
-        with spatial_zone_correspondence with the small overlaps filtered out
-        using find_slithers.
-    point_tolerance : float, optional
-        Tolerance level for filtering out point zones, a number between 0 and
-        1, defaults to 0.95
-    point_zones : str, optional
-        Path to csv file with list of point zones with column name zone_id, defaults to ""
-    zone_list : List[GeoDataFrame, GeoDataFrame]
-        List containing zone 1 and zone 2 GeoDataFrames.
-    zone_names : List[str, str]
-        List containing zone 1 and zone 2 names.
-    lsoa_shapefile_path : str
-        Path to LSOA shapefile (or the shapefile associated with the data to
-        be used in point zone handling). Zone ID column must be called
-        LSOA11CD.
-    lsoa_data_path : str
-        Path to csv file containing LSOA ID column as lsoa11cd and desired
-        data in var column.
+     Parameters
+     ----------
+     spatial_correspondence_no_slithers : GeoDataFrame
+         Spatial zone correspondence between zone systems 1 and 2, produced
+         with spatial_zone_correspondence with the small overlaps filtered out
+         using find_slithers.
+     point_tolerance : float, optional
+         Tolerance level for filtering out point zones, a number between 0 and
+         1, defaults to 0.95
+     point_zones : str, optional
+         Path to csv file with list of point zones with column name zone_id, defaults to ""
+     zone_list : List[GeoDataFrame, GeoDataFrame]
+         List containing zone 1 and zone 2 GeoDataFrames.
+     zone_names : List[str, str]
+         List containing zone 1 and zone 2 names.
+     lsoa_shapefile_path : str
+         Path to LSOA shapefile (or the shapefile associated with the data to
+         be used in point zone handling). Zone ID column must be called
+         LSOA11CD.
+     lsoa_data_path : str
+         Path to csv file containing LSOA ID column as lsoa11cd and desired
+         data in var column.
 
-    Returns
-    -------
+     Returns
+     -------
+     gpd.GeoDataFrame
+        LSOA data for zones in zone 2 that map to the same zone 1 zone as point zones.
+     gpd.GeoDataFrame
+        LSOA data for point zones.
+     pd.DataFrame
+        Contains information on these zones, their zone 1 zone ID, zone 2 zone ID, zone
+        type (point or non-point), correspondence type (LSOA or spatial) and any notes.
     gpd.GeoDataFrame
-       LSOA data for zones in zone 2 that map to the same zone 1 zone as point zones.
-    gpd.GeoDataFrame
-       LSOA data for point zones.
-    pd.DataFrame
-       Contains information on these zones, their zone 1 zone ID, zone 2 zone ID, zone
-       type (point or non-point), correspondence type (LSOA or spatial) and any notes.
-   gpd.GeoDataFrame
-       The spatial correspondence initially input, but with point-affected zones filtered out.
+        The spatial correspondence initially input, but with point-affected zones filtered out.
     """
     # if point zone list given, read in and use to find point zone correspondence
     if point_zones_path != "":
@@ -818,18 +820,18 @@ def main_zone_correspondence(
     """
     # create log
     log_data = {
-            "Zone 1 name": zone_1_name,
-            "Zone 2 name": zone_2_name,
-            "Zone 1 shapefile": zone_1_path,
-            "Zone 2 Shapefile": zone_2_path,
-            "Output directory": out_path,
-            "Tolerance": tolerance,
-            "Point handling": point_handling,
-            "Point list": point_zones_path,
-            "Point tolerance": point_tolerance,
-            "LSOA data": lsoa_data_path,
-            "LSOA shapefile": lsoa_shapefile_path,
-            "Rounding": rounding,
+        "Zone 1 name": zone_1_name,
+        "Zone 2 name": zone_2_name,
+        "Zone 1 shapefile": zone_1_path,
+        "Zone 2 Shapefile": zone_2_path,
+        "Output directory": out_path,
+        "Tolerance": tolerance,
+        "Point handling": point_handling,
+        "Point list": point_zones_path,
+        "Point tolerance": point_tolerance,
+        "LSOA data": lsoa_data_path,
+        "LSOA shapefile": lsoa_shapefile_path,
+        "Rounding": rounding,
     }
 
     log_df = pd.DataFrame({"Parameters": log_data.keys(), "Values": log_data.values()})
