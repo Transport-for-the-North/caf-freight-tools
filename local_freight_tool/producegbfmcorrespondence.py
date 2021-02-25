@@ -52,7 +52,7 @@ class ProduceGBFMCorrespondence(QtWidgets.QWidget):
 
     def initUI(self):
         """Initialises UI"""
-        self.setGeometry(500, 320, 510 + 110, 540)
+        self.setGeometry(500, 200, 510 + 110, 540)
         self.setWindowTitle("Zone Correspondence Tool")
         self.setWindowIcon(QtGui.QIcon("icon.jpg"))
 

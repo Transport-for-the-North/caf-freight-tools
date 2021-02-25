@@ -37,7 +37,7 @@ class AnnualTonne2PCU(QtWidgets.QWidget):
     
         
     def initUI(self):
-        self.setGeometry(600, 600, 500, 400)        
+        self.setGeometry(500, 200, 500, 400)        
         self.setWindowTitle('Annual Tonne to Annual PCU Conversion')
         self.setWindowIcon(QtGui.QIcon('icon.jpg'))        
         
@@ -94,6 +94,7 @@ class AnnualTonne2PCU(QtWidgets.QWidget):
 
     def closeEvent(self, event):
         Utilities.closeEvent(self, event)
+        self.tier_converter.show()
        
     @pyqtSlot()
     def on_click_Info(self):

@@ -53,7 +53,7 @@ class MatrixUtilities(QtWidgets.QWidget):
 
     def initUI(self):
         """Initialises UI"""
-        self.setGeometry(500, 320, 500, 700)
+        self.setGeometry(500, 200, 500, 700)
         self.setWindowTitle("Matrix Utilities")
         self.setWindowIcon(QtGui.QIcon("icon.jpg"))
 
@@ -517,6 +517,7 @@ class MatrixUtilities(QtWidgets.QWidget):
     def closeEvent(self, event):
         """Closes the matrix utilities window."""
         Utilities.closeEvent(self, event)
+        self.tier_converter.show()
 
     @pyqtSlot()
     def on_click_Info(self):

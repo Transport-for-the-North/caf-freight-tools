@@ -41,7 +41,7 @@ class Profile_Builder(QtWidgets.QWidget):
         return dropdown
         
     def initUI(self):
-        self.setGeometry(300, 300, 870, 70+ 20*(10+14))        
+        self.setGeometry(500, 200, 870, 70+ 20*(10+14))        
         self.setWindowTitle('Profile Builder')
         self.setWindowIcon(QtGui.QIcon('icon.jpg'))
         

@@ -47,7 +47,7 @@ class GBFM2ModelPCU(QtWidgets.QWidget):
         self.initUI()
         
     def initUI(self):
-        self.setGeometry(600, 600, 500, 390)        
+        self.setGeometry(500, 200, 500, 390)        
         self.setWindowTitle('GBFM Annual PCU to Model Time Period PCU')
         self.setWindowIcon(QtGui.QIcon('icon.jpg'))        
         
@@ -143,7 +143,7 @@ class set_tp_selections(QtWidgets.QWidget):
         self.initUI()
         
     def initUI(self):
-        self.setGeometry(400, 400, 850, 10 + 40*(4+len(self.gbfm_filepath)))        
+        self.setGeometry(500, 200, 850, 10 + 40*(4+len(self.gbfm_filepath)))        
         self.setWindowTitle('GBFM Annual PCU to Model Time Period PCU')
         self.setWindowIcon(QtGui.QIcon('icon.jpg'))
         

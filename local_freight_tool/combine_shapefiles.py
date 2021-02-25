@@ -35,7 +35,7 @@ class CombineShapefiles(QtWidgets.QWidget):
         self.initUI()
 
     def initUI(self):
-        self.setGeometry(700, 200, 500, 330)
+        self.setGeometry(500, 200, 500, 330)
         self.setWindowTitle("Combine Shapefiles")
         self.setWindowIcon(QtGui.QIcon("icon.jpg"))
 
@@ -114,6 +114,7 @@ class CombineShapefiles(QtWidgets.QWidget):
     def closeEvent(self, event):
         """Closes the window"""
         Utilities.closeEvent(self, event)
+        self.tier_converter.show()
 
     def run_button_clicked(self):
 
@@ -180,6 +181,7 @@ class background_thread(QThread):
         gbfm_points.geometry = gbfm_points.buffer(self.buffer)
 
         self.progress_label.setText("Combining shapefiles")
+        # TODO change to polygon columns
         shared_columns = ["UniqueID", "MSOACode", "RTMFocusAr", "geometry"]
         combined_shapefile = gbfm_polygons[shared_columns].append(
             gbfm_points[shared_columns]

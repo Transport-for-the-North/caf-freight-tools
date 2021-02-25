@@ -34,7 +34,7 @@ class MatrixProcessing(QtWidgets.QWidget):
         self.initUI()
     
     def initUI(self):
-        self.setGeometry(600, 600, 500, 400)        
+        self.setGeometry(500, 200, 500, 400)        
         self.setWindowTitle('Matrix Factoring')
         self.setWindowIcon(QtGui.QIcon('icon.jpg'))              
         
@@ -107,6 +107,7 @@ class MatrixProcessing(QtWidgets.QWidget):
         
     def closeEvent(self, event):
         Utilities.closeEvent(self, event)
+        self.tier_converter.show()
         
 class background_thread(QThread):
     

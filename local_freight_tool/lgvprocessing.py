@@ -39,7 +39,7 @@ class LGVProcessing(QtWidgets.QWidget):
         self.initUI()    
         
     def initUI(self):
-        self.setGeometry(700, 200, 500, 700)        
+        self.setGeometry(500, 200, 500, 700)        
         self.setWindowTitle('LGV Processing')
         self.setWindowIcon(QtGui.QIcon('icon.jpg'))        
         
@@ -133,7 +133,11 @@ class LGVProcessing(QtWidgets.QWidget):
         
     def back_button_clicked(self):
         self.tier_converter.show()
-        self.hide()    
+        self.hide()
+
+    def closeEvent(self, event):
+        Utilities.closeEvent(self, event)
+        self.tier_converter.show()    
                 
     def run_button_clicked(self):
     

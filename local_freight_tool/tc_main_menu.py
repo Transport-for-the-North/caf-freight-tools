@@ -42,7 +42,7 @@ class tier_converter(QtWidgets.QWidget):
         self.initUI()
 
     def initUI(self):
-        self.setGeometry(500, 400, 500, 490)
+        self.setGeometry(500, 200, 500, 490)
         self.setWindowTitle("Local Freight Tool")
         self.setWindowIcon(QtGui.QIcon("icon.jpg"))
 
@@ -124,6 +124,7 @@ class tier_converter(QtWidgets.QWidget):
     @pyqtSlot()
     def on_click_Profile_Builder(self):
         self.selections_window = Profile_Builder(self)
+        self.hide()
         self.selections_window.show()
 
     @pyqtSlot()
@@ -145,41 +146,49 @@ class tier_converter(QtWidgets.QWidget):
     @pyqtSlot()
     def on_click_CombineShapefiles(self):
         self.selections_window = CombineShapefiles(self)
+        self.hide()
         self.selections_window.show()
 
     @pyqtSlot()
     def on_click_ProduceGBFMCorrespondence(self):
         self.selections_window = ProduceGBFMCorrespondence(self)
+        self.hide()
         self.selections_window.show()
 
     @pyqtSlot()
     def on_click_AnnualTonne2PCU(self):
         self.selections_window = AnnualTonne2PCU(self)
+        self.hide()
         self.selections_window.show()
 
     @pyqtSlot()
     def on_click_LGVProcessing(self):
         self.selections_window = LGVProcessing(self)
+        self.hide()
         self.selections_window.show()
 
     @pyqtSlot()
     def on_click_GBFM2ModelPCU(self):
         self.selections_window = GBFM2ModelPCU(self)
+        self.hide()
         self.selections_window.show()
 
     @pyqtSlot()
     def on_click_MatrixUtilities(self):
         self.selections_window = MatrixUtilities(self)
+        self.hide()
         self.selections_window.show()
 
     @pyqtSlot()
     def on_click_DeltaProcess(self):
         self.selections_window = DeltaProcess(self)
+        self.hide()
         self.selections_window.show()
 
     @pyqtSlot()
     def on_click_CostConversion(self):
         self.selections_window = WeightedRezone(self)
+        self.hide()
         self.selections_window.show()
 
     # Function which asks the user if they really want to trigger sys.exit()
