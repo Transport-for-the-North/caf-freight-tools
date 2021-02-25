@@ -40,7 +40,7 @@ class Utilities(QtWidgets.QWidget):
             event.ignore()
             
     # TODO: check file extension, default filepaths        
-    def add_file_selection(self, y_position, label_txt, multiple_files=False, directory=False, filetype=None):
+    def add_file_selection(self, y_position, label_txt, multiple_files=False, directory=False, filetype=None, return_browse=False):
         def browse_file():
             if directory == True:
                 selected_file = QtWidgets.QFileDialog(self).getExistingDirectory(self, label_txt)
@@ -70,8 +70,11 @@ class Utilities(QtWidgets.QWidget):
         label = QtWidgets.QLabel(self)
         label.setText(label_txt)
         label.setGeometry(10, y_position - 30, 400, 30)
-        
-        return file_path 
+        if return_browse:
+            return file_path, browse_button
+        else:
+            return file_path
+ 
     # Some input files are tab and some are comma-separated, so this version of read_csv allows it to accept either
     def read_csv(file_name):
         # Read in the second line of the file

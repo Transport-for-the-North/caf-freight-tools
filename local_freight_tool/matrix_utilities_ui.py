@@ -104,14 +104,19 @@ class MatrixUtilities(QtWidgets.QWidget):
         self.rezoning_box.stateChanged.connect(self.rezoning_clickbox)
 
         # zone correspondence file
-        self.zone_correspondence_path = Utilities.add_file_selection(
+        (
+            self.zone_correspondence_path,
+            self.zone_correspondence_browse_button,
+        ) = Utilities.add_file_selection(
             self,
             y + 45,
             "Select the zone correspondence file",
             filetype="Comma-separated Values (*.csv *.CSV *.txt *.TXT)",
+            return_browse=True,
         )
         # set disabled until rezoning box is checked
         self.zone_correspondence_path.setDisabled(True)
+        self.zone_correspondence_browse_button.setDisabled(True)
 
         # Matrix addition
         y += spacing
@@ -128,13 +133,18 @@ class MatrixUtilities(QtWidgets.QWidget):
         self.addition_box.stateChanged.connect(self.addition_clickbox)
 
         # Second matrix or scalar value
-        self.matrix_to_add_path = Utilities.add_file_selection(
+        (
+            self.matrix_to_add_path,
+            self.addition_browse_button,
+        ) = Utilities.add_file_selection(
             self,
             y + 45,
             "Select the second matrix",
             filetype="Comma-separated Values (*.csv *.CSV *.txt *.TXT)",
+            return_browse=True,
         )
         self.matrix_to_add_path.setDisabled(True)
+        self.addition_browse_button.setDisabled(True)
 
         # Matrix factoring
         y += spacing
@@ -151,13 +161,18 @@ class MatrixUtilities(QtWidgets.QWidget):
         self.factoring_box.stateChanged.connect(self.factoring_clickbox)
 
         # Second matrix or scalar value
-        self.matrix_factor_path = Utilities.add_file_selection(
+        (
+            self.matrix_factor_path,
+            self.factor_browse_button,
+        ) = Utilities.add_file_selection(
             self,
             y + 45,
             "Select the second matrix or input a scalar value",
             filetype="Comma-separated Values (*.csv *.CSV *.txt *.TXT)",
+            return_browse=True,
         )
         self.matrix_factor_path.setDisabled(True)
+        self.factor_browse_button.setDisabled(True)
 
         # Fill missing zones
         y += spacing
@@ -174,13 +189,18 @@ class MatrixUtilities(QtWidgets.QWidget):
         self.fill_missing_box.stateChanged.connect(self.fill_missing_clickbox)
 
         # Missing zones file or values
-        self.missing_zones_path = Utilities.add_file_selection(
+        (
+            self.missing_zones_path,
+            self.missing_zones_browse_button,
+        ) = Utilities.add_file_selection(
             self,
             y + 45,
             "Select missing zones csv or enter zone numbers separated by commas",
             filetype="Comma-separated Values (*.csv *.CSV *.txt *.TXT)",
+            return_browse=True,
         )
         self.missing_zones_path.setDisabled(True)
+        self.missing_zones_browse_button.setDisabled(True)
 
         # Remove external-external trips
         y += spacing
@@ -197,13 +217,18 @@ class MatrixUtilities(QtWidgets.QWidget):
         self.remove_ee_box.stateChanged.connect(self.remove_ee_clickbox)
 
         # External zones file or values
-        self.external_zones_path = Utilities.add_file_selection(
+        (
+            self.external_zones_path,
+            self.external_zones_browse_button,
+        ) = Utilities.add_file_selection(
             self,
             y + 45,
             "Select external zones csv or enter zone numbers separated by commas",
             filetype="Comma-separated Values (*.csv *.CSV *.txt *.TXT)",
+            return_browse=True,
         )
         self.external_zones_path.setDisabled(True)
+        self.external_zones_browse_button.setDisabled(True)
 
         # Convert to UFM
         y += spacing
@@ -220,10 +245,18 @@ class MatrixUtilities(QtWidgets.QWidget):
         self.ufm_convert_box.stateChanged.connect(self.ufm_convert_clickbox)
 
         # Box for path to SATURN exes folder
-        self.saturn_exes_path = Utilities.add_file_selection(
-            self, y + 45, "Select path to SATURN exes folder", directory=True
+        (
+            self.saturn_exes_path,
+            self.saturn_exes_browse_button,
+        ) = Utilities.add_file_selection(
+            self,
+            y + 45,
+            "Select path to SATURN exes folder",
+            directory=True,
+            return_browse=True,
         )
         self.saturn_exes_path.setDisabled(True)
+        self.saturn_exes_browse_button.setDisabled(True)
 
         # output directory
         y += spacing
@@ -286,10 +319,12 @@ class MatrixUtilities(QtWidgets.QWidget):
         if state == Qt.Checked:
             self.rezoning = True
             self.zone_correspondence_path.setDisabled(False)
+            self.zone_correspondence_browse_button.setDisabled(False)
 
         else:
             self.rezoning = False
             self.zone_correspondence_path.setDisabled(True)
+            self.zone_correspondence_browse_button.setDisabled(True)
 
     def addition_clickbox(self, state):
         """Changes UI display and assigns addition bool according to
@@ -303,10 +338,12 @@ class MatrixUtilities(QtWidgets.QWidget):
         if state == Qt.Checked:
             self.addition = True
             self.matrix_to_add_path.setDisabled(False)
+            self.addition_browse_button.setDisabled(False)
 
         else:
             self.factoring = False
             self.matrix_to_add_path.setDisabled(True)
+            self.addition_browse_button.setDisabled(True)
 
     def factoring_clickbox(self, state):
         """Changes UI display and assigns factoring bool according to
@@ -320,10 +357,12 @@ class MatrixUtilities(QtWidgets.QWidget):
         if state == Qt.Checked:
             self.factoring = True
             self.matrix_factor_path.setDisabled(False)
+            self.factor_browse_button.setDisabled(False)
 
         else:
             self.factoring = False
             self.matrix_factor_path.setDisabled(True)
+            self.factor_browse_button.setDisabled(True)
 
     def fill_missing_clickbox(self, state):
         """Changes UI display and assigns fill missing zones bool according to
@@ -337,10 +376,12 @@ class MatrixUtilities(QtWidgets.QWidget):
         if state == Qt.Checked:
             self.fill_missing = True
             self.missing_zones_path.setDisabled(False)
+            self.missing_zones_browse_button.setDisabled(False)
 
         else:
             self.fill_missing = False
             self.missing_zones_path.setDisabled(True)
+            self.missing_zones_browse_button.setDisabled(True)
 
     def remove_ee_clickbox(self, state):
         """Changes UI display and assigns remove ee bool according to
@@ -354,10 +395,12 @@ class MatrixUtilities(QtWidgets.QWidget):
         if state == Qt.Checked:
             self.remove_ee = True
             self.external_zones_path.setDisabled(False)
+            self.external_zones_browse_button.setDisabled(False)
 
         else:
             self.remove_ee = False
             self.external_zones_path.setDisabled(True)
+            self.external_zones_browse_button.setDisabled(True)
 
     def ufm_convert_clickbox(self, state):
         """Changes UI display and assigns UFM convert bool according to
@@ -371,10 +414,12 @@ class MatrixUtilities(QtWidgets.QWidget):
         if state == Qt.Checked:
             self.ufm_convert = True
             self.saturn_exes_path.setDisabled(False)
+            self.saturn_exes_browse_button.setDisabled(False)
 
         else:
             self.ufm_convert = False
             self.saturn_exes_path.setDisabled(True)
+            self.saturn_exes_browse_button.setDisabled(True)
 
     def run_button_clicked(self):
         """Initialises process once run button is clicked."""
