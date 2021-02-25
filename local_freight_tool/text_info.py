@@ -15,6 +15,13 @@ Contains information about each aspect of the tool for display with the GUI.
 
 from typing import TYPE_CHECKING
 
+Combine_Shapefiles_Text=(
+        "The GBFM outputs two shapefiles, polygons and centroids. This tool combines them.\n"
+        "Select a buffer radius, which will be added to each point zone in the centroids\n"
+        "shapefile which is not in the polygon shapefile. These zones will then be added\n"
+        "to the polygons shapefile, creating a new shapefile to be used in the rest of the\n"
+        "tool.s"
+)
 
 LGV_Processing_Text = '''
         There are three separate functions within this tool. 
@@ -75,9 +82,12 @@ Matrix_Processing_Text = '''
 
         '''
 
-Matrix_Utilities_Text="""
-        The matrix utilities tool can be used to perform a number of operations on a selected O-D trip matrix. This includes rezoning the matrix, adding it to another matrix, factoring it by a scalar or another matrix, filling in the missing zones in the matrix, removing external-external trips, and converting to UFM.
-        """
+Matrix_Utilities_Text=(
+        "The matrix utilities tool can be used to perform a number of operations on a selected O-D trip matrix.\n"
+        "This includes rezoning the matrix, adding it to another matrix, factoring it by a scalar or another matrix, filling in the missing zones in the matrix, removing external-external trips, and converting to UFM.\n"
+        "Care must be taken to ensure that any matrices being added or factored are in the same zoning system.\n"
+        "Please consult the User Guide for more detailed information."
+        )
         
 Model2GBFMPCU_Text = '''
         The matrix rezoning tool can be used to convert a freight O-D trip matrix from one zoning system to another by applying a zone correspondence file. This tool should be implemented provided that an appropriate zone correspondence file already been produced for the flow.
