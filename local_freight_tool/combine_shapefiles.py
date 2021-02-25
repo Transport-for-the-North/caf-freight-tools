@@ -113,7 +113,7 @@ class CombineShapefiles(QtWidgets.QWidget):
 
     def closeEvent(self, event):
         """Closes the window"""
-        Utilities.closeEvent(self.event)
+        Utilities.closeEvent(self, event)
 
     def run_button_clicked(self):
 
@@ -192,5 +192,4 @@ class background_thread(QThread):
             "Combining shapefiles process complete. You may exit the program."
         )
 
-    def closeEvent(self, event):
-        Utilities.closeEvent(self, event)
+
