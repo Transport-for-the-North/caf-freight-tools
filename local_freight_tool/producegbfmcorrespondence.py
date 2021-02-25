@@ -77,8 +77,10 @@ class ProduceGBFMCorrespondence(QtWidgets.QWidget):
         self.yspace = 60
         self.y2 = self.y1 + 80
         self.first_zones_path = Utilities.add_file_selection(
-            self, self.y2, "Select the first zone system shapefile:",
-            filetype="Shapefile (*.shp *.SHP)"
+            self,
+            self.y2,
+            "Select the first zone system shapefile:",
+            filetype="Shapefile (*.shp *.SHP)",
         )
 
         # Zone 2
@@ -93,31 +95,49 @@ class ProduceGBFMCorrespondence(QtWidgets.QWidget):
         self.textbox_zone2.resize(235, 30)
 
         self.second_zones_path = Utilities.add_file_selection(
-            self, self.y2 + self.yspace, "Select the second zone system shapefile:",
-            filetype="Shapefile (*.shp *.SHP)"
+            self,
+            self.y2 + self.yspace,
+            "Select the second zone system shapefile:",
+            filetype="Shapefile (*.shp *.SHP)",
         )
 
         # Add file paths to LSOA data
 
-        self.lsoa_shapefile_path = Utilities.add_file_selection(
-            self, self.y2 + self.yspace * 5, "Select the LSOA shapefile:",
-            filetype="Shapefile (*.shp *.SHP)"
+        (
+            self.lsoa_shapefile_path,
+            self.lsoa_shapefile_browse,
+        ) = Utilities.add_file_selection(
+            self,
+            self.y2 + self.yspace * 5,
+            "Select the LSOA shapefile:",
+            filetype="Shapefile (*.shp *.SHP)",
+            return_browse=True,
         )
-        self.lsoa_data_path = Utilities.add_file_selection(
-            self, self.y2 + self.yspace * 4, "Select the LSOA data csv:",
-            filetype="Comma-separated Values (*.csv *.CSV *.txt *.TXT)"
+        self.lsoa_data_path, self.lsoa_data_browse = Utilities.add_file_selection(
+            self,
+            self.y2 + self.yspace * 4,
+            "Select the LSOA data csv:",
+            filetype="Comma-separated Values (*.csv *.CSV *.txt *.TXT)",
+            return_browse=True,
         )
 
         # Add file path to point zone list
-        self.point_zones = Utilities.add_file_selection(
-            self, self.y2 + self.yspace * 3, "(Optional) Select point zone csv:",
-            filetype="Comma-separated Values (*.csv *.CSV *.txt *.TXT)"
+        self.point_zones, self.point_zones_browse = Utilities.add_file_selection(
+            self,
+            self.y2 + self.yspace * 3,
+            "(Optional) Select second zone system (e.g. NoHAM) point zone csv:",
+            filetype="Comma-separated Values (*.csv *.CSV *.txt *.TXT)",
+            return_browse=True,
         )
 
         # Disable these boxes until point handling is checked
         self.lsoa_data_path.setDisabled(True)
+        self.lsoa_data_browse.setDisabled(True)
         self.lsoa_shapefile_path.setDisabled(True)
+        self.lsoa_shapefile_browse.setDisabled(True)
         self.point_zones.setDisabled(True)
+        self.point_zones_browse.setDisabled(True)
+
         # TODO add default file here, will update add_file_selection in utilities
 
         # Folder path for the outputs
@@ -223,19 +243,25 @@ class ProduceGBFMCorrespondence(QtWidgets.QWidget):
         if state == Qt.Checked:
             self.point_handling = True
             self.lsoa_data_path.setDisabled(False)
+            self.lsoa_data_browse.setDisabled(False)
             self.lsoa_shapefile_path.setDisabled(False)
+            self.lsoa_shapefile_browse.setDisabled(False)
             self.labelpointtol.setDisabled(False)
             self.labeluptol.setDisabled(False)
             self.uppertolbox.setDisabled(False)
             self.point_zones.setDisabled(False)
+            self.point_zones_browse.setDisabled(False)
             self.pointtolbox.setDisabled(False)
 
         else:
             self.point_handling = False
             self.lsoa_data_path.setDisabled(True)
+            self.lsoa_data_browse.setDisabled(True)
             self.lsoa_shapefile_path.setDisabled(True)
+            self.lsoa_shapefile_browse.setDisabled(True)
             self.labelpointtol.setDisabled(True)
             self.point_zones.setDisabled(True)
+            self.point_zones_browse.setDisabled(True)
             self.pointtolbox.setDisabled(True)
 
             if not self.rounding:
@@ -360,7 +386,7 @@ class ProduceGBFMCorrespondence(QtWidgets.QWidget):
 
 
 class background_thread(QThread):
-    """Thread which calls functions from 
+    """Thread which calls functions from
     zone_correspondence.main_zone_correspondence.
 
     Parameters
@@ -401,9 +427,7 @@ class background_thread(QThread):
             self.zone1_name = str(self.textbox_zone1)
             self.zone2_name = str(self.textbox_zone2)
 
-        self.progress_label.setText(
-            "Applying the zone correspondence process..."
-        )
+        self.progress_label.setText("Applying the zone correspondence process...")
 
         log_file, zone_1_missing, zone_2_missing = zcorr.main_zone_correspondence(
             self.first_zones_path,
@@ -419,5 +443,6 @@ class background_thread(QThread):
             rounding=self.rounding,
         )
 
-        self.progress_label.setText(f"Zone correspondence complete. There are {zone_1_missing} unmatched {self.zone1_name} zones and {zone_2_missing} unmatched {self.zone2_name} zones.\nCheck {log_file}. You may now exit the tool.")
-        
+        self.progress_label.setText(
+            f"Zone correspondence complete. There are {zone_1_missing} unmatched {self.zone1_name} zones and {zone_2_missing} unmatched {self.zone2_name} zones.\nCheck {log_file}. You may now exit the tool."
+        )
