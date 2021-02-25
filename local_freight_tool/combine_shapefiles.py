@@ -165,27 +165,30 @@ class background_thread(QThread):
         self.buffer = CombineShapefiles.buffer_box.value()
 
     def run(self):
+        zone_ID = "UniqueID"
+
         self.progress_label.setText("Reading in the shapefiles")
         gbfm_polygons = gpd.read_file(self.gbfm_polygons_path)
         gbfm_centroids = gpd.read_file(self.gbfm_centroids_path)
 
         # centroids file has float UniqueID, change to int
-        gbfm_centroids.UniqueID = gbfm_centroids.UniqueID.astype(int)
+        gbfm_centroids[zone_ID] = gbfm_centroids[zone_ID].astype(int)
 
         self.progress_label.setText("Finding point zones")
         gbfm_points = gbfm_centroids.loc[
-            ~gbfm_centroids.UniqueID.isin(gbfm_polygons.UniqueID)
+            ~gbfm_centroids[zone_ID].isin(gbfm_polygons[zone_ID])
         ]
 
         self.progress_label.setText("Adding buffer to points")
         gbfm_points.geometry = gbfm_points.buffer(self.buffer)
 
+        # make sure source is clear in shapefiles
+        gbfm_points.loc[:, 'source'] = 'centroid'
+        gbfm_polygons.loc[:, 'source'] = 'polygon'
+
         self.progress_label.setText("Combining shapefiles")
-        # TODO change to polygon columns
-        shared_columns = ["UniqueID", "MSOACode", "RTMFocusAr", "geometry"]
-        combined_shapefile = gbfm_polygons[shared_columns].append(
-            gbfm_points[shared_columns]
-        )
+        shared_columns = gbfm_points.columns[gbfm_points.columns.isin(gbfm_polygons.columns)]
+        combined_shapefile = gbfm_polygons.append(gbfm_points[shared_columns])
 
         self.progress_label.setText(f"Saving to {self.outpath}/GBFM_combined.shp")
         combined_shapefile.to_file(f"{self.outpath}/GBFM_combined.shp")
