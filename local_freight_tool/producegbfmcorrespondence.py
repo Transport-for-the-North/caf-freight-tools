@@ -198,18 +198,20 @@ class ProduceGBFMCorrespondence(QtWidgets.QWidget):
 
         # Create checkboxes for rounding and point handling
         # point handling
-        self.point_handling = False
+        self.point_handling = True
         self.pointhandlingbox = QCheckBox("Point handling", self)
         self.pointhandlingbox.move(self.x3, 95)
         self.pointhandlingbox.resize(200, 40)
         self.pointhandlingbox.stateChanged.connect(self.point_handling_clickbox)
+        self.pointhandlingbox.setChecked(True)
 
         # rounding
-        self.rounding = False
+        self.rounding = True
         self.roundingbox = QCheckBox("Rounding", self)
         self.roundingbox.move(self.x3, 65)
         self.roundingbox.resize(200, 40)
         self.roundingbox.stateChanged.connect(self.rounding_clickbox)
+        self.roundingbox.setChecked(True)
 
         # Create a push button for 'info'
         Info_button = QtWidgets.QPushButton(self)
