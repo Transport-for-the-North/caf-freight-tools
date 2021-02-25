@@ -141,7 +141,7 @@ class CombineShapefiles(QtWidgets.QWidget):
         
 class background_thread(QThread):
     
-    def __init__(self, LGVProcessing):
+    def __init__(self, CombineShapefiles):
         QThread.__init__(self)
         
         self.progress_label = CombineShapefiles.progress.label        
