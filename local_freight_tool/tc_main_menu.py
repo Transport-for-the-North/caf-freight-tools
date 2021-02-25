@@ -168,11 +168,6 @@ class tier_converter(QtWidgets.QWidget):
         self.selections_window.show()
         
     @pyqtSlot()
-    def on_click_Model2GBFMPCU(self):
-        self.selections_window = Model2GBFMPCU(self)
-        self.selections_window.show()
-        
-    @pyqtSlot()
     def on_click_MatrixUtilities(self):
         self.selections_window = MatrixUtilities(self)
         self.selections_window.show()
