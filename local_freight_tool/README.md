@@ -68,3 +68,204 @@ in the image below, it is split into the following three sections:
 
 <!-- Add image when the main menu is finalised -->
 ![Image of the Local Freight Tool main menu](doc/images/main_menu.png "Local Freight Tool main menu")
+
+## Profile Builder
+
+## 0: Combine Centroid and Polygon Shapefiles
+
+## 1: Produce Zone Correspondence
+This module is used to build a zone correspondence lookup between two shapefiles, flexibility of
+this module allows it to create a lookup between any two polygon shapefiles containing zones
+(assuming they follow the correct format). However the primary purpose of this module is to
+produce a lookup between the GBFM and NoHAM zone systems to be used when creating the model demand
+matrices in later modules of the Local Freight Tool.
+
+The inputs for this module are outlined in the table below, some of which are optional depending if
+point handling or rounding are turned on. Once inputs are filled in "Run" can be clicked to start
+the process and a progress window will pop up to alert you at what stage the process is at and
+will provide information on any issues with the inputs that have been found. The outputs for
+the process are defined in the table below and should be checked thoroughly before the lookup
+is used for anything, the `zone_correspondence_log` provides more information on specific areas
+which will need detailed checking.
+
+The zone correspondence process takes the two input shapefiles and performs spatial analysis to
+calculate the overlap percentages between the two zone systems in order to determine the
+correspondence (see [Zone Correspondence Calculations](#zone-correspondence-calculations) for more
+detail). These overlaps will be used as the spatial splitting factors but two additional options
+are provided to produce a more robust correspondence, these are as follows:
+
+- Rounding: this option will use the tolerance value to filter out any slithers (zone which overlap
+  with splitting factor less than 1 - tolerance) and will round all remaining splitting factors
+  to make sure that each zone from the first zone system has splitting factors with the second
+  zone system with sum to exactly 1. This method will stop any demand being lost when using the
+  lookup to convert from the first to the second zone system (**recommend having this turned on**).
+- Point handling: this option will use the LSOA data and shapefile to determine the splitting
+  factors for point zones in the second zone system, instead of just using the spatial factors
+  (see [Zone Correspondence Calculations](#zone-correspondence-calculations) for more detail).
+  Point zones are defined as small zones which are expected to have more demand than there size
+  would suggest, e.g. ports or distribution centres, these can be given to the tool as a list of
+  zone IDs (**recommended method**) or can be calculated by the tool based on the point tolerance.
+
+![Image of the zone correspondence menu](doc/images/zone_correspondence_menu.png "Zone correspondence menu")
+
+Table: Zone correspondence inputs
+
+| Input                              |      Type      | Condition                            | Optional | Default | Description                                                                                                                                                                                        |
+| ---------------------------------- | :------------: | ------------------------------------ | :------: | :-----: | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Zone 1 name                        |     String     | -                                    |   Yes    |  gbfm   | Name of zoning system to be converted from.                                                                                                                                                        |
+| Zone 2 name                        |     String     | -                                    |   Yes    |  noham  | Name of zoning system to convert to.                                                                                                                                                               |
+| First zone system                  |      .shp      | -                                    |    No    |    -    | Zoning system shapefile to be converted from, zone ID column should be called "UniqueID".                                                                                                          |
+| Second zone system                 |      .shp      | -                                    |    No    |    -    | Zoning system shapefile to convert to, zone ID column should be called "unique_id".                                                                                                                |
+| Output directory                   |   Directory    | -                                    |    No    |    -    | Directory where output files will be saved.                                                                                                                                                        |
+| Rounding                           |    Checkbox    | -                                    |   Yes    |   On    | Turns on rounding option (**recommend having this turned on**), see above for more details on this option.                                                                                         |
+| Point handling                     |    Checkbox    | -                                    |   Yes    |   On    | Turns on point handling option, see above for more details on this option.                                                                                                                         |
+| Second zone system point zone list | .csv or String | Point handling turned on             |   Yes    |    -    | List of point zones in the second zoning system (e.g. NoHAM). Must be a csv with "zone_id" column name. If unspecified, then the point tolerance is used to find the point zones.                  |
+| LSOA data                          |      .csv      | Point handling turned on             |    No    |    -    | CSV containing LSOA data (such as employment) to perform non-spatial point zone handling. The file must have the LSOA zone IDs in the "lsoa11cd" column and the relevant data in the "var" column. |
+| LSOA shapefile                     |      .csv      | Point handling turned on             |    No    |    -    | LSOA shapefile, with zone IDs in "LSOA11CD" column.                                                                                                                                                |
+| Tolerance                          |     Float      | Point handling or rounding turned on |    No    |  99.0%  | Tolerance used to filter out small overlaps between zones.                                                                                                                                         |
+| Point tolerance                    |    Integer     | Point handling turned on             |    No    |   95%   | Tolerance used to find point zones in second zone system when no point zone list is specified.                                                                                                     |
+
+Table: Zone correspondence outputs
+
+| File                                                 | File Type             | Description                                                                                                                                                   | Sheet description                                                                                                                                                                                                                                                                                                                                                                                    |
+| ---------------------------------------------------- | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `{zone_1}_to_{zone_2}` `_spatial_correspondence.csv` | Comma-separate values | Spatial correspondence with no rounding or point handling, includes adjustment factors for converting from zone system 1 to zone system 2 and vice versa.     | Contains the following 4 columns:<br> - `{zone_1}_zone_id`: zone ID for first zone system<br> - `{zone_2}_zone_id`: zone ID for corresponding zone in second zone system<br> - `{zone_1}_to_{zone_2}`: spatial splitting factor to go from zone system 1 to 2<br> - `{zone_2}_to_{zone_1}`: spatial splitting factor to go from zone system 2 to 1                                                   |
+| `{zone_1}_to_{zone_2}` `_zone_correspondence.csv`    | Comma-separate values | Zone correspondence with all rounding and point handling options applied (if selected), in the correct format for use in the other modules of the tool.       | Contains the following 3 columns:<br> - `{zone_1}_zone_id`: zone ID for the first zone system<br> - `{zone_2}_zone_id`: zone ID for the corresponding zone in the second zone system<br> - `{zone_1}_to_{zone_2}`: splitting factor to go from zone system 1 to 2                                                                                                                                    |
+| `zone_correspondence_log.xlsx`                       | Excel Workbook        | Spreadsheet containing results from the checks performed by the tool, **this file should be checked thoroughly before using the zone correspondence output**. | Contains the following 4 worksheets:<br> - `Parameters`: list of input parameters and their selected values<br> - `{zone_1}_missing`: list of zone system 1 zones missing from zone correspondence<br> - `{zone_2}_missing`: list of zone system 2 zones missing from zone correspondence<br> - `point_handling`: if point handling was on, this lists all the zones affected by point zone handling |
+
+### Zone Correspondence Calculations
+This section provides the technical calculations performed by the zone correspondence process to
+produce the lookup between the two zone systems.
+
+<!-- Note: GitHub doesn't render markdown equations -->
+
+#### Spatial Correspondence
+The spatial correspondence adjustment factors are defined as:
+$$
+F_{spatial}(Z_{1i} \rightarrow Z_{2j}) = \frac{A(Z_{1i} \cap Z_{2j})}{A(Z_{1i})}
+$$
+where:
+
+- $Z_{1i}$ is zone i in the first zone system (usually GBFM);
+- $Z_{2j}$ is zone j in the second zone system (usually model);
+- $A(Z_{1i} \cap Z_{2j})$ is the area of the intersection between the two zones; and
+- $A(Z_{1i})$ is the area of zone i in the first zone system.
+
+The GeoPandas overlay function is used to calculate the intersecting area of the zones; see
+[GeoPandas documentation](https://geopandas.org/set_operations.html) for more details. If neither
+rounding or point handling are selected then the spatial correspondence is the final correspondence.
+
+#### Point Handling (optional)
+Point handling affects the point zones in the second zone system and any other zones in that system
+which share a correspondence with the same zone for the first zone system. A list of point zones
+can be provided to the tool (recommended) but if not given then the tool will define them as any
+zones which satisfy the following:
+$$
+F_{spatial}(Z_{1i} \rightarrow Z_{2j}) < 1 - T_{pt}
+$$
+$$
+F_{spatial}(Z_{2j} \rightarrow Z_{1i}) > T_{pt}
+$$
+where $T_{pt}$ is the point tolerance. This method might miss some point zones, or include some
+non-point zones, so it is recommended to **check the point handling sheet of the output log 
+spreadsheet.**
+
+Point handling has been designed to use LSOA data for calculating the adjustment factor, however
+the flexibility of the tool permits any data which satisfies the conditions outlined in the inputs
+table. For point zone $Z_{2pt}$ and $\{Z_{2j}\}$, the set of zones which overlap with the same zone
+$Z_{1k}$ from the first zone system, the non-spatial adjustment factors are given by:
+$$
+F_{non-spatial}(Z_{1k} \rightarrow Z_{2pt})
+  = \left( F_{spatial}(Z_{1k} \rightarrow Z_{2pt}) + \sum_{j} F_{spatial}(Z_{1k} \rightarrow Z_{2j}) \right)
+    \cdot \frac{V(L_{pt})}{\sum_n V(L_{n})}
+$$
+$$
+F_{non-spatial}(Z_{1k} \rightarrow Z_{2m})
+  = \left( F_{spatial}(Z_{1k} \rightarrow Z_{2pt}) + \sum_{j} F_{spatial}(Z_{1k} \rightarrow Z_{2j}) \right)
+    \cdot \frac{\sum_l V(L_{l})}{\sum_n V(L_{n})}
+$$
+where:
+
+- $Z_{2m} \in \{Z_{2j}\}$;
+- $V(L_{pt})$ is the LSOA data (in var column) for $L_{pt}$;
+- $L_{pt}$ is the LSOA which contains $Z_{2pt}$;
+- $\{L_n\}$ is the set of LSOAs which overlap with $Z_{1k}$; and
+- $\{L_l\}$ is the set of LSOAs which overlap with $Z_{2m}$, excluding $L_{pt}$.
+
+##### Point Handling Example
+![Point handling example image](doc/images/point_handling_example.png "Point handling example")
+
+In the above example:
+$$
+A(GBFM_1 \cap NoHAM_{pt}) + A(GBFM_1 \cap NoHAM_1) = A(GBFM_1)
+$$
+so:
+$$
+F_{non-spatial}(GBFM_1 \rightarrow NoHAM_{pt}) = \frac{V(LSOA_4)}{\sum_{n=1}^6 V(LSOA_n)}
+$$
+$$
+F_{non-spatial}(GBFM_1 \rightarrow NoHAM_1) = \frac{\sum_{l=1,l \ne 4}^6 V(LSOA_l)}{\sum_{n=1}^6 V(LSOA_n)}
+$$
+
+#### Rounding (optional)
+When rounding or point handling is turned on, small overlaps (slithers) these are defined as
+satisfying the following:
+$$
+F_{spatial}(Z_{1i} \rightarrow Z_{2j}) < 1 - T
+$$
+$$
+F_{spatial}(Z_{2j}) \rightarrow Z_{1i}) < 1 - T
+$$
+where $T$ is tolerance. If the above conditions are both satisfied then the row that features zone
+i from the first zone system and zone j from the second is removed from the zone correspondence. If
+rounding is off but point handling is on then these rows are removed for the point handling aspect
+of the calculations then reinserted.
+
+When rounding is on, the tool will also check that the first zone system to second zone system
+adjustment factors sum to 1 for all zones in the first zone system.
+
+- If a zone in the first zone system maps to a single zone in the second (after removing slithers)
+  the adjustment factor is set to 1.
+- If a zone in the first zone system ($Z_{1i}$) maps to multiple zones in the second ($\{Z_{2j}\}$),
+  and the sum of the adjustment factors is not 1, then it is adjusted according to:
+
+$$
+F_{adjusted}(Z_{1i} \rightarrow Z_{2k}) = F(Z_{1i} \rightarrow Z_{2k}) +
+  \frac{1-\sum_{j=0}^n F(Z_{1i} \rightarrow Z_{2j})}{n}
+$$
+
+- where:
+  - $Z_{2k} \in \{Z_{2j}\}$;
+  - $n$ is the number of zones in $\{Z_{2j}\}$; and
+  - $F(Z_{1i} \rightarrow Z_{2k})$ is the adjustment factor calculated prior to rounding, either
+    spatially or non-spatially.
+
+#### Missing Zones
+At the end of the process the zone IDs present in the zone correspondence lookup are compared to
+those in the input shapefiles and any missing ones are added to the log file. Missing zones are
+due to no overlap being found between zones in the two zone systems. The missing zones sheet of
+the zone correspondence log spreadsheet should be checked to find out where this has occurred and
+these should be fixed by manually updating the input or outputs.
+
+- The input zone system shapefiles could be updated to move the missing zones into a more sensible
+  location where they overlap with the other zone system; or
+- The output lookup could be manually updated to add in the correspondence for any missing zones
+  based on the user's understanding of the two zone systems.
+
+For the GBFM to NoHAM correspondence there are 62 reserve zones in the NoHAM zone system which do
+not have a corresponding GBFM zone as they're in the middle of the sea. There are also some GBFM
+zones which don't overlap with any NoHAM zones; these are on the coast, in rivers or in one case an
+island with no NoHAM zone.
+
+## 2: Annual Tonne to Annual PCU Conversion
+
+## 3: LGV Processing
+
+## 4: GBFM Annual PCU to Model Time Period PCU
+
+## 5: Matrix Utilities
+
+## 6: Delta Process
+
+## 7: Cost Conversion
+
