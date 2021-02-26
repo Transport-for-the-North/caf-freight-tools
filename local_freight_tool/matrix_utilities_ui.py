@@ -73,34 +73,22 @@ class MatrixUtilities(QtWidgets.QWidget):
 
         spacing = 75
         checkbox_x = 10
-        label_x = 30
+        CHECK_STYLE = "font-size: 13px; font-weight: bold; font-family: Arial"
 
         # Summary
         y += spacing + 5
-        summary_label = QtWidgets.QLabel(self)
-        summary_label.setFont(QtGui.QFont("Arial", 10, QtGui.QFont.Bold))
-        summary_label.setText("Summary")
-        summary_label.setGeometry(label_x, y, 100, 30)
-
-        # Checkbox
         self.summary = False
-        self.summary_box = QCheckBox(self)
+        self.summary_box = QCheckBox("Summary", self)
         self.summary_box.move(checkbox_x, y)
-        self.summary_box.resize(30, 30)
+        self.summary_box.setStyleSheet(CHECK_STYLE)
         self.summary_box.stateChanged.connect(self.summary_clickbox)
 
         # Rezoning
         y += spacing - 50
-        rezoning_label = QtWidgets.QLabel(self)
-        rezoning_label.setFont(QtGui.QFont("Arial", 10, QtGui.QFont.Bold))
-        rezoning_label.setText("Rezoning")
-        rezoning_label.setGeometry(label_x, y, 100, 30)
-
-        # Checkbox
         self.rezoning = False
-        self.rezoning_box = QCheckBox(self)
+        self.rezoning_box = QCheckBox("Rezoning", self)
         self.rezoning_box.move(checkbox_x, y)
-        self.rezoning_box.resize(30, 30)
+        self.rezoning_box.setStyleSheet(CHECK_STYLE)
         self.rezoning_box.stateChanged.connect(self.rezoning_clickbox)
 
         # zone correspondence file
@@ -120,16 +108,10 @@ class MatrixUtilities(QtWidgets.QWidget):
 
         # Matrix addition
         y += spacing
-        addition_label = QtWidgets.QLabel(self)
-        addition_label.setFont(QtGui.QFont("Arial", 10, QtGui.QFont.Bold))
-        addition_label.setText("Matrix Addition")
-        addition_label.setGeometry(label_x, y, 100, 30)
-
-        # Checkbox
         self.addition = False
-        self.addition_box = QCheckBox(self)
+        self.addition_box = QCheckBox("Matrix Addition", self)
         self.addition_box.move(checkbox_x, y)
-        self.addition_box.resize(30, 30)
+        self.addition_box.setStyleSheet(CHECK_STYLE)
         self.addition_box.stateChanged.connect(self.addition_clickbox)
 
         # Second matrix or scalar value
@@ -148,16 +130,10 @@ class MatrixUtilities(QtWidgets.QWidget):
 
         # Matrix factoring
         y += spacing
-        factor_label = QtWidgets.QLabel(self)
-        factor_label.setFont(QtGui.QFont("Arial", 10, QtGui.QFont.Bold))
-        factor_label.setText("Matrix Factoring")
-        factor_label.setGeometry(label_x, y, 120, 30)
-
-        # Checkbox
         self.factoring = False
-        self.factoring_box = QCheckBox(self)
+        self.factoring_box = QCheckBox("Matrix Factoring", self)
         self.factoring_box.move(checkbox_x, y)
-        self.factoring_box.resize(30, 30)
+        self.factoring_box.setStyleSheet(CHECK_STYLE)
         self.factoring_box.stateChanged.connect(self.factoring_clickbox)
 
         # Second matrix or scalar value
@@ -176,16 +152,10 @@ class MatrixUtilities(QtWidgets.QWidget):
 
         # Fill missing zones
         y += spacing
-        fill_missing_label = QtWidgets.QLabel(self)
-        fill_missing_label.setFont(QtGui.QFont("Arial", 10, QtGui.QFont.Bold))
-        fill_missing_label.setText("Fill Missing Zones")
-        fill_missing_label.setGeometry(label_x, y, 125, 30)
-
-        # Checkbox
         self.fill_missing = False
-        self.fill_missing_box = QCheckBox(self)
+        self.fill_missing_box = QCheckBox("Fill Missing Zones", self)
         self.fill_missing_box.move(checkbox_x, y)
-        self.fill_missing_box.resize(30, 30)
+        self.fill_missing_box.setStyleSheet(CHECK_STYLE)
         self.fill_missing_box.stateChanged.connect(self.fill_missing_clickbox)
 
         # Missing zones file or values
@@ -204,16 +174,10 @@ class MatrixUtilities(QtWidgets.QWidget):
 
         # Remove external-external trips
         y += spacing
-        remove_ee_label = QtWidgets.QLabel(self)
-        remove_ee_label.setFont(QtGui.QFont("Arial", 10, QtGui.QFont.Bold))
-        remove_ee_label.setText("Remove EE trips")
-        remove_ee_label.setGeometry(label_x, y, 125, 30)
-
-        # Checkbox
         self.remove_ee = False
-        self.remove_ee_box = QCheckBox(self)
+        self.remove_ee_box = QCheckBox("Remove EE Trips", self)
         self.remove_ee_box.move(checkbox_x, y)
-        self.remove_ee_box.resize(30, 30)
+        self.remove_ee_box.setStyleSheet(CHECK_STYLE)
         self.remove_ee_box.stateChanged.connect(self.remove_ee_clickbox)
 
         # External zones file or values
@@ -232,16 +196,10 @@ class MatrixUtilities(QtWidgets.QWidget):
 
         # Convert to UFM
         y += spacing
-        ufm_label = QtWidgets.QLabel(self)
-        ufm_label.setFont(QtGui.QFont("Arial", 10, QtGui.QFont.Bold))
-        ufm_label.setText("Convert to UFM")
-        ufm_label.setGeometry(label_x, y, 125, 30)
-
-        # Checkbox
         self.ufm_convert = False
-        self.ufm_convert_box = QCheckBox(self)
+        self.ufm_convert_box = QCheckBox("Convert to UFM", self)
         self.ufm_convert_box.move(checkbox_x, y)
-        self.ufm_convert_box.resize(30, 30)
+        self.ufm_convert_box.setStyleSheet(CHECK_STYLE)
         self.ufm_convert_box.stateChanged.connect(self.ufm_convert_clickbox)
 
         # Box for path to SATURN exes folder
