@@ -77,11 +77,12 @@ class MatrixUtilities(QtWidgets.QWidget):
 
         # Summary
         y += spacing + 5
-        self.summary = False
+        self.summary = True
         self.summary_box = QCheckBox("Summary", self)
         self.summary_box.move(checkbox_x, y)
         self.summary_box.setStyleSheet(CHECK_STYLE)
         self.summary_box.stateChanged.connect(self.summary_clickbox)
+        self.summary_box.setState(self.summary)
 
         # Rezoning
         y += spacing - 50
