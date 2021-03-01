@@ -118,12 +118,12 @@ class CombineShapefiles(QtWidgets.QWidget):
 
     def run_button_clicked(self):
 
-        if self.gbfm_polygons.text() == "" or self.gbfm_centroids.text() == "":
+        if self.gbfm_polygons.text().strip() == "" or self.gbfm_centroids.text().strip() == "":
             alert = QtWidgets.QMessageBox(self)
             alert.setWindowTitle("Combine GBFM Shapefiles")
             alert.setText("Error: you must specify both file paths first")
             alert.show()
-        elif self.outpath.text() == "":
+        elif self.outpath.text().strip() == "":
             alert = QtWidgets.QMessageBox(self)
             alert.setWindowTitle("Combine GBFM Shapefiles")
             alert.setText("Error: you must specify an output folder")
@@ -196,5 +196,4 @@ class background_thread(QThread):
         self.progress_label.setText(
             "Combining shapefiles process complete. You may exit the program."
         )
-
 
