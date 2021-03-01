@@ -27,6 +27,7 @@ import zone_correspondence as zcorr
 # Other packages
 import textwrap
 import os
+import traceback
 
 
 class ProduceGBFMCorrespondence(QtWidgets.QWidget):
@@ -440,20 +441,27 @@ class background_thread(QThread):
             self.zone2_name = str(self.textbox_zone2)
 
         self.progress_label.setText("Applying the zone correspondence process...")
+        try:
+            log_file, zone_1_missing, zone_2_missing = zcorr.main_zone_correspondence(
+                self.first_zones_path,
+                self.second_zones_path,
+                zone_1_name=self.zone1_name,
+                zone_2_name=self.zone2_name,
+                tolerance=self.tolerance,
+                point_zones_path=self.point_zones,
+                out_path=self.outpath,
+                point_handling=self.point_handling,
+                lsoa_shapefile_path=self.lsoa_shapefile_path,
+                lsoa_data_path=self.lsoa_data_path,
+                rounding=self.rounding,
+            )
+        except Exception as e:
+            self.progress_label.setText(
+                f"{e.__class__.__name__}: {e!s}.\nYou may exit the program."
+            )
+            traceback.print_exc()
+            return
 
-        log_file, zone_1_missing, zone_2_missing = zcorr.main_zone_correspondence(
-            self.first_zones_path,
-            self.second_zones_path,
-            zone_1_name=self.zone1_name,
-            zone_2_name=self.zone2_name,
-            tolerance=self.tolerance,
-            point_zones_path=self.point_zones,
-            out_path=self.outpath,
-            point_handling=self.point_handling,
-            lsoa_shapefile_path=self.lsoa_shapefile_path,
-            lsoa_data_path=self.lsoa_data_path,
-            rounding=self.rounding,
-        )
         if self.point_handling:
             self.progress_label.setText(
                 f"Zone correspondence complete. There are {zone_1_missing} unmatched {self.zone1_name} zones and {zone_2_missing} unmatched {self.zone2_name} zones."
