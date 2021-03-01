@@ -97,7 +97,7 @@ class ODMatrix:
         matrix_1_aligned, matrix_2_aligned = self.align(self, other_matrix)
         print("Adding matrices")
         sum = matrix_1_aligned + matrix_2_aligned
-        "Creating name"
+        print("Creating name")
         name = f"{self.name}_add_{other_matrix.name}"
 
         return ODMatrix(sum, name=name)
@@ -143,11 +143,11 @@ class ODMatrix:
         TypeError
             Raised if the factor is neither a number nor an ODMatrix.
         """
-        if (type(factor) == int) | (type(factor) == float):
+        if isinstance(factor, (int, float)):
             print("Factoring by scalar")
             factored = self.matrix * factor
             name = f"{self.name}_by_{factor}"
-        elif type(factor) == ODMatrix:
+        elif isinstance(factor, ODMatrix):
             print("Aligning matrices")
             matrix_1_aligned, matrix_2_aligned = ODMatrix.align(self, factor)
             print("Factoring matrices")
@@ -172,17 +172,12 @@ class ODMatrix:
             and 'NaN count' of the O-D trip matrix.
         """
         column_matrix = self.column_matrix()
-        total = column_matrix.trips.sum()
-        mean = column_matrix.trips.mean()
-        standard_dev = column_matrix.trips.std()
-        zero_count = (column_matrix.trips == 0).sum()
-        null_counts = column_matrix.trips.isna().sum()
         summary = {
-            "Total": total,
-            "Mean": mean,
-            "Standard deviation": standard_dev,
-            "0 count": zero_count,
-            "NaN count": null_counts,
+            "Total": column_matrix.trips.sum(),
+            "Mean": column_matrix.trips.mean(),
+            "Standard deviation": column_matrix.trips.std(),
+            "0 count": (column_matrix.trips == 0).sum(),
+            "NaN count": column_matrix.trips.isna().sum(),
         }
 
         return summary
@@ -243,6 +238,8 @@ class ODMatrix:
         shared_zones = self.matrix.loc[self.matrix.index.isin(missing_zones)].index
         if len(shared_zones) > 0:
             missing_zones.remove(shared_zones)
+        if missing_zones.empty:
+            return self
 
         # add 0 value columns and rows to matrix
         columns_to_add = pd.DataFrame(0, index=self.matrix.index, columns=missing_zones)
@@ -330,10 +327,10 @@ class ODMatrix:
                 names=["old", "new", "splitting_factor"],
                 usecols=[0, 1, 2],
             )
-        except FileNotFoundError:
+        except FileNotFoundError as e:
             raise FileNotFoundError(
                 f"Zone correspondence file not found at {zone_correspondence_path}."
-            )
+            ) from e
         except ValueError as e:
             loc = str(e).find("columns expected")
             raise ValueError(f"Zone correspondence file, {str(e)[loc:]}") from e
@@ -422,7 +419,7 @@ class ODMatrix:
             raise FileNotFoundError(f"{saturn_exes_path} does not contain MX.BAT")
 
         # export matrix as csv in TUBA2 format
-        temp_filepath = outpath.joinpath("temp_matrix.csv")
+        temp_filepath = outpath / "temp_matrix.csv"
         print(f"temp csv: {temp_filepath}")
         self.export_to_csv(temp_filepath, include_headers=False)
 
@@ -431,9 +428,9 @@ class ODMatrix:
             self.name = f"{outpath.stem}_odmatrix"
 
         # write SATURN MX key file
-        out_mat = outpath.joinpath(f"{self.name}.UFM")
-        key_path = outpath.joinpath("MX_KEY.KEY")
-        vdu_path = outpath.joinpath(f"{self.name}_VDU")
+        out_mat = outpath / f"{self.name}.UFM"
+        key_path = outpath / "MX_KEY.KEY"
+        vdu_path = outpath / f"{self.name}_VDU"
 
         with open(key_path, "wt") as f:
             f.write(
@@ -463,14 +460,15 @@ class ODMatrix:
             mx_log_path.unlink()
 
         # move LPX file from wd to output directory
-        if not outpath.joinpath("MX.LPX").exists():
-            Path("MX.LPX").rename(str(outpath.joinpath("MX.LPX")))
+        out_lpx = out_mat.with_suffix(".LPX")
+        if not out_lpx.exists():
+            Path("MX.LPX").rename(out_lpx)
         else:
-            # if there's already an MX.LPX file in output directory, rename it
+            # if there's already an *.LPX file in output directory, rename it
             i = 0
-            while outpath.joinpath(f"MX_{i}.LPX").exists():
+            while out_lpx.with_name(f"{out_lpx.stem}_{i}.LPX").exists():
                 i += 1
-            Path("MX.LPX").rename(str(outpath.joinpath(f"MX_{i}.LPX")))
+            Path("MX.LPX").rename(out_lpx.with_name(f"{out_lpx.stem}_{i}.LPX"))
 
         return out_mat
 
