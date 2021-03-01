@@ -148,9 +148,7 @@ class ODMatrix:
             factored = self.matrix * factor
             name = f"{self.name}_by_{factor}"
         elif isinstance(factor, ODMatrix):
-            print("Aligning matrices")
-            matrix_1_aligned, matrix_2_aligned = ODMatrix.align(self, factor)
-            print("Factoring matrices")
+            matrix_1_aligned, matrix_2_aligned = self.align(self, factor)
             factored = matrix_1_aligned * matrix_2_aligned
             name = f"{self.name}_by_{factor.name}"
         else:
