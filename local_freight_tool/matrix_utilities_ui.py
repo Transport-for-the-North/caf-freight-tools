@@ -401,12 +401,12 @@ class MatrixUtilities(QtWidgets.QWidget):
                 self.ufm_convert,
             ],
             "input": [
-                self.zone_correspondence_path.text(),
-                self.matrix_to_add_path.text(),
-                self.matrix_factor_path.text(),
-                self.missing_zones_path.text(),
-                self.external_zones_path.text(),
-                self.saturn_exes_path.text(),
+                self.zone_correspondence_path.text().strip(),
+                self.matrix_to_add_path.text().strip(),
+                self.matrix_factor_path.text().strip(),
+                self.missing_zones_path.text().strip(),
+                self.external_zones_path.text().strip(),
+                self.saturn_exes_path.text().strip(),
             ],
         }
 
