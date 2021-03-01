@@ -200,8 +200,8 @@ class background_thread(QThread):
 
             out_name = self.outpath / (self.gbfm_polygons_path.stem + "-combined.shp")
 
-            self.progress_label.setText(f"Saving to {self.outpath}/GBFM_combined.shp")
-            combined_shapefile.to_file(f"{self.outpath}/GBFM_combined.shp")
+            self.progress_label.setText(f"Saving to {out_name}")
+            combined_shapefile.to_file(out_name)
 
             self.progress_label.setText(
                 "Combining shapefiles process complete. You may exit the program."
