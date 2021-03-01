@@ -38,8 +38,7 @@ class Utilities(QtWidgets.QWidget):
             event.accept()
         else:
             event.ignore()
-            
-    # TODO: check file extension, default filepaths        
+                
     def add_file_selection(self, y_position, label_txt, multiple_files=False, directory=False, filetype=None, return_browse=False):
         def browse_file():
             if directory == True:
