@@ -136,8 +136,9 @@ class LGVProcessing(QtWidgets.QWidget):
         self.hide()
 
     def closeEvent(self, event):
-        Utilities.closeEvent(self, event)
-        self.tier_converter.show()    
+        close = Utilities.closeEvent(self, event)
+        if close:
+            self.tier_converter.show()    
                 
     def run_button_clicked(self):
     
@@ -191,7 +192,7 @@ class LGVProcessing(QtWidgets.QWidget):
             alert.show()
         else:
             # Start a progress window
-            self.progress = progress_window('Applying Global Factors Tool')
+            self.progress = progress_window('Applying Global Factors Tool', self.tier_converter)
             self.hide()
             
             # Call the main process
@@ -208,7 +209,7 @@ class LGVProcessing(QtWidgets.QWidget):
             
         else:
             # Start a progress window
-            self.progress = progress_window('Applying Global Factors Tool')
+            self.progress = progress_window('Applying Global Factors Tool', self.tier_converter)
             self.hide()
             
             # Call the main process
@@ -248,7 +249,7 @@ class background_thread(QThread):
                 
          
     def closeEvent(self, event):
-        Utilities.closeEvent(self, event)
+        close = Utilities.closeEvent(self, event)
    
 class background_thread_Aggregation(QThread):
     

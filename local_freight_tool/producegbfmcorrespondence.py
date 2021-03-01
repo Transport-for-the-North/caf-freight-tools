@@ -362,7 +362,7 @@ class ProduceGBFMCorrespondence(QtWidgets.QWidget):
                 )
                 alert.show()
             # Start a progress window
-            self.progress = progress_window("Zone Correspondence Tool")
+            self.progress = progress_window("Zone Correspondence Tool", self.tier_converter)
             self.hide()
 
             # Call the main process
@@ -376,8 +376,9 @@ class ProduceGBFMCorrespondence(QtWidgets.QWidget):
 
     def closeEvent(self, event):
         """Closes the zone correspondence window."""
-        Utilities.closeEvent(self, event)
-        self.tier_converter.show()
+        close = Utilities.closeEvent(self, event)
+        if close:
+            self.tier_converter.show()
 
     @pyqtSlot()
     def on_click_Info(self):

@@ -46,8 +46,9 @@ class GBFM2ModelPCU(QtWidgets.QWidget):
         self.tier_converter = tier_converter
         self.initUI()
 
-        def closeEvent(self, event):
-            Utilities.closeEvent(self, event)
+    def closeEvent(self, event):
+        close = Utilities.closeEvent(self, event)
+        if close:
             self.tier_converter.show()
 
     def initUI(self):
@@ -147,8 +148,9 @@ class set_tp_selections(QtWidgets.QWidget):
         self.initUI()
 
         def closeEvent(self, event):
-            Utilities.closeEvent(self, event)
-            self.tier_converter.show()
+            close = Utilities.closeEvent(self, event)
+            if close:
+                self.tier_converter.show()
 
     def initUI(self):
         self.setGeometry(500, 200, 850, 10 + 40*(4+len(self.gbfm_filepath)))        
@@ -214,7 +216,7 @@ class set_tp_selections(QtWidgets.QWidget):
             log_file.write('Vehicle type selected: %s\n' % [x.currentText() for x in self.veh_type])
 
         # And a window showing the step the process is at
-        self.progress = progress_window('Tier converter running...')
+        self.progress = progress_window('Tier converter running...', self.tier_converter)
         self.hide()
        
         # Call the main tier converter process

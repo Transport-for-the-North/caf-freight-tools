@@ -78,7 +78,7 @@ class MatrixProcessing(QtWidgets.QWidget):
             
         else: 
             # Start a progress window
-            self.progress = progress_window('Matrix Factoring Tool')
+            self.progress = progress_window('Matrix Factoring Tool', self.tier_converter)
             self.hide()
             
             # Call the main rezone process
@@ -106,8 +106,9 @@ class MatrixProcessing(QtWidgets.QWidget):
             Utilities.closeEvent(self, event)    
         
     def closeEvent(self, event):
-        Utilities.closeEvent(self, event)
-        self.tier_converter.show()
+        close = Utilities.closeEvent(self, event)
+        if close:
+            self.tier_converter.show()
         
 class background_thread(QThread):
     

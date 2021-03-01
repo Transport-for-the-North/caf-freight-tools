@@ -82,7 +82,7 @@ class WeightedRezone(QtWidgets.QWidget):
             
         else: 
             # Start a progress window
-            self.progress = progress_window('Cost Conversion Tool')
+            self.progress = progress_window('Cost Conversion Tool', self.tier_converter)
             self.hide()
             
             # Call the main rezone process
@@ -110,8 +110,9 @@ class WeightedRezone(QtWidgets.QWidget):
             Utilities.closeEvent(self, event)    
         
     def closeEvent(self, event):
-        Utilities.closeEvent(self, event)
-        self.tier_converter.show()
+        close = Utilities.closeEvent(self, event)
+        if close:
+            self.tier_converter.show()
         
 class background_thread(QThread):
     

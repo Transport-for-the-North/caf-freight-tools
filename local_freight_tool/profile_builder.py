@@ -18,7 +18,7 @@ from PyQt5.QtCore import pyqtSlot
 from PyQt5.QtWidgets import QCheckBox
 import numpy as np
 import pandas as pd
-from utilities import info_window
+from utilities import info_window, Utilities
 import textwrap
 from text_info import Profile_Builder_Text
 
@@ -186,14 +186,11 @@ class Profile_Builder(QtWidgets.QWidget):
         self.hide()  
         
         # Function which asks the user if they really want to trigger sys.exit()
-    def closeEvent(window, event):
-        reply = QtWidgets.QMessageBox.question(window, 'Exit?',
-            "Are you sure you want to quit?", QtWidgets.QMessageBox.Yes | 
-            QtWidgets.QMessageBox.No, QtWidgets.QMessageBox.No)
-        if reply == QtWidgets.QMessageBox.Yes:
-            event.accept()
-        else:
-            event.ignore()
+    def closeEvent(self, event):
+        """Closes the zone correspondence window."""
+        close = Utilities.closeEvent(self, event)
+        if close:
+            self.tier_converter.show()
             
     @pyqtSlot()
     def on_click_Info(self):

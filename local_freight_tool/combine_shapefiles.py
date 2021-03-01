@@ -115,8 +115,9 @@ class CombineShapefiles(QtWidgets.QWidget):
 
     def closeEvent(self, event):
         """Closes the window"""
-        Utilities.closeEvent(self, event)
-        self.tier_converter.show()
+        close = Utilities.closeEvent(self, event)
+        if close:
+            self.tier_converter.show()
 
     def run_button_clicked(self):
 
@@ -132,7 +133,7 @@ class CombineShapefiles(QtWidgets.QWidget):
             alert.show()
         else:
             # Start a progress window
-            self.progress = progress_window("Combine GBFM Shapefiles")
+            self.progress = progress_window("Combine GBFM Shapefiles", self.tier_converter)
             self.hide()
 
             # Call the main process

@@ -82,7 +82,7 @@ class MatrixUtilities(QtWidgets.QWidget):
         self.summary_box.move(checkbox_x, y)
         self.summary_box.setStyleSheet(CHECK_STYLE)
         self.summary_box.stateChanged.connect(self.summary_clickbox)
-        self.summary_box.setState(self.summary)
+        self.summary_box.setChecked(self.summary)
 
         # Rezoning
         y += spacing - 50
@@ -461,7 +461,7 @@ class MatrixUtilities(QtWidgets.QWidget):
         # run processes if no errors
         else:
             # Start a progress window
-            self.progress = progress_window("Matrix Utilities")
+            self.progress = progress_window("Matrix Utilities", self.tier_converter)
             self.hide()
 
             # Call the main process
@@ -475,8 +475,9 @@ class MatrixUtilities(QtWidgets.QWidget):
 
     def closeEvent(self, event):
         """Closes the matrix utilities window."""
-        Utilities.closeEvent(self, event)
-        self.tier_converter.show()
+        close = Utilities.closeEvent(self, event)
+        if close:
+            self.tier_converter.show()
 
     @pyqtSlot()
     def on_click_Info(self):
