@@ -203,7 +203,7 @@ class ProduceGBFMCorrespondence(QtWidgets.QWidget):
         self.pointhandlingbox.move(self.x3, 95)
         self.pointhandlingbox.resize(200, 40)
         self.pointhandlingbox.stateChanged.connect(self.point_handling_clickbox)
-        self.pointhandlingbox.setChecked(True)
+        self.pointhandlingbox.setChecked(self.point_handling)
 
         # rounding
         self.rounding = True
@@ -211,7 +211,7 @@ class ProduceGBFMCorrespondence(QtWidgets.QWidget):
         self.roundingbox.move(self.x3, 65)
         self.roundingbox.resize(200, 40)
         self.roundingbox.stateChanged.connect(self.rounding_clickbox)
-        self.roundingbox.setChecked(True)
+        self.roundingbox.setChecked(self.rounding)
 
         # Create a push button for 'info'
         Info_button = QtWidgets.QPushButton(self)
@@ -242,31 +242,31 @@ class ProduceGBFMCorrespondence(QtWidgets.QWidget):
         state : Qt.Checked
             Describes whether checkbox is checked or not.
         """
+        widgets = (
+            self.lsoa_data_path,
+            self.lsoa_data_browse,
+            self.lsoa_shapefile_path,
+            self.lsoa_shapefile_browse,
+            self.labelpointtol,
+            self.labeluptol,
+            self.uppertolbox,
+            self.point_zones,
+            self.point_zones_browse,
+            self.pointtolbox,
+        )
         if state == Qt.Checked:
             self.point_handling = True
-            self.lsoa_data_path.setDisabled(False)
-            self.lsoa_data_browse.setDisabled(False)
-            self.lsoa_shapefile_path.setDisabled(False)
-            self.lsoa_shapefile_browse.setDisabled(False)
-            self.labelpointtol.setDisabled(False)
-            self.labeluptol.setDisabled(False)
-            self.uppertolbox.setDisabled(False)
-            self.point_zones.setDisabled(False)
-            self.point_zones_browse.setDisabled(False)
-            self.pointtolbox.setDisabled(False)
+            for w in widgets:
+                w.setDisabled(False)
 
         else:
             self.point_handling = False
-            self.lsoa_data_path.setDisabled(True)
-            self.lsoa_data_browse.setDisabled(True)
-            self.lsoa_shapefile_path.setDisabled(True)
-            self.lsoa_shapefile_browse.setDisabled(True)
-            self.labelpointtol.setDisabled(True)
-            self.point_zones.setDisabled(True)
-            self.point_zones_browse.setDisabled(True)
-            self.pointtolbox.setDisabled(True)
+            for w in widgets:
+                w.setDisabled(True)
 
-            if not self.rounding:
+            if self.rounding: # Keep tolerance enabled if rounding on
+                self.labeluptol.setDisabled(False)
+                self.uppertolbox.setDisabled(False)
                 self.labeluptol.setDisabled(True)
                 self.uppertolbox.setDisabled(True)
 
