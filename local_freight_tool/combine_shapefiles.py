@@ -23,6 +23,7 @@ from text_info import Combine_Shapefiles_Text
 
 # Other packages
 import os
+import traceback
 import textwrap
 import pandas as pd
 import geopandas as gpd
