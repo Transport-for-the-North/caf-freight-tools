@@ -45,7 +45,11 @@ class GBFM2ModelPCU(QtWidgets.QWidget):
         super().__init__()
         self.tier_converter = tier_converter
         self.initUI()
-        
+
+        def closeEvent(self, event):
+            Utilities.closeEvent(self, event)
+            self.tier_converter.show()
+
     def initUI(self):
         self.setGeometry(500, 200, 500, 390)        
         self.setWindowTitle('GBFM Annual PCU to Model Time Period PCU')
@@ -141,7 +145,11 @@ class set_tp_selections(QtWidgets.QWidget):
             self.path = self.tier_converter.path.text()
             
         self.initUI()
-        
+
+        def closeEvent(self, event):
+            Utilities.closeEvent(self, event)
+            self.tier_converter.show()
+
     def initUI(self):
         self.setGeometry(500, 200, 850, 10 + 40*(4+len(self.gbfm_filepath)))        
         self.setWindowTitle('GBFM Annual PCU to Model Time Period PCU')
