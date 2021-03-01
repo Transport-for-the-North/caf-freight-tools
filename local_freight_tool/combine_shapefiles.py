@@ -23,6 +23,7 @@ from text_info import Combine_Shapefiles_Text
 
 # Other packages
 import os
+from pathlib import Path
 import traceback
 import textwrap
 import pandas as pd
@@ -160,9 +161,9 @@ class background_thread(QThread):
         QThread.__init__(self)
 
         self.progress_label = CombineShapefiles.progress.label
-        self.gbfm_polygons_path = CombineShapefiles.gbfm_polygons.text()
-        self.gbfm_centroids_path = CombineShapefiles.gbfm_centroids.text()
-        self.outpath = CombineShapefiles.outpath.text()
+        self.gbfm_polygons_path = Path(CombineShapefiles.gbfm_polygons.text())
+        self.gbfm_centroids_path = Path(CombineShapefiles.gbfm_centroids.text())
+        self.outpath = Path(CombineShapefiles.outpath.text())
         self.buffer = CombineShapefiles.buffer_box.value()
 
     def run(self):
@@ -196,6 +197,8 @@ class background_thread(QThread):
             self.progress_label.setText("Combining shapefiles")
             shared_columns = gbfm_points.columns[gbfm_points.columns.isin(gbfm_polygons.columns)]
             combined_shapefile = gbfm_polygons.append(gbfm_points[shared_columns])
+
+            out_name = self.outpath / (self.gbfm_polygons_path.stem + "-combined.shp")
 
             self.progress_label.setText(f"Saving to {self.outpath}/GBFM_combined.shp")
             combined_shapefile.to_file(f"{self.outpath}/GBFM_combined.shp")
