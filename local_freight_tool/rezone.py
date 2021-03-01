@@ -13,8 +13,6 @@ import sys
 from utilities import Loggers, getSeparator, Parameters
 from errors import IncorrectParameterError, MissingLookupValuesError
 
-# TODO modify if necessary for new matrix utils
-
 ##### CLASS #####
 class Rezone:
     """
