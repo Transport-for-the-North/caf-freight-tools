@@ -460,13 +460,32 @@ class MatrixUtilities(QtWidgets.QWidget):
             alert.show()
         # run processes if no errors
         else:
-            # Start a progress window
-            self.progress = progress_window("Matrix Utilities", self.tier_converter)
-            self.hide()
+            # if rezoning and another process is checked, alert that other
+            # than the input matrix all other inputs need to be in the new
+            # zoning system
+            check_rezoned = self.rezoning & (self.ufm_convert & (len(self.processes.name) > 2) | (not self.ufm_convert & (len(self.processes.name) > 1)))
+            if check_rezoned:
+                reply = QtWidgets.QMessageBox.question(self, 'Warning',
+                    "When rezoning is on, only the input matrix is rezoned. All other matrices and zones must be in the new zoning system.\nDo you wish to continue?", QtWidgets.QMessageBox.Yes | 
+                    QtWidgets.QMessageBox.No, QtWidgets.QMessageBox.No)
+                if reply == QtWidgets.QMessageBox.Yes:
+                    # Start a progress window
+                    self.progress = progress_window("Matrix Utilities", self.tier_converter)
+                    self.hide()
 
-            # Call the main process
-            self.worker = background_thread(self)
-            self.worker.start()
+                    # Call the main process
+                    self.worker = background_thread(self)
+                    self.worker.start()
+            else:
+                    # Start a progress window
+                    self.progress = progress_window("Matrix Utilities", self.tier_converter)
+                    self.hide()
+
+                    # Call the main process
+                    self.worker = background_thread(self)
+                    self.worker.start()
+
+            
 
     def back_button_clicked(self):
         """Returns to tier converter main menu"""
