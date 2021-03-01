@@ -300,7 +300,7 @@ class MatrixUtilities(QtWidgets.QWidget):
             self.addition_browse_button.setDisabled(False)
 
         else:
-            self.factoring = False
+            self.addition = False
             self.matrix_to_add_path.setDisabled(True)
             self.addition_browse_button.setDisabled(True)
 
