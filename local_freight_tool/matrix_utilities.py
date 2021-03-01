@@ -236,7 +236,7 @@ class ODMatrix:
         shared_zones = self.matrix.loc[self.matrix.index.isin(missing_zones)].index
         if len(shared_zones) > 0:
             missing_zones.remove(shared_zones)
-        if missing_zones.empty:
+        if not missing_zones:
             return self
 
         # add 0 value columns and rows to matrix

@@ -36,8 +36,10 @@ class Utilities(QtWidgets.QWidget):
             QtWidgets.QMessageBox.No, QtWidgets.QMessageBox.No)
         if reply == QtWidgets.QMessageBox.Yes:
             event.accept()
+            return True
         else:
             event.ignore()
+            return False
                 
     def add_file_selection(self, y_position, label_txt, multiple_files=False, directory=False, filetype=None, return_browse=False):
         def browse_file():
@@ -102,21 +104,26 @@ class Utilities(QtWidgets.QWidget):
 # Window to inform the user what stage the process is at (third interface window)
 class progress_window(QtWidgets.QWidget):
     
-    def __init__(self, title):
+    def __init__(self, title, tier_converter, ysize=100, ylabelsize=30):
         super().__init__()
         self.title = title
+        self.tier_converter = tier_converter
+        self.ysize = ysize
+        self.ylabelsize = ylabelsize
         self.initUI()
         
     def initUI(self):
-        self.setGeometry(400, 500, 850, 100)
+        self.setGeometry(400, 500, 850, self.ysize)
         self.setWindowTitle(self.title)
         self.setWindowIcon(QtGui.QIcon('icon.jpg'))
         self.label = QtWidgets.QLabel(self)
-        self.label.setGeometry(10, 10, 830, 30)
+        self.label.setGeometry(10, 10, 830, self.ylabelsize)
         self.show()
         
     def closeEvent(self, event):
-        Utilities.closeEvent(self, event)
+        close = Utilities.closeEvent(self, event)
+        if close:
+            self.tier_converter.show()
         
         
  # Window to inform the user how to use the current tool selected
