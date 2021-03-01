@@ -180,9 +180,11 @@ produce the lookup between the two zone systems.
 
 #### Spatial Correspondence
 The spatial correspondence adjustment factors are defined as:
+
 $$
 F_{spatial}(Z_{1i} \rightarrow Z_{2j}) = \frac{A(Z_{1i} \cap Z_{2j})}{A(Z_{1i})}
 $$
+
 where:
 
 - $Z_{1i}$ is zone i in the first zone system (usually GBFM);
@@ -199,12 +201,15 @@ Point handling affects the point zones in the second zone system and any other z
 which share a correspondence with the same zone for the first zone system. A list of point zones
 can be provided to the tool (recommended) but if not given then the tool will define them as any
 zones which satisfy the following:
+
 $$
 F_{spatial}(Z_{1i} \rightarrow Z_{2j}) < 1 - T_{pt}
 $$
+
 $$
 F_{spatial}(Z_{2j} \rightarrow Z_{1i}) > T_{pt}
 $$
+
 where $T_{pt}$ is the point tolerance. This method might miss some point zones, or include some
 non-point zones, so it is recommended to **check the point handling sheet of the output log
 spreadsheet.**
@@ -213,16 +218,19 @@ Point handling has been designed to use LSOA data for calculating the adjustment
 the flexibility of the tool permits any data which satisfies the conditions outlined in the inputs
 table. For point zone $Z_{2pt}$ and $\{Z_{2j}\}$, the set of zones which overlap with the same zone
 $Z_{1k}$ from the first zone system, the non-spatial adjustment factors are given by:
+
 $$
 F_{non-spatial}(Z_{1k} \rightarrow Z_{2pt})
   = \left( F_{spatial}(Z_{1k} \rightarrow Z_{2pt}) + \sum_{j} F_{spatial}(Z_{1k} \rightarrow Z_{2j}) \right)
     \cdot \frac{V(L_{pt})}{\sum_n V(L_{n})}
 $$
+
 $$
 F_{non-spatial}(Z_{1k} \rightarrow Z_{2m})
   = \left( F_{spatial}(Z_{1k} \rightarrow Z_{2pt}) + \sum_{j} F_{spatial}(Z_{1k} \rightarrow Z_{2j}) \right)
     \cdot \frac{\sum_l V(L_{l})}{\sum_n V(L_{n})}
 $$
+
 where:
 
 - $Z_{2m} \in \{Z_{2j}\}$;
@@ -235,13 +243,17 @@ where:
 ![Point handling example](doc/images/point_handling_example.png "Point handling example")
 
 In the above example:
+
 $$
 A(GBFM_1 \cap NoHAM_{pt}) + A(GBFM_1 \cap NoHAM_1) = A(GBFM_1)
 $$
+
 so:
+
 $$
 F_{non-spatial}(GBFM_1 \rightarrow NoHAM_{pt}) = \frac{V(LSOA_4)}{\sum_{n=1}^6 V(LSOA_n)}
 $$
+
 $$
 F_{non-spatial}(GBFM_1 \rightarrow NoHAM_1) = \frac{\sum_{l=1,l \ne 4}^6 V(LSOA_l)}{\sum_{n=1}^6 V(LSOA_n)}
 $$
@@ -249,12 +261,15 @@ $$
 #### Rounding (optional)
 When rounding or point handling is turned on, small overlaps (slithers) these are defined as
 satisfying the following:
+
 $$
 F_{spatial}(Z_{1i} \rightarrow Z_{2j}) < 1 - T
 $$
+
 $$
 F_{spatial}(Z_{2j}) \rightarrow Z_{1i}) < 1 - T
 $$
+
 where $T$ is tolerance. If the above conditions are both satisfied then the row that features zone
 i from the first zone system and zone j from the second is removed from the zone correspondence. If
 rounding is off but point handling is on then these rows are removed for the point handling aspect
