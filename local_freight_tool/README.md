@@ -66,12 +66,51 @@ in the image below, it is split into the following three sections:
 - Utilities: this section contains a variety of utility functions that can perform many matrix
   calculations, demand forecasting and cost conversion.
 
-<!-- Add image when the main menu is finalised -->
-![Image of the Local Freight Tool main menu](doc/images/main_menu.png "Local Freight Tool main menu")
+![Local Freight Tool main menu](doc/images/main_menu.png "Local Freight Tool main menu")
 
 ## Profile Builder
 
 ## 0: Combine Centroid and Polygon Shapefiles
+This module provides functionality to combine two shapefiles together where one contains points
+and the other contains polygons, this is to allow the GBFM zone system shapefiles to be combined
+together into a single file for use in module 1: Produce Zone Correspondence. The GBFM zone
+system is provided as one polygon shapefile which doesn't contain all the zones and a point
+(centroids) shapefile which contains all zones.
+
+![Combine shapefiles menu](doc/images/combine_shapefiles_menu.png "Combine shapefiles menu")
+
+The menu for this module is shown above and the inputs are listed in the table below, once these
+have been filled in the "Run" button can be clicked to start the process. The process runs through
+the following steps to produce the outputs (see outputs table below):
+
+- Find any zones present in the centroids shapefile which aren't present in the polygons, the zone
+  IDs are expected to be given in a column with the name "UniqueID" in both shapefiles. If no zones
+  are present in the centroids shapefile which aren't already in the polygon shapefile then the
+  process stops here and no output is created.
+- Create a buffer around all centroids found to change these to polygon shapes, buffer radius can
+  be provided in the interface.
+- Finally, the newly created polygons (from the centroids shapefile) are combined with all other
+  polygons (from the polygon shapefile) to produce the output combined shapefile.
+
+The output provided by this process can then be given to module 1 in order to create a
+correspondence between two zone systems. This module has been developed to be flexible so that it
+will work with any pair of polygon and point shapefiles as long as they both contain a "UniqueID"
+column.
+
+Table: Inputs for Combine Centroid and Polygon Shapefiles module
+
+| Input                      |        Type        | Optional | Default | Description                                                                                      |
+| -------------------------- | :----------------: | :------: | :-----: | ------------------------------------------------------------------------------------------------ |
+| Polygon shapefile          |        .shp        |    No    |    -    | The shapefile containing all the polygon zones, **must contain a column named "UniqueID"**.      |
+| Centroid (point) shapefile |        .shp        |    No    |    -    | The shapefile containing the centroids of all zones, **must contain a column named "UniqueID"**. |
+| Output directory           |       Folder       |    No    |    -    | The folder where the output shapefile will be saved.                                             |
+| Buffer radius              | Float (0.01 - 10m) |    No    |  1.00m  | The radius of the circle (in metres) around the centroid point, created for the output file.     |
+
+Table: Outputs from Combine Centroid and Polygon Shapefiles module
+
+| File                                | File Type | Description                                                                                                                                                |
+| ----------------------------------- | :-------: | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `{polygon_shapefile_name}-combined` |   .shp    | Polygon shapefile containing all the information from the input polygon shapefile plus circular representations of any zones from the centroids shapefile. |
 
 ## 1: Produce Zone Correspondence
 This module is used to build a zone correspondence lookup between two shapefiles, flexibility of
@@ -106,7 +145,7 @@ are provided to produce a more robust correspondence, these are as follows:
   would suggest, e.g. ports or distribution centres, these can be given to the tool as a list of
   zone IDs (**recommended method**) or can be calculated by the tool based on the point tolerance.
 
-![Image of the zone correspondence menu](doc/images/zone_correspondence_menu.png "Zone correspondence menu")
+![Zone correspondence menu](doc/images/zone_correspondence_menu.png "Zone correspondence menu")
 
 Table: Zone correspondence inputs
 
@@ -167,7 +206,7 @@ $$
 F_{spatial}(Z_{2j} \rightarrow Z_{1i}) > T_{pt}
 $$
 where $T_{pt}$ is the point tolerance. This method might miss some point zones, or include some
-non-point zones, so it is recommended to **check the point handling sheet of the output log 
+non-point zones, so it is recommended to **check the point handling sheet of the output log
 spreadsheet.**
 
 Point handling has been designed to use LSOA data for calculating the adjustment factor, however
@@ -193,7 +232,7 @@ where:
 - $\{L_l\}$ is the set of LSOAs which overlap with $Z_{2m}$, excluding $L_{pt}$.
 
 ##### Point Handling Example
-![Point handling example image](doc/images/point_handling_example.png "Point handling example")
+![Point handling example](doc/images/point_handling_example.png "Point handling example")
 
 In the above example:
 $$
