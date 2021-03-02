@@ -129,13 +129,15 @@ class progress_window(QtWidgets.QWidget):
  # Window to inform the user how to use the current tool selected
 class info_window(QtWidgets.QWidget):
     
-    def __init__(self, title):
+    def __init__(self, title, ysize=400, ylabelsize=300):
         super().__init__()
         self.title = title
         self.initUI()
+        self.ysize = ysize
+        self.ylabelsize = ylabelsize
         
     def initUI(self):
-        self.setGeometry(300, 200, 800, 400)
+        self.setGeometry(300, 200, 800, self.ysize)
         self.setWindowTitle(self.title)
         self.setWindowIcon(QtGui.QIcon('icon.jpg'))
         self.labelA = QtWidgets.QLabel(self)
@@ -147,7 +149,7 @@ class info_window(QtWidgets.QWidget):
         self.layout = QVBoxLayout()
         self.setLayout(self.layout)
         self.label.move(10,10)
-        self.label.resize(750,300)
+        self.label.resize(750,self.ylabelsize)
         
         # Create a push button to move back to the menu
         back_button = QtWidgets.QPushButton(self)

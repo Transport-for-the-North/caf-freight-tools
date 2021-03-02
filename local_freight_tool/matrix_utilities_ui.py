@@ -515,7 +515,7 @@ class MatrixUtilities(QtWidgets.QWidget):
     @pyqtSlot()
     def on_click_Info(self):
         """Displays info window"""
-        self.progress = info_window("Matrix Utilities")
+        self.progress = info_window("Matrix Utilities", ysize=400, ylabelsize=400)
         self.progress_label = self.progress.label
         self.progress_labelA = self.progress.labelA
         dedented_text = textwrap.dedent(Matrix_Utilities_Text).strip()
@@ -557,11 +557,7 @@ class background_thread(QThread):
 
     def run(self):
         """Runs matrix processes"""
-
-        # create log file for matrix summaries and processes information
-        log_file = f"{self.outpath}/matrix_info.xlsx"
-        with pd.ExcelWriter(log_file, engine="openpyxl") as writer:
-
+        try:
             # read in the O-D matrix and create an ODMatrix instance
             progress_text = "Reading in input matrix"
             self.progress_label.setText(progress_text)
@@ -571,19 +567,12 @@ class background_thread(QThread):
             matrix_changes = 0
             self.processes["completed"] = "no"
             self.progress_label.setText(progress_text)
-            self.processes.to_excel(writer, sheet_name="inputs", index=False)
 
             if self.summary:
                 progress_text += "\nSummarising input matrix"
                 self.progress_label.setText(progress_text)
                 print("####\nSummarising input")
-                input_summary = od_matrix.summary()
-                input_summary = pd.DataFrame(
-                    data=input_summary.values(),
-                    index=input_summary.keys(),
-                    columns=["Value"],
-                )
-                input_summary.to_excel(writer, sheet_name="input_summary")
+                summary_dict = {"Input": od_matrix.summary()}
 
             if "rezoning" in self.processes.name.values:
                 print("####\nRezoning")
@@ -594,6 +583,8 @@ class background_thread(QThread):
                         self.processes.name == "rezoning", "input"
                     ].values[0]
                     od_matrix = od_matrix.rezone(zone_correspondence_path)
+                    if self.summary:
+                        summary_dict["Rezoned"] = od_matrix.summary()
                     if (
                         ("convert to UFM" in self.processes.name.values)
                         & (len(self.processes.name) > 2)
@@ -610,7 +601,6 @@ class background_thread(QThread):
                         self.processes.name == "rezoning", "completed"
                     ] = "yes"
                     self.progress_label.setText(progress_text)
-                    self.processes.to_excel(writer, sheet_name="inputs", index=False)
                     print("Rezone complete")
                 except FileNotFoundError as e:
                     # any errors
@@ -633,15 +623,18 @@ class background_thread(QThread):
                     ].values[0]
                     matrix_2 = ODMatrix.read_OD_file(matrix_2_path)
                     od_matrix = od_matrix + matrix_2
+                    if self.summary:
+                        summary_dict["Addition"] = od_matrix.summary()
                     matrix_changes += 1
                     self.processes.loc[
                         self.processes.name == "addition", "completed"
                     ] = "yes"
                     self.progress_label.setText(progress_text)
-                    self.processes.to_excel(writer, sheet_name="inputs", index=False)
                     print("Addition complete")
                 except FileNotFoundError as e:
-                    msg = "Error: could not find second matrix csv. Addition unsuccessful"
+                    msg = (
+                        "Error: could not find second matrix csv. Addition unsuccessful"
+                    )
                     progress_text += f"\n{msg}"
                     self.progress_label.setText(progress_text)
                     raise FileNotFoundError(msg) from e
@@ -667,10 +660,13 @@ class background_thread(QThread):
                         factor = ODMatrix.read_OD_file(factor_str)
                     print("Factoring matrix")
                     od_matrix = od_matrix * factor
+                    if self.summary:
+                        summary_dict["Factored"] = od_matrix.summary()
                     matrix_changes += 1
-                    self.processes.loc[self.processes.name == "factor", "completed"] = "yes"
+                    self.processes.loc[
+                        self.processes.name == "factor", "completed"
+                    ] = "yes"
                     self.progress_label.setText(progress_text)
-                    self.processes.to_excel(writer, sheet_name="inputs", index=False)
                 except Exception as e:
                     msg = f"Error: factoring unsuccessful, {e.__class__.__name__} occurred - {e}"
                     progress_text += f"\n{msg}"
@@ -706,12 +702,13 @@ class background_thread(QThread):
                         missing_zones = [int(x) for x in missing_zones_str.split(",")]
                     print("Filling missing zones")
                     od_matrix = od_matrix.fill_missing_zones(missing_zones)
+                    if self.summary:
+                        summary_dict["Fill missing zones"] = od_matrix.summary()
                     matrix_changes += 1
                     self.processes.loc[
                         self.processes.name == "fill missing zones", "completed"
                     ] = "yes"
                     self.progress_label.setText(progress_text)
-                    self.processes.to_excel(writer, sheet_name="inputs", index=False)
                     print("Missing zones added")
                 except ValueError as e:
                     msg = "Error: Missing zones are neither a file nor a comma-separated list."
@@ -750,12 +747,13 @@ class background_thread(QThread):
                         external_zones = [int(x) for x in external_zones_str.split(",")]
                         print(f"External zones given as list: {external_zones}")
                     od_matrix = od_matrix.remove_external_trips(external_zones)
+                    if self.summary:
+                        summary_dict["Remove EE trips"] = od_matrix.summary()
                     matrix_changes += 1
                     self.processes.loc[
                         self.processes.name == "remove EE trips", "completed"
                     ] = "yes"
                     self.progress_label.setText(progress_text)
-                    self.processes.to_excel(writer, sheet_name="inputs", index=False)
                     print("E-E trips removal complete.")
                 except ValueError as e:
                     msg = "Error: External zones are neither a file nor a comma-separated list."
@@ -774,20 +772,9 @@ class background_thread(QThread):
                 progress_text += "\nSaving output matrix to csv"
                 self.progress_label.setText(progress_text)
                 print("Saving output to csv")
-                od_matrix.export_to_csv(f"{self.outpath}/{od_matrix.name}_processed.csv")
-
-            # if summary is checked, produced summary of output matrix
-            if self.summary & (matrix_changes > 0):
-                progress_text += "\nSummarising output"
-                self.progress_label.setText(progress_text)
-                print("Summarising output")
-                output_summary = od_matrix.summary()
-                output_summary = pd.DataFrame(
-                    data=output_summary.values(),
-                    index=output_summary.keys(),
-                    columns=["Value"],
+                od_matrix.export_to_csv(
+                    f"{self.outpath}/{od_matrix.name}_processed.csv"
                 )
-                output_summary.to_excel(writer, sheet_name="output_summary")
 
             if "convert to UFM" in self.processes.name.values:
                 progress_text += "\nConverting to UFM"
@@ -802,17 +789,30 @@ class background_thread(QThread):
                         self.processes.name == "convert to UFM", "completed"
                     ] = "yes"
                     self.progress_label.setText(progress_text)
-                    self.processes.to_excel(writer, sheet_name="inputs", index=False)
                     progress_text += f"\nUFM saved to {ufm_path}"
                     self.progress_label.setText(progress_text)
                 else:
                     progress_text += "Error: SATURN EXES path given is not a folder. Conversion process couldn't complete."
                     self.progress_label.setText(progress_text)
+        except:
+            pass
+        finally:
+            # create log file for matrix summaries and processes information
+            log_file = f"{self.outpath}/matrix_info.xlsx"
+            with pd.ExcelWriter(log_file, engine="openpyxl") as writer:
+                if len(self.processes.name) > 0:
+                    progress_text += "\nSaving process log"
+                    self.progress_label.setText(progress_text)
+                    self.processes.to_excel(writer, sheet_name="inputs", index=False)
+                    if self.summary:
+                        summary_df = pd.DataFrame.from_dict(
+                            summary_dict, orient="index"
+                        )
+                        summary_df.to_excel(writer, sheet_name="input_summary")
 
-            if len(self.processes.name) > 0:
-                progress_text += "\nSaving process log"
-                self.progress_label.setText(progress_text)
-                self.processes.to_excel(writer, sheet_name="inputs", index=False)
-
-        progress_text += f"\nMatrix operations complete, all outputs saved to {self.outpath}.\nYou may exit the program, check matrix_info.xlsx for more information."
-        self.progress_label.setText(progress_text)
+            progress_text += (
+                f"\nMatrix operations complete, all outputs saved to "
+                f"{self.outpath}.\nYou may exit the program, check"
+                f"matrix_info.xlsx for more information."
+            )
+            self.progress_label.setText(progress_text)

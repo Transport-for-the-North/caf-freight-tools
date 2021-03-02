@@ -171,9 +171,13 @@ class ODMatrix:
         """
         column_matrix = self.column_matrix()
         summary = {
+            "Name": self.name,
             "Total": column_matrix.trips.sum(),
+            "Count": len(column_matrix.trips),
             "Mean": column_matrix.trips.mean(),
             "Standard deviation": column_matrix.trips.std(),
+            "Max": max(column_matrix.trips),
+            "Min": min(column_matrix.trips),
             "0 count": (column_matrix.trips == 0).sum(),
             "NaN count": column_matrix.trips.isna().sum(),
         }
