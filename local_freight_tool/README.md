@@ -52,7 +52,7 @@ can be launched with the following steps:
 - Launch the menu using `python tc_main_meny.py`.
 
 *Tip: start writing the file name and press tab, the command prompt will autocomplete it for you.
-For more information on the command prompt see [Command Prompt Cheatsheet](http://www.cs.columbia.edu/~sedwards/classes/2017/1102-spring/Command%20Prompt%20Cheatsheet.pdf).*
+For more information on the command prompt see [Command Prompt cheat sheet](http://www.cs.columbia.edu/~sedwards/classes/2017/1102-spring/Command%20Prompt%20Cheatsheet.pdf).*
 
 # Tool Functionality
 This section outlines the functionality provided in the tool, this functionality is split across
@@ -99,12 +99,12 @@ column.
 
 Table: Inputs for Combine Centroid and Polygon Shapefiles module
 
-| Input                      |        Type        | Optional | Default | Description                                                                                      |
-| -------------------------- | :----------------: | :------: | :-----: | ------------------------------------------------------------------------------------------------ |
-| Polygon shapefile          |        .shp        |    No    |    -    | The shapefile containing all the polygon zones, **must contain a column named "UniqueID"**.      |
-| Centroid (point) shapefile |        .shp        |    No    |    -    | The shapefile containing the centroids of all zones, **must contain a column named "UniqueID"**. |
-| Output directory           |       Folder       |    No    |    -    | The folder where the output shapefile will be saved.                                             |
-| Buffer radius              | Float (0.01 - 10m) |    No    |  1.00m  | The radius of the circle (in metres) around the centroid point, created for the output file.     |
+| Input                      |       Type        | Optional | Default | Description                                                                                      |
+| -------------------------- | :---------------: | :------: | :-----: | ------------------------------------------------------------------------------------------------ |
+| Polygon shapefile          |       .shp        |    No    |    -    | The shapefile containing all the polygon zones, **must contain a column named "UniqueID"**.      |
+| Centroid (point) shapefile |       .shp        |    No    |    -    | The shapefile containing the centroids of all zones, **must contain a column named "UniqueID"**. |
+| Output directory           |      Folder       |    No    |    -    | The folder where the output shapefile will be saved.                                             |
+| Buffer radius              | Real (0.01 - 10m) |    No    |  1.00m  | The radius of the circle (in metres) around the centroid point, created for the output file.     |
 
 Table: Outputs from Combine Centroid and Polygon Shapefiles module
 
@@ -161,16 +161,16 @@ Table: Zone correspondence inputs
 | Second zone system point zone list | .csv or String | Point handling turned on             |   Yes    |    -    | List of point zones in the second zoning system (e.g. NoHAM). Must be a csv with "zone_id" column name. If unspecified, then the point tolerance is used to find the point zones.                  |
 | LSOA data                          |      .csv      | Point handling turned on             |    No    |    -    | CSV containing LSOA data (such as employment) to perform non-spatial point zone handling. The file must have the LSOA zone IDs in the "lsoa11cd" column and the relevant data in the "var" column. |
 | LSOA shapefile                     |      .csv      | Point handling turned on             |    No    |    -    | LSOA shapefile, with zone IDs in "LSOA11CD" column.                                                                                                                                                |
-| Tolerance                          |     Float      | Point handling or rounding turned on |    No    |  99.0%  | Tolerance used to filter out small overlaps between zones.                                                                                                                                         |
+| Tolerance                          |      Real      | Point handling or rounding turned on |    No    |  99.0%  | Tolerance used to filter out small overlaps between zones.                                                                                                                                         |
 | Point tolerance                    |    Integer     | Point handling turned on             |    No    |   95%   | Tolerance used to find point zones in second zone system when no point zone list is specified.                                                                                                     |
 
 Table: Zone correspondence outputs
 
-| File                                                 | File Type             | Description                                                                                                                                                   | Sheet description                                                                                                                                                                                                                                                                                                                                                                                    |
-| ---------------------------------------------------- | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `{zone_1}_to_{zone_2}` `_spatial_correspondence.csv` | Comma-separate values | Spatial correspondence with no rounding or point handling, includes adjustment factors for converting from zone system 1 to zone system 2 and vice versa.     | Contains the following 4 columns:<br> - `{zone_1}_zone_id`: zone ID for first zone system<br> - `{zone_2}_zone_id`: zone ID for corresponding zone in second zone system<br> - `{zone_1}_to_{zone_2}`: spatial splitting factor to go from zone system 1 to 2<br> - `{zone_2}_to_{zone_1}`: spatial splitting factor to go from zone system 2 to 1                                                   |
-| `{zone_1}_to_{zone_2}` `_zone_correspondence.csv`    | Comma-separate values | Zone correspondence with all rounding and point handling options applied (if selected), in the correct format for use in the other modules of the tool.       | Contains the following 3 columns:<br> - `{zone_1}_zone_id`: zone ID for the first zone system<br> - `{zone_2}_zone_id`: zone ID for the corresponding zone in the second zone system<br> - `{zone_1}_to_{zone_2}`: splitting factor to go from zone system 1 to 2                                                                                                                                    |
-| `zone_correspondence_log.xlsx`                       | Excel Workbook        | Spreadsheet containing results from the checks performed by the tool, **this file should be checked thoroughly before using the zone correspondence output**. | Contains the following 4 worksheets:<br> - `Parameters`: list of input parameters and their selected values<br> - `{zone_1}_missing`: list of zone system 1 zones missing from zone correspondence<br> - `{zone_2}_missing`: list of zone system 2 zones missing from zone correspondence<br> - `point_handling`: if point handling was on, this lists all the zones affected by point zone handling |
+| File                                                 | File Type             | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| ---------------------------------------------------- | --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `{zone_1}_to_{zone_2}` `_spatial_correspondence.csv` | Comma-separate values | Spatial correspondence with no rounding or point handling, includes adjustment factors for converting from zone system 1 to zone system 2 and vice versa. Contains the following 4 columns:<br>- `{zone_1}_zone_id`: zone ID for first zone system<br>- `{zone_2}_zone_id`: zone ID for corresponding zone in second zone system<br>- `{zone_1}_to_{zone_2}`: spatial splitting factor to go from zone system 1 to 2<br>- `{zone_2}_to_{zone_1}`: spatial splitting factor to go from zone system 2 to 1                                                       |
+| `{zone_1}_to_{zone_2}` `_zone_correspondence.csv`    | Comma-separate values | Zone correspondence with all rounding and point handling options applied (if selected), in the correct format for use in the other modules of the tool. Contains the following 3 columns:<br>- `{zone_1}_zone_id`: zone ID for the first zone system<br>- `{zone_2}_zone_id`: zone ID for the corresponding zone in the second zone system<br>- `{zone_1}_to_{zone_2}`: splitting factor to go from zone system 1 to 2                                                                                                                                         |
+| `zone_correspondence_log.xlsx`                       | Excel Workbook        | Spreadsheet containing results from the checks performed by the tool, **this file should be checked thoroughly before using the zone correspondence output**. Contains the following 4 worksheets:<br>- `Parameters`: list of input parameters and their selected values<br>- `{zone_1}_missing`: list of zone system 1 zones missing from zone correspondence<br>- `{zone_2}_missing`: list of zone system 2 zones missing from zone correspondence<br>- `point_handling`: if point handling was on, this lists all the zones affected by point zone handling |
 
 ### Zone Correspondence Calculations
 This section provides the technical calculations performed by the zone correspondence process to
@@ -318,6 +318,68 @@ island with no NoHAM zone.
 ## 4: GBFM Annual PCU to Model Time Period PCU
 
 ## 5: Matrix Utilities
+The matrix utilities module provides functionality for a variety of different operations which can
+be applied to an O-D matrix CSV file. This functionality has been developed to be extremely
+flexible and as such any number of operations can be turned off or on and the inputs can be any CSV
+O-D matrix containing 3 columns, see inputs table for more details. This module has not been
+created to process demand matrices in a specific way, the processing stages are determined entirely
+by what is selected, the other modules in this tool provide more specific processing stages for
+converting GBFM data to time period specific matrices. The operations provided by this module are as
+follows:
+
+- Summary: this will provide summary statistics for the input matrix such as matrix total, average
+  value, number of zeros etc.
+- Rezoning: this will convert the input matrix to a new zone system when given a zone
+  correspondence lookup (this can be produced by module 1).
+- Matrix addition: this will add a second matrix onto the matrix from the previous step.
+- Matrix factoring: this will multiply the matrix (from the previous step) with another matrix
+  (element wise) or with a global factor.
+- Fill missing zones: this will add any missing zones, which are provided as input, to the matrix
+  and set their value to 0.
+- Remove EE trips: this will set all external-external trips to 0 when given a list of external
+  zones.
+- Convert to UFM: this will convert the matrix to a UFM file, **requires SATURN to be installed**.
+
+***Note:** All the above operations are applied one after another in the order above, so the output
+from the previous operation becomes the input matrix for the next operation. For example if
+rezoning, matrix factoring and convert to UFM are selected then the input matrix will be rezoned
+and then the rezoned matrix will be multiplied by the given factor to produce an output, this
+output will then be converted to a UFM.*
+
+![Matrix utilities menu](doc/images/matrix_utilities_menu.png "Matrix utilities menu")
+
+The menu for this module is shown above (any greyed out boxes aren't required until that process is
+selected) and the inputs are listed in the table below, once these have been filled in the "Run"
+button can be clicked to start the process. The process runs through the matrix operations in the
+order they appear in the interface and will save any outputs to the folder given, any number or
+combination of operations may be selected in order to process a matrix file in whatever way is
+desired. The output files produced depends upon what operations are selected but a list of all
+possible outputs is outlined in the table below.
+
+Table: Inputs for matrix utilities module
+
+| Input              |         Type         | Optional | Description                                                                                                                                                                                                                                                                                                                                                                      |
+| ------------------ | :------------------: | :------: | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Input matrix       |         CSV          |    No    | O-D matrix CSV with the following 3 columns: origin, destination and trips. Column names are optional but they must be in the correct order.                                                                                                                                                                                                                                     |
+| Summary            |       Boolean        |   Yes    | When checked produces spreadsheet which provides summary statistics about the matrix at each stage of the process. Recommend to leave turned on as the summary is useful when checking the outputs.                                                                                                                                                                              |
+| Rezoning           |         CSV          |   Yes    | Zone correspondence lookup file to be used to rezone the input matrix to a new zone system, can be produced with the zone correspondence module. If rezoning is turned on then the input matrix will be rezoned before any other processing stages are ran, therefore **any other inputs used further down should be in the zone system that the matrix is being converted to.** |
+| Matrix addition    |         CSV          |   Yes    | Another O-D matrix CSV (same format as input matrix) which will be added to the matrix from the previous step.                                                                                                                                                                                                                                                                   |
+| Matrix factoring   |     CSV or Real      |   Yes    | Another O-D matrix CSV (or global factor) which will be multiplied with the matrix from the previous step.                                                                                                                                                                                                                                                                       |
+| Fill missing zones | CSV or list of zones |   Yes    | CSV containing list (or comma-separated list) of missing zones which will be added to the matrix from the previous step with a value of 0.                                                                                                                                                                                                                                       |
+| Remove EE trips    | CSV or list of zones |   Yes    | CSV containing list (or comma-separated list) of all zones, in the matrix from the previous step, which will have trips set to 0.                                                                                                                                                                                                                                                |
+| Convert to UFM     |        Folder        |   Yes    | Path to the SATURN exes folder, if selected will convert the matrix (from the previous step) to a UFM file.                                                                                                                                                                                                                                                                      |
+| Output folder      |        Folder        |    No    | Directory where all the output matrices and the summary will be saved.                                                                                                                                                                                                                                                                                                           |
+
+Table: Outputs from matrix utilities module
+
+| File                                                             | File Type      | Condition                                                                                   | Description                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| ---------------------------------------------------------------- | -------------- | ------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| matrix_info                                                      | Excel Workbook | Output when summary is turned on.                                                           | List of the inputs provided for each selected operation and a summary of matrix statistics at each stage of the process, contains the following sheets:<br>- `inputs`: lists the provided inputs for each operation and whether the operation succeeded; and<br>- `input_summary`: statistics for the matrix being processed at each stage.                                                                                      |
+| {input matrix}_rezoned                                           | CSV            | Output if rezoning is selected.                                                             | The input matrix rezoned to the new zone system, contains the following columns:<br>- `origin`: origin zone number in new zone system;<br>- `destination`: destination zone number in new zone system; and<br>- `trips`: for the OD pair.                                                                                                                                                                                        |
+| {input matrix}_processed (name dependant on selected operations) | CSV            | Output if any operations other than "Summary", "Rezoning" or "Convert to UFM" are selected. | The output matrix for any operations that have been selected, contains the following columns:<br>- `origin`: origin zone number in new zone system;<br>- `destination`: destination zone number in new zone system; and<br>- `trips`: for the OD pair.<br>This matrix is a combination of all the selected operations applied one after another and it's name contains information about the operations which have been applied. |
+| {input matrix} (name dependant on selected operations)           | UFM            | Output if "Convert to UFM" is selected.                                                     | SATURN UFM matrix created from the processed matrix.                                                                                                                                                                                                                                                                                                                                                                             |
+| {input matrix} (name dependant on selected operations)           | LPX            | Output if "Convert to UFM" is selected.                                                     | SATURN MX log file of the conversion from CSV to UFM.                                                                                                                                                                                                                                                                                                                                                                            |
+| {input matrix}_VDU (name dependant on selected operations)       | VDU            | Output if "Convert to UFM" is selected.                                                     | SATURN MX VDU file of the conversion from CSV to UFM.                                                                                                                                                                                                                                                                                                                                                                            |
 
 ## 6: Delta Process
 
