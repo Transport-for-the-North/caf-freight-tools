@@ -616,7 +616,7 @@ class background_thread(QThread):
                 self.progress_label.setText(progress_text)
                 raise FileNotFoundError(msg) from e
             except Exception as e:
-                msg = f"Rezoning unsuccessful, {e.__class__.__name__} occurred."
+                msg = f"Rezoning unsuccessful, {e.__class__.__name__} occurred - {e!s}"
                 self.progress_label.setText(msg)
                 raise Exception(msg) from e
 
@@ -641,7 +641,7 @@ class background_thread(QThread):
                 self.progress_label.setText(progress_text)
                 raise FileNotFoundError(msg) from e
             except Exception as e:
-                msg = f"Error: addition unsuccessful, {e.__class__.__name__} occurred"
+                msg = f"Error: addition unsuccessful, {e.__class__.__name__} occurred - {e}"
                 progress_text += f"\n{msg}"
                 self.progress_label.setText(progress_text)
                 raise Exception(msg) from e
@@ -665,7 +665,7 @@ class background_thread(QThread):
                 matrix_changes += 1
                 self.processes.loc[self.processes.name == "factor", "completed"] = "yes"
             except Exception as e:
-                msg = f"Error: factoring unsuccessful, {e.__class__.__name__} occurred."
+                msg = f"Error: factoring unsuccessful, {e.__class__.__name__} occurred - {e}"
                 progress_text += f"\n{msg}"
                 self.progress_label.setText(progress_text)
                 raise Exception(msg) from e
@@ -710,7 +710,7 @@ class background_thread(QThread):
                 self.progress_label.setText(progress_text)
                 raise ValueError(msg) from e
             except Exception as e:
-                msg = f"Error: filling missing zones unsuccessful, {e.__class__.__name__} occured."
+                msg = f"Error: filling missing zones unsuccessful, {e.__class__.__name__} occured - {e}"
                 progress_text += f"\n{msg}"
                 self.progress_label.setText(progress_text)
                 raise Exception(msg) from e
@@ -752,7 +752,7 @@ class background_thread(QThread):
                 self.progress_label.setText(progress_text)
                 raise ValueError(msg) from e
             except Exception as e:
-                msg = f"Error: Remove external-external trips unsuccessful, {e.__class__.__name__} occured."
+                msg = f"Error: Remove external-external trips unsuccessful, {e.__class__.__name__} occured - {e}"
                 progress_text += f"\n{msg}"
                 self.progress_label.setText(progress_text)
                 raise Exception(msg) from e
