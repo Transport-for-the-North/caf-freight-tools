@@ -265,7 +265,7 @@ class ProduceGBFMCorrespondence(QtWidgets.QWidget):
             for w in widgets:
                 w.setDisabled(True)
 
-            if self.rounding: # Keep tolerance enabled if rounding on
+            if self.rounding:  # Keep tolerance enabled if rounding on
                 self.labeluptol.setDisabled(False)
                 self.uppertolbox.setDisabled(False)
                 self.labeluptol.setDisabled(True)
@@ -362,7 +362,9 @@ class ProduceGBFMCorrespondence(QtWidgets.QWidget):
                 )
                 alert.show()
             # Start a progress window
-            self.progress = progress_window("Zone Correspondence Tool", self.tier_converter)
+            self.progress = progress_window(
+                "Zone Correspondence Tool", self.tier_converter
+            )
             self.hide()
 
             # Call the main process

@@ -121,7 +121,10 @@ class CombineShapefiles(QtWidgets.QWidget):
 
     def run_button_clicked(self):
 
-        if self.gbfm_polygons.text().strip() == "" or self.gbfm_centroids.text().strip() == "":
+        if (
+            self.gbfm_polygons.text().strip() == ""
+            or self.gbfm_centroids.text().strip() == ""
+        ):
             alert = QtWidgets.QMessageBox(self)
             alert.setWindowTitle("Combine GBFM Shapefiles")
             alert.setText("Error: you must specify both file paths first")
@@ -133,7 +136,9 @@ class CombineShapefiles(QtWidgets.QWidget):
             alert.show()
         else:
             # Start a progress window
-            self.progress = progress_window("Combine GBFM Shapefiles", self.tier_converter)
+            self.progress = progress_window(
+                "Combine GBFM Shapefiles", self.tier_converter
+            )
             self.hide()
 
             # Call the main process
@@ -174,7 +179,7 @@ class background_thread(QThread):
             self.progress_label.setText("Reading in the shapefiles")
             gbfm_polygons = gpd.read_file(self.gbfm_polygons_path)
             gbfm_centroids = gpd.read_file(self.gbfm_centroids_path)
-        
+
             # centroids file has float UniqueID, change to int
             gbfm_centroids[zone_ID] = gbfm_centroids[zone_ID].astype(int)
 
@@ -192,11 +197,13 @@ class background_thread(QThread):
             gbfm_points.geometry = gbfm_points.buffer(self.buffer)
 
             # make sure source is clear in shapefiles
-            gbfm_points.loc[:, 'source'] = 'centroid'
-            gbfm_polygons.loc[:, 'source'] = 'polygon'
+            gbfm_points.loc[:, "source"] = "centroid"
+            gbfm_polygons.loc[:, "source"] = "polygon"
 
             self.progress_label.setText("Combining shapefiles")
-            shared_columns = gbfm_points.columns[gbfm_points.columns.isin(gbfm_polygons.columns)]
+            shared_columns = gbfm_points.columns[
+                gbfm_points.columns.isin(gbfm_polygons.columns)
+            ]
             combined_shapefile = gbfm_polygons.append(gbfm_points[shared_columns])
 
             out_name = self.outpath / (self.gbfm_polygons_path.stem + "-combined.shp")
