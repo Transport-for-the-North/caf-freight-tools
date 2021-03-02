@@ -570,6 +570,9 @@ class background_thread(QThread):
         # keep track of changes to matrix and outputs to log
         matrix_changes = 0
         self.processes["completed"] = "no"
+        self.progress_label.setText(progress_text)
+        self.processes.to_excel(writer, sheet_name="inputs", index=False)
+        writer.save()
 
         if self.summary:
             progress_text += "\nSummarising input matrix"
@@ -608,6 +611,9 @@ class background_thread(QThread):
                 self.processes.loc[
                     self.processes.name == "rezoning", "completed"
                 ] = "yes"
+                self.progress_label.setText(progress_text)
+                self.processes.to_excel(writer, sheet_name="inputs", index=False)
+                writer.save()
                 print("Rezone complete")
             except FileNotFoundError as e:
                 # any errors
@@ -634,6 +640,9 @@ class background_thread(QThread):
                 self.processes.loc[
                     self.processes.name == "addition", "completed"
                 ] = "yes"
+                self.progress_label.setText(progress_text)
+                self.processes.to_excel(writer, sheet_name="inputs", index=False)
+                writer.save()
                 print("Addition complete")
             except FileNotFoundError as e:
                 msg = "Error: could not find second matrix csv. Addition unsuccessful"
@@ -664,6 +673,9 @@ class background_thread(QThread):
                 od_matrix = od_matrix * factor
                 matrix_changes += 1
                 self.processes.loc[self.processes.name == "factor", "completed"] = "yes"
+                self.progress_label.setText(progress_text)
+                self.processes.to_excel(writer, sheet_name="inputs", index=False)
+                writer.save()
             except Exception as e:
                 msg = f"Error: factoring unsuccessful, {e.__class__.__name__} occurred."
                 progress_text += f"\n{msg}"
@@ -703,6 +715,9 @@ class background_thread(QThread):
                 self.processes.loc[
                     self.processes.name == "fill missing zones", "completed"
                 ] = "yes"
+                self.progress_label.setText(progress_text)
+                self.processes.to_excel(writer, sheet_name="inputs", index=False)
+                writer.save()
                 print("Missing zones added")
             except ValueError as e:
                 msg = "Error: Missing zones are neither a file nor a comma-separated list."
@@ -745,6 +760,9 @@ class background_thread(QThread):
                 self.processes.loc[
                     self.processes.name == "remove EE trips", "completed"
                 ] = "yes"
+                self.progress_label.setText(progress_text)
+                self.processes.to_excel(writer, sheet_name="inputs", index=False)
+                writer.save()
                 print("E-E trips removal complete.")
             except ValueError as e:
                 msg = "Error: External zones are neither a file nor a comma-separated list."
@@ -791,6 +809,9 @@ class background_thread(QThread):
                 self.processes.loc[
                     self.processes.name == "convert to UFM", "completed"
                 ] = "yes"
+                self.progress_label.setText(progress_text)
+                self.processes.to_excel(writer, sheet_name="inputs", index=False)
+                writer.save()
                 progress_text += f"\nUFM saved to {ufm_path}"
                 self.progress_label.setText(progress_text)
             else:
