@@ -794,8 +794,8 @@ class background_thread(QThread):
                 else:
                     progress_text += "Error: SATURN EXES path given is not a folder. Conversion process couldn't complete."
                     self.progress_label.setText(progress_text)
-        except:
-            pass
+        except Exception as e:
+            print(f"{e.__class__.__name__}: {e}")
         finally:
             # create log file for matrix summaries and processes information
             log_file = f"{self.outpath}/matrix_info.xlsx"
@@ -810,9 +810,11 @@ class background_thread(QThread):
                         )
                         summary_df.to_excel(writer, sheet_name="input_summary")
 
-            progress_text += (
+            msg = (
                 f"\nMatrix operations complete, all outputs saved to "
                 f"{self.outpath}.\nYou may exit the program, check"
                 f"matrix_info.xlsx for more information."
             )
+            print(msg)
+            progress_text += msg
             self.progress_label.setText(progress_text)

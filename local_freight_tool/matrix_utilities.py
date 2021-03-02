@@ -11,9 +11,6 @@ missing zones, removing external-external trips, and converting to UFM.
 
 """
 
-# TODO add convert to UFM - check MX.bat exists in SATURN EXES folder, add CSV_2_UFM_KEY, update_env() and csv_to_ufm
-# TODO add rezoning
-
 ##### IMPORTS #####
 # Standard imports
 import os
@@ -451,15 +448,6 @@ class ODMatrix:
             shell=True,
             stdout=sp.DEVNULL,
         )
-
-        # check created ufm exists and remove temp csv and key file
-        if not out_mat.is_file():
-            raise FileNotFoundError(f"{out_mat} was not created successfully")
-        temp_filepath.unlink()
-        key_path.unlink()
-        mx_log_path = Path("MX.LOG")
-        if mx_log_path.exists():
-            mx_log_path.unlink()
 
         # move LPX file from wd to output directory
         out_lpx = out_mat.with_suffix(".LPX")
