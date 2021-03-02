@@ -463,14 +463,26 @@ class ODMatrix:
 
         # move LPX file from wd to output directory
         out_lpx = out_mat.with_suffix(".LPX")
-        if not out_lpx.exists():
-            Path("MX.LPX").rename(out_lpx)
-        else:
-            # if there's already an *.LPX file in output directory, rename it
-            i = 0
-            while out_lpx.with_name(f"{out_lpx.stem}_{i}.LPX").exists():
-                i += 1
-            Path("MX.LPX").rename(out_lpx.with_name(f"{out_lpx.stem}_{i}.LPX"))
+        lpx_path = Path("MX.LPX")
+
+        if lpx_path.exists():
+            if not out_lpx.exists():
+                lpx_path.rename(out_lpx)
+            else:
+                # if there's already an *.LPX file in output directory, rename it
+                i = 0
+                while out_lpx.with_name(f"{out_lpx.stem}_{i}.LPX").exists():
+                    i += 1
+                    lpx_path.rename(out_lpx.with_name(f"{out_lpx.stem}_{i}.LPX"))
+        
+        # check created ufm exists and remove temp csv and key file
+        if not out_mat.is_file():
+            raise FileNotFoundError(f"{out_mat} was not created successfully")
+        temp_filepath.unlink()
+        key_path.unlink()
+        mx_log_path = Path("MX.LOG")
+        if mx_log_path.exists():
+            mx_log_path.unlink()
 
         return out_mat
 

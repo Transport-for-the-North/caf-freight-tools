@@ -515,7 +515,7 @@ class MatrixUtilities(QtWidgets.QWidget):
     @pyqtSlot()
     def on_click_Info(self):
         """Displays info window"""
-        self.progress = info_window("Matrix Utilities", ysize=400, ylabelsize=400)
+        self.progress = info_window("Matrix Utilities", ysize=300, ylabelsize=200)
         self.progress_label = self.progress.label
         self.progress_labelA = self.progress.labelA
         dedented_text = textwrap.dedent(Matrix_Utilities_Text).strip()

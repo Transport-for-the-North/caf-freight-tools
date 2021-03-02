@@ -149,7 +149,7 @@ class info_window(QtWidgets.QWidget):
         self.layout = QVBoxLayout()
         self.setLayout(self.layout)
         self.label.move(10,10)
-        self.label.resize(750,self.ylabelsize)
+        self.label.resize(750, self.ylabelsize)
         
         # Create a push button to move back to the menu
         back_button = QtWidgets.QPushButton(self)
