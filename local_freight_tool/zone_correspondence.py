@@ -39,8 +39,7 @@ def read_zone_shapefiles(zone_1_path, zone_2_path, zone_1_name, zone_2_name):
         the zones
     """
     # zone column lookups
-    NEW_GBFM_LOOKUP = {"UniqueID": "zone_id"}
-    OLD_GBFM_LOOKUP = {"ID": "zone_id"}
+    GBFM_LOOKUP = {"UniqueID": "zone_id"}
     NOHAM_LOOKUP = {"zone_id": "empty", "unique_id": "zone_id"}
 
     # create geodataframes from zone shapefiles
@@ -56,10 +55,7 @@ def read_zone_shapefiles(zone_1_path, zone_2_path, zone_1_name, zone_2_name):
 
         if "UniqueID" in zone_list[i].columns:
             # this uses new GBFM zone ID column name
-            zone_list[i] = zone_list[i].rename(columns=NEW_GBFM_LOOKUP)
-        elif "ID" in zone_list[i].columns:
-            # this uses old GBFM zone ID column name
-            zone_list[i] = zone_list[i].rename(columns=OLD_GBFM_LOOKUP)
+            zone_list[i] = zone_list[i].rename(columns=GBFM_LOOKUP)
         elif "unique_id" in zone_list[i].columns:
             # this uses NoHAM zone ID column name
             zone_list[i] = zone_list[i].rename(columns=NOHAM_LOOKUP)
