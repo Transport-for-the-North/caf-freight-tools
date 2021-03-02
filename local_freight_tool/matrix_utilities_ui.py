@@ -560,269 +560,259 @@ class background_thread(QThread):
 
         # create log file for matrix summaries and processes information
         log_file = f"{self.outpath}/matrix_info.xlsx"
-        writer = pd.ExcelWriter(log_file, engine="openpyxl")
+        with pd.ExcelWriter(log_file, engine="openpyxl") as writer:
 
-        # read in the O-D matrix and create an ODMatrix instance
-        progress_text = "Reading in input matrix"
-        self.progress_label.setText(progress_text)
-        od_matrix = ODMatrix.read_OD_file(self.od_matrix_path)
-
-        # keep track of changes to matrix and outputs to log
-        matrix_changes = 0
-        self.processes["completed"] = "no"
-        self.progress_label.setText(progress_text)
-        self.processes.to_excel(writer, sheet_name="inputs", index=False)
-        writer.save()
-
-        if self.summary:
-            progress_text += "\nSummarising input matrix"
+            # read in the O-D matrix and create an ODMatrix instance
+            progress_text = "Reading in input matrix"
             self.progress_label.setText(progress_text)
-            print("####\nSummarising input")
-            input_summary = od_matrix.summary()
-            input_summary = pd.DataFrame(
-                data=input_summary.values(),
-                index=input_summary.keys(),
-                columns=["Value"],
-            )
-            input_summary.to_excel(writer, sheet_name="input_summary")
-            writer.save()
+            od_matrix = ODMatrix.read_OD_file(self.od_matrix_path)
 
-        if "rezoning" in self.processes.name.values:
-            print("####\nRezoning")
-            progress_text += f"\nRezoning OD matrix and saving to {self.outpath}/{od_matrix.name}_rezoned.csv"
-            self.progress_label.setText(progress_text)
-            try:
-                zone_correspondence_path = self.processes.loc[
-                    self.processes.name == "rezoning", "input"
-                ].values[0]
-                od_matrix = od_matrix.rezone(zone_correspondence_path)
-                if (
-                    ("convert to UFM" in self.processes.name.values)
-                    & (len(self.processes.name) > 2)
-                ) | (
-                    ("convert to UFM" not in self.processes.name.values)
-                    & (len(self.processes.name) > 1)
-                ):
-                    print("Saving rezoned matrix")
-                    od_matrix.export_to_csv(
-                        f"{self.outpath}/{od_matrix.name}_rezoned.csv"
-                    )
-                matrix_changes = matrix_changes + 1
-                self.processes.loc[
-                    self.processes.name == "rezoning", "completed"
-                ] = "yes"
-                self.progress_label.setText(progress_text)
-                self.processes.to_excel(writer, sheet_name="inputs", index=False)
-                writer.save()
-                print("Rezone complete")
-            except FileNotFoundError as e:
-                # any errors
-                msg = "Rezoning unsuccessful, zone correspondence lookup not found"
-                progress_text += f"\n{msg}"
-                self.progress_label.setText(progress_text)
-                raise FileNotFoundError(msg) from e
-            except Exception as e:
-                msg = f"Rezoning unsuccessful, {e.__class__.__name__} occurred - {e!s}"
-                self.progress_label.setText(msg)
-                raise Exception(msg) from e
-
-        if "addition" in self.processes.name.values:
-            print("####\nAddition")
-            progress_text += "\nPerforming matrix addition"
-            self.progress_label.setText(progress_text)
-            try:
-                matrix_2_path = self.processes.loc[
-                    self.processes.name == "addition", "input"
-                ].values[0]
-                matrix_2 = ODMatrix.read_OD_file(matrix_2_path)
-                od_matrix = od_matrix + matrix_2
-                matrix_changes += 1
-                self.processes.loc[
-                    self.processes.name == "addition", "completed"
-                ] = "yes"
-                self.progress_label.setText(progress_text)
-                self.processes.to_excel(writer, sheet_name="inputs", index=False)
-                writer.save()
-                print("Addition complete")
-            except FileNotFoundError as e:
-                msg = "Error: could not find second matrix csv. Addition unsuccessful"
-                progress_text += f"\n{msg}"
-                self.progress_label.setText(progress_text)
-                raise FileNotFoundError(msg) from e
-            except Exception as e:
-                msg = f"Error: addition unsuccessful, {e.__class__.__name__} occurred - {e}"
-                progress_text += f"\n{msg}"
-                self.progress_label.setText(progress_text)
-                raise Exception(msg) from e
-
-        if "factor" in self.processes.name.values:
-            progress_text += "\nFactoring OD matrix"
-            self.progress_label.setText(progress_text)
-            print("####\nFactoring O-D matrix")
-            try:
-                factor_str = self.processes.loc[
-                    self.processes.name == "factor", "input"
-                ].values[0]
-                print("Checking whether factor is scalar or matrix")
-                try:
-                    factor = float(factor_str)
-                except:
-                    print("Reading in matrix factor")
-                    factor = ODMatrix.read_OD_file(factor_str)
-                print("Factoring matrix")
-                od_matrix = od_matrix * factor
-                matrix_changes += 1
-                self.processes.loc[self.processes.name == "factor", "completed"] = "yes"
-                self.progress_label.setText(progress_text)
-                self.processes.to_excel(writer, sheet_name="inputs", index=False)
-                writer.save()
-            except Exception as e:
-                msg = f"Error: factoring unsuccessful, {e.__class__.__name__} occurred - {e}"
-                progress_text += f"\n{msg}"
-                self.progress_label.setText(progress_text)
-                raise Exception(msg) from e
-
-        if "fill missing zones" in self.processes.name.values:
-            progress_text += "\nFilling missing zones"
-            self.progress_label.setText(progress_text)
-            print("####\nFilling missing zones")
-            try:
-                missing_zones_str = self.processes.loc[
-                    self.processes.name == "fill missing zones", "input"
-                ].values[0]
-
-                # see if have been given file or list of zones
-                if os.path.isfile(missing_zones_str):
-                    print("Missing zones are file")
-                    whitespace, header_row = ODMatrix.check_file_header(
-                        missing_zones_str
-                    )
-                    print("Reading in file")
-                    missing_zones = pd.read_csv(
-                        missing_zones_str,
-                        delim_whitespace=whitespace,
-                        header=header_row,
-                        usecols=[0],
-                        names=["zone_id"],
-                    )
-                    missing_zones = list(missing_zones.zone_id)
-                else:
-                    print("Missing zones are list")
-                    missing_zones = [int(x) for x in missing_zones_str.split(",")]
-                print("Filling missing zones")
-                od_matrix = od_matrix.fill_missing_zones(missing_zones)
-                matrix_changes += 1
-                self.processes.loc[
-                    self.processes.name == "fill missing zones", "completed"
-                ] = "yes"
-                self.progress_label.setText(progress_text)
-                self.processes.to_excel(writer, sheet_name="inputs", index=False)
-                writer.save()
-                print("Missing zones added")
-            except ValueError as e:
-                msg = "Error: Missing zones are neither a file nor a comma-separated list."
-                progress_text += f"\n{msg}"
-                self.progress_label.setText(progress_text)
-                raise ValueError(msg) from e
-            except Exception as e:
-                msg = f"Error: filling missing zones unsuccessful, {e.__class__.__name__} occured - {e}"
-                progress_text += f"\n{msg}"
-                self.progress_label.setText(progress_text)
-                raise Exception(msg) from e
-
-        if "remove EE trips" in self.processes.name.values:
-            try:
-                progress_text += "\nRemoving EE trips"
-                self.progress_label.setText(progress_text)
-                print("####\nRemoving External-External trips")
-                external_zones_str = self.processes.loc[
-                    self.processes.name == "remove EE trips", "input"
-                ].values[0]
-                # see if have been given file or list of zones
-                if os.path.isfile(external_zones_str):
-                    print(f"External zones given as file: {external_zones_str}")
-                    whitespace, header_row = ODMatrix.check_file_header(
-                        external_zones_str
-                    )
-                    external_zones = pd.read_csv(
-                        external_zones_str,
-                        delim_whitespace=whitespace,
-                        header=header_row,
-                        usecols=[0],
-                        names=["zone_id"],
-                    )
-                    external_zones = list(external_zones.zone_id)
-                else:
-                    external_zones = [int(x) for x in external_zones_str.split(",")]
-                    print(f"External zones given as list: {external_zones}")
-                od_matrix = od_matrix.remove_external_trips(external_zones)
-                matrix_changes += 1
-                self.processes.loc[
-                    self.processes.name == "remove EE trips", "completed"
-                ] = "yes"
-                self.progress_label.setText(progress_text)
-                self.processes.to_excel(writer, sheet_name="inputs", index=False)
-                writer.save()
-                print("E-E trips removal complete.")
-            except ValueError as e:
-                msg = "Error: External zones are neither a file nor a comma-separated list."
-                progress_text += f"\n{msg}"
-                self.progress_label.setText(progress_text)
-                raise ValueError(msg) from e
-            except Exception as e:
-                msg = f"Error: Remove external-external trips unsuccessful, {e.__class__.__name__} occured - {e}"
-                progress_text += f"\n{msg}"
-                self.progress_label.setText(progress_text)
-                raise Exception(msg) from e
-
-        # if there have been changes to the o-d matrix, save the output
-        print(f"Matrix changes: {matrix_changes}")
-        if matrix_changes > 0:
-            progress_text += "\nSaving output matrix to csv"
-            self.progress_label.setText(progress_text)
-            print("Saving output to csv")
-            od_matrix.export_to_csv(f"{self.outpath}/{od_matrix.name}_processed.csv")
-
-        # if summary is checked, produced summary of output matrix
-        if self.summary & (matrix_changes > 0):
-            progress_text += "\nSummarising output"
-            self.progress_label.setText(progress_text)
-            print("Summarising output")
-            output_summary = od_matrix.summary()
-            output_summary = pd.DataFrame(
-                data=output_summary.values(),
-                index=output_summary.keys(),
-                columns=["Value"],
-            )
-            output_summary.to_excel(writer, sheet_name="output_summary")
-            writer.save()
-
-        if "convert to UFM" in self.processes.name.values:
-            progress_text += "\nConverting to UFM"
-            self.progress_label.setText(progress_text)
-            saturn_exes_path = self.processes.loc[
-                self.processes.name == "convert to UFM", "input"
-            ].values[0]
-            # check this is the path to a folder
-            if os.path.isdir(saturn_exes_path):
-                ufm_path = od_matrix.export_to_ufm(saturn_exes_path, self.outpath)
-                self.processes.loc[
-                    self.processes.name == "convert to UFM", "completed"
-                ] = "yes"
-                self.progress_label.setText(progress_text)
-                self.processes.to_excel(writer, sheet_name="inputs", index=False)
-                writer.save()
-                progress_text += f"\nUFM saved to {ufm_path}"
-                self.progress_label.setText(progress_text)
-            else:
-                progress_text += "Error: SATURN EXES path given is not a folder. Conversion process couldn't complete."
-                self.progress_label.setText(progress_text)
-
-        if len(self.processes.name) > 0:
-            progress_text += "\nSaving process log"
+            # keep track of changes to matrix and outputs to log
+            matrix_changes = 0
+            self.processes["completed"] = "no"
             self.progress_label.setText(progress_text)
             self.processes.to_excel(writer, sheet_name="inputs", index=False)
-            writer.save()
+
+            if self.summary:
+                progress_text += "\nSummarising input matrix"
+                self.progress_label.setText(progress_text)
+                print("####\nSummarising input")
+                input_summary = od_matrix.summary()
+                input_summary = pd.DataFrame(
+                    data=input_summary.values(),
+                    index=input_summary.keys(),
+                    columns=["Value"],
+                )
+                input_summary.to_excel(writer, sheet_name="input_summary")
+
+            if "rezoning" in self.processes.name.values:
+                print("####\nRezoning")
+                progress_text += f"\nRezoning OD matrix and saving to {self.outpath}/{od_matrix.name}_rezoned.csv"
+                self.progress_label.setText(progress_text)
+                try:
+                    zone_correspondence_path = self.processes.loc[
+                        self.processes.name == "rezoning", "input"
+                    ].values[0]
+                    od_matrix = od_matrix.rezone(zone_correspondence_path)
+                    if (
+                        ("convert to UFM" in self.processes.name.values)
+                        & (len(self.processes.name) > 2)
+                    ) | (
+                        ("convert to UFM" not in self.processes.name.values)
+                        & (len(self.processes.name) > 1)
+                    ):
+                        print("Saving rezoned matrix")
+                        od_matrix.export_to_csv(
+                            f"{self.outpath}/{od_matrix.name}_rezoned.csv"
+                        )
+                    matrix_changes = matrix_changes + 1
+                    self.processes.loc[
+                        self.processes.name == "rezoning", "completed"
+                    ] = "yes"
+                    self.progress_label.setText(progress_text)
+                    self.processes.to_excel(writer, sheet_name="inputs", index=False)
+                    print("Rezone complete")
+                except FileNotFoundError as e:
+                    # any errors
+                    msg = "Rezoning unsuccessful, zone correspondence lookup not found"
+                    progress_text += f"\n{msg}"
+                    self.progress_label.setText(progress_text)
+                    raise FileNotFoundError(msg) from e
+                except Exception as e:
+                    msg = f"Rezoning unsuccessful, {e.__class__.__name__} occurred - {e!s}"
+                    self.progress_label.setText(msg)
+                    raise Exception(msg) from e
+
+            if "addition" in self.processes.name.values:
+                print("####\nAddition")
+                progress_text += "\nPerforming matrix addition"
+                self.progress_label.setText(progress_text)
+                try:
+                    matrix_2_path = self.processes.loc[
+                        self.processes.name == "addition", "input"
+                    ].values[0]
+                    matrix_2 = ODMatrix.read_OD_file(matrix_2_path)
+                    od_matrix = od_matrix + matrix_2
+                    matrix_changes += 1
+                    self.processes.loc[
+                        self.processes.name == "addition", "completed"
+                    ] = "yes"
+                    self.progress_label.setText(progress_text)
+                    self.processes.to_excel(writer, sheet_name="inputs", index=False)
+                    print("Addition complete")
+                except FileNotFoundError as e:
+                    msg = "Error: could not find second matrix csv. Addition unsuccessful"
+                    progress_text += f"\n{msg}"
+                    self.progress_label.setText(progress_text)
+                    raise FileNotFoundError(msg) from e
+                except Exception as e:
+                    msg = f"Error: addition unsuccessful, {e.__class__.__name__} occurred - {e}"
+                    progress_text += f"\n{msg}"
+                    self.progress_label.setText(progress_text)
+                    raise Exception(msg) from e
+
+            if "factor" in self.processes.name.values:
+                progress_text += "\nFactoring OD matrix"
+                self.progress_label.setText(progress_text)
+                print("####\nFactoring O-D matrix")
+                try:
+                    factor_str = self.processes.loc[
+                        self.processes.name == "factor", "input"
+                    ].values[0]
+                    print("Checking whether factor is scalar or matrix")
+                    try:
+                        factor = float(factor_str)
+                    except:
+                        print("Reading in matrix factor")
+                        factor = ODMatrix.read_OD_file(factor_str)
+                    print("Factoring matrix")
+                    od_matrix = od_matrix * factor
+                    matrix_changes += 1
+                    self.processes.loc[self.processes.name == "factor", "completed"] = "yes"
+                    self.progress_label.setText(progress_text)
+                    self.processes.to_excel(writer, sheet_name="inputs", index=False)
+                except Exception as e:
+                    msg = f"Error: factoring unsuccessful, {e.__class__.__name__} occurred - {e}"
+                    progress_text += f"\n{msg}"
+                    self.progress_label.setText(progress_text)
+                    raise Exception(msg) from e
+
+            if "fill missing zones" in self.processes.name.values:
+                progress_text += "\nFilling missing zones"
+                self.progress_label.setText(progress_text)
+                print("####\nFilling missing zones")
+                try:
+                    missing_zones_str = self.processes.loc[
+                        self.processes.name == "fill missing zones", "input"
+                    ].values[0]
+
+                    # see if have been given file or list of zones
+                    if os.path.isfile(missing_zones_str):
+                        print("Missing zones are file")
+                        whitespace, header_row = ODMatrix.check_file_header(
+                            missing_zones_str
+                        )
+                        print("Reading in file")
+                        missing_zones = pd.read_csv(
+                            missing_zones_str,
+                            delim_whitespace=whitespace,
+                            header=header_row,
+                            usecols=[0],
+                            names=["zone_id"],
+                        )
+                        missing_zones = list(missing_zones.zone_id)
+                    else:
+                        print("Missing zones are list")
+                        missing_zones = [int(x) for x in missing_zones_str.split(",")]
+                    print("Filling missing zones")
+                    od_matrix = od_matrix.fill_missing_zones(missing_zones)
+                    matrix_changes += 1
+                    self.processes.loc[
+                        self.processes.name == "fill missing zones", "completed"
+                    ] = "yes"
+                    self.progress_label.setText(progress_text)
+                    self.processes.to_excel(writer, sheet_name="inputs", index=False)
+                    print("Missing zones added")
+                except ValueError as e:
+                    msg = "Error: Missing zones are neither a file nor a comma-separated list."
+                    progress_text += f"\n{msg}"
+                    self.progress_label.setText(progress_text)
+                    raise ValueError(msg) from e
+                except Exception as e:
+                    msg = f"Error: filling missing zones unsuccessful, {e.__class__.__name__} occured - {e}"
+                    progress_text += f"\n{msg}"
+                    self.progress_label.setText(progress_text)
+                    raise Exception(msg) from e
+
+            if "remove EE trips" in self.processes.name.values:
+                try:
+                    progress_text += "\nRemoving EE trips"
+                    self.progress_label.setText(progress_text)
+                    print("####\nRemoving External-External trips")
+                    external_zones_str = self.processes.loc[
+                        self.processes.name == "remove EE trips", "input"
+                    ].values[0]
+                    # see if have been given file or list of zones
+                    if os.path.isfile(external_zones_str):
+                        print(f"External zones given as file: {external_zones_str}")
+                        whitespace, header_row = ODMatrix.check_file_header(
+                            external_zones_str
+                        )
+                        external_zones = pd.read_csv(
+                            external_zones_str,
+                            delim_whitespace=whitespace,
+                            header=header_row,
+                            usecols=[0],
+                            names=["zone_id"],
+                        )
+                        external_zones = list(external_zones.zone_id)
+                    else:
+                        external_zones = [int(x) for x in external_zones_str.split(",")]
+                        print(f"External zones given as list: {external_zones}")
+                    od_matrix = od_matrix.remove_external_trips(external_zones)
+                    matrix_changes += 1
+                    self.processes.loc[
+                        self.processes.name == "remove EE trips", "completed"
+                    ] = "yes"
+                    self.progress_label.setText(progress_text)
+                    self.processes.to_excel(writer, sheet_name="inputs", index=False)
+                    print("E-E trips removal complete.")
+                except ValueError as e:
+                    msg = "Error: External zones are neither a file nor a comma-separated list."
+                    progress_text += f"\n{msg}"
+                    self.progress_label.setText(progress_text)
+                    raise ValueError(msg) from e
+                except Exception as e:
+                    msg = f"Error: Remove external-external trips unsuccessful, {e.__class__.__name__} occured - {e}"
+                    progress_text += f"\n{msg}"
+                    self.progress_label.setText(progress_text)
+                    raise Exception(msg) from e
+
+            # if there have been changes to the o-d matrix, save the output
+            print(f"Matrix changes: {matrix_changes}")
+            if matrix_changes > 0:
+                progress_text += "\nSaving output matrix to csv"
+                self.progress_label.setText(progress_text)
+                print("Saving output to csv")
+                od_matrix.export_to_csv(f"{self.outpath}/{od_matrix.name}_processed.csv")
+
+            # if summary is checked, produced summary of output matrix
+            if self.summary & (matrix_changes > 0):
+                progress_text += "\nSummarising output"
+                self.progress_label.setText(progress_text)
+                print("Summarising output")
+                output_summary = od_matrix.summary()
+                output_summary = pd.DataFrame(
+                    data=output_summary.values(),
+                    index=output_summary.keys(),
+                    columns=["Value"],
+                )
+                output_summary.to_excel(writer, sheet_name="output_summary")
+
+            if "convert to UFM" in self.processes.name.values:
+                progress_text += "\nConverting to UFM"
+                self.progress_label.setText(progress_text)
+                saturn_exes_path = self.processes.loc[
+                    self.processes.name == "convert to UFM", "input"
+                ].values[0]
+                # check this is the path to a folder
+                if os.path.isdir(saturn_exes_path):
+                    ufm_path = od_matrix.export_to_ufm(saturn_exes_path, self.outpath)
+                    self.processes.loc[
+                        self.processes.name == "convert to UFM", "completed"
+                    ] = "yes"
+                    self.progress_label.setText(progress_text)
+                    self.processes.to_excel(writer, sheet_name="inputs", index=False)
+                    progress_text += f"\nUFM saved to {ufm_path}"
+                    self.progress_label.setText(progress_text)
+                else:
+                    progress_text += "Error: SATURN EXES path given is not a folder. Conversion process couldn't complete."
+                    self.progress_label.setText(progress_text)
+
+            if len(self.processes.name) > 0:
+                progress_text += "\nSaving process log"
+                self.progress_label.setText(progress_text)
+                self.processes.to_excel(writer, sheet_name="inputs", index=False)
 
         progress_text += f"\nMatrix operations complete, all outputs saved to {self.outpath}.\nYou may exit the program, check matrix_info.xlsx for more information."
         self.progress_label.setText(progress_text)

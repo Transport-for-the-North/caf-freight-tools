@@ -913,13 +913,12 @@ def main_zone_correspondence(
 
     print("Creating log file")
     log_file = f"{out_path}/zone_correspondence_log.xlsx"
-    writer = pd.ExcelWriter(log_file, engine="openpyxl")
-    log_df.to_excel(writer, sheet_name="Parameters", index=False)
-    missing_zones_1.to_excel(writer, sheet_name=f"{zone_names[0]}_missing", index=False)
-    missing_zones_2.to_excel(writer, sheet_name=f"{zone_names[1]}_missing", index=False)
-    if point_handling:
-        point_zones_info.to_excel(writer, sheet_name="point_handling", index=False)
-    writer.save()
+    with pd.ExcelWriter(log_file, engine="openpyxl") as writer:
+        log_df.to_excel(writer, sheet_name="Parameters", index=False)
+        missing_zones_1.to_excel(writer, sheet_name=f"{zone_names[0]}_missing", index=False)
+        missing_zones_2.to_excel(writer, sheet_name=f"{zone_names[1]}_missing", index=False)
+        if point_handling:
+            point_zones_info.to_excel(writer, sheet_name="point_handling", index=False)
 
     print("Zone correspondence finished.")
 
