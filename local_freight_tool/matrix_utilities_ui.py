@@ -468,10 +468,15 @@ class MatrixUtilities(QtWidgets.QWidget):
                 | (not self.ufm_convert & (len(self.processes.name) > 1))
             )
             if check_rezoned:
+                check_rezoned_str = (
+                    "When rezoning is on, only the input matrix is rezoned."
+                    " All other matrices and zones must be in the new zoning"
+                    " system.\nDo you wish to continue?"
+                )
                 reply = QtWidgets.QMessageBox.question(
                     self,
                     "Warning",
-                    "When rezoning is on, only the input matrix is rezoned. All other matrices and zones must be in the new zoning system.\nDo you wish to continue?",
+                    check_rezoned_str,
                     QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No,
                     QtWidgets.QMessageBox.No,
                 )
