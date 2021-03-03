@@ -268,8 +268,6 @@ class ProduceGBFMCorrespondence(QtWidgets.QWidget):
             if self.rounding:  # Keep tolerance enabled if rounding on
                 self.labeluptol.setDisabled(False)
                 self.uppertolbox.setDisabled(False)
-                self.labeluptol.setDisabled(True)
-                self.uppertolbox.setDisabled(True)
 
     def rounding_clickbox(self, state):
         """Changes UI display and assigns rounding bool according to
