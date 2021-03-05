@@ -90,12 +90,12 @@ class ODMatrix:
         ODMatrix.Object
             Sum of input matrices
         """
-        print("Aligning matrices")
         matrix_1_aligned, matrix_2_aligned = self.align(self, other_matrix)
-        print("Adding matrices")
         sum = matrix_1_aligned + matrix_2_aligned
-        print("Creating name")
         name = f"{self.name}_add_{other_matrix.name}"
+
+        # make sure there are no negative trips by setting then to 0
+        sum[sum < 0] = 0
 
         return ODMatrix(sum, name=name)
 
@@ -116,6 +116,9 @@ class ODMatrix:
         matrix_1_aligned, matrix_2_aligned = self.align(self, other_matrix)
         subtracted = matrix_1_aligned - matrix_2_aligned
         name = f"{self.name}_sub_{other_matrix.name}"
+
+        # make sure there are no negative trips by setting then to 0
+        subtracted[subtracted < 0] = 0
 
         return ODMatrix(subtracted, name=name)
 
