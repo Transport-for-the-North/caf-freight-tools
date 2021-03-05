@@ -145,10 +145,16 @@ class ODMatrix:
         """
         if isinstance(factor, (int, float)):
             print("Factoring by scalar")
+            if factor < 0:
+                raise ValueError("The factor cannot be negative.")
             factored = self.matrix * factor
             name = f"{self.name}_by_{factor}"
         elif isinstance(factor, ODMatrix):
             matrix_1_aligned, matrix_2_aligned = self.align(self, factor)
+            if (matrix_2_aligned < 0).sum().sum() > 0:
+                raise ValueError(
+                    "There can be no negative values in the factoring matrix"
+                )
             factored = matrix_1_aligned * matrix_2_aligned
             name = f"{self.name}_by_{factor.name}"
         else:

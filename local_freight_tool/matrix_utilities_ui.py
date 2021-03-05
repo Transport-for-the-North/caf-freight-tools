@@ -452,6 +452,20 @@ class MatrixUtilities(QtWidgets.QWidget):
                 f"Error: you must specifiy the inputs for the {input_str} {process_str}."
             )
             alert.show()
+        # factor is negative
+        elif self.processes.loc[self.processes.name == "factor", "input"].values[0]:
+            factor_str = self.processes.loc[
+                self.processes.name == "factor", "input"
+            ].values[0]
+            try:
+                factor = float(factor_str)
+                if factor < 0:
+                    alert = QtWidgets.QMessageBox(self)
+                    alert.setWindowTitle("Matrix Utilities")
+                    alert.setText("Error: the factor cannot be negative")
+                    alert.show()
+            except:
+                pass
         # no output folder
         elif self.outpath.text() == "":
             alert = QtWidgets.QMessageBox(self)
@@ -492,8 +506,7 @@ class MatrixUtilities(QtWidgets.QWidget):
                     self.worker.start()
             else:
                 # Start a progress window
-                self.progress = progress_window(
-                    "Matrix Utilities", self.tier_converter)
+                self.progress = progress_window("Matrix Utilities", self.tier_converter)
                 self.hide()
 
                 # Call the main process
