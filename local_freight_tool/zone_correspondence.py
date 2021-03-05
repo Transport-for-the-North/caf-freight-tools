@@ -9,10 +9,50 @@ File purpose:
 Nest two shapefiles to produce adjustment factors from one zone to another.
 """
 
+from shapely.geometry import Polygon, MultiPolygon, shape, Point
 import geopandas as gpd
 import pandas as pd
 
-# TODO check all docstrings accurate
+
+def convert_3D_2D(gdf):
+    """
+    Takes a GeoDataFrame with a 3D geometry (of Polygons Z or MultiPolygon Z)
+    and converts the geometry to 2D.
+    Adapted from
+    https://gist.github.com/rmania/8c88377a5c902dfbc134795a7af538d8
+
+    Parameters
+    ----------
+    gdf: gpd.GeoDataFrame
+        GeoDataFrame with a 3D geometry.
+
+    Returns
+    -------
+    gdf: gpd.GeoDataFrame
+        Updated GeoDataFrame with a 2D geometry.
+    """
+    geometry = gdf.geometry
+
+    # Only convert if the first element has a z coordinate, as it's safe to
+    # assume that if the first element is 3D, then the rest of them are
+    if geometry[0].has_z:
+        new_geometry = []
+        for p in geometry:
+            if p.has_z:
+                if p.geom_type == "Polygon":
+                    lines = [xy[:2] for xy in list(p.exterior.coords)]
+                    new_p = Polygon(lines)
+                    new_geometry.append(new_p)
+                elif p.geom_type == "MultiPolygon":
+                    new_multi_p = []
+                    for ap in p:
+                        lines = [xy[:2] for xy in list(ap.exterior.coords)]
+                        new_p = Polygon(lines)
+                        new_multi_p.append(new_p)
+                    new_geometry.append(MultiPolygon(new_multi_p))
+        gdf.geometry = new_geometry
+
+    return gdf
 
 
 def read_zone_shapefiles(zone_1_path, zone_2_path, zone_1_name, zone_2_name):
@@ -41,6 +81,7 @@ def read_zone_shapefiles(zone_1_path, zone_2_path, zone_1_name, zone_2_name):
     # zone column lookups
     GBFM_LOOKUP = {"UniqueID": "zone_id"}
     NOHAM_LOOKUP = {"zone_id": "empty", "unique_id": "zone_id"}
+    ESPG = "EPSG:27700"
 
     # create geodataframes from zone shapefiles
     zone_1 = gpd.read_file(zone_1_path)
@@ -72,7 +113,10 @@ def read_zone_shapefiles(zone_1_path, zone_2_path, zone_1_name, zone_2_name):
         # this does not change the CRS, we are assuming it is already
         # ESPG:27700
         if not zone_list[i].crs:
-            zone_list[i].crs = "EPSG:27700"
+            zone_list[i].crs = ESPG
+
+        # transform the geometry from 3D to 2D if one of the files has Z coords
+        zone_list[i] = convert_3D_2D(zone_list[i])
 
     return zone_list, zone_names
 
@@ -915,8 +959,12 @@ def main_zone_correspondence(
     log_file = f"{out_path}/zone_correspondence_log.xlsx"
     with pd.ExcelWriter(log_file, engine="openpyxl") as writer:
         log_df.to_excel(writer, sheet_name="Parameters", index=False)
-        missing_zones_1.to_excel(writer, sheet_name=f"{zone_names[0]}_missing", index=False)
-        missing_zones_2.to_excel(writer, sheet_name=f"{zone_names[1]}_missing", index=False)
+        missing_zones_1.to_excel(
+            writer, sheet_name=f"{zone_names[0]}_missing", index=False
+        )
+        missing_zones_2.to_excel(
+            writer, sheet_name=f"{zone_names[1]}_missing", index=False
+        )
         if point_handling:
             point_zones_info.to_excel(writer, sheet_name="point_handling", index=False)
 
