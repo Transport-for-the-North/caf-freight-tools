@@ -104,20 +104,18 @@ class Utilities(QtWidgets.QWidget):
 # Window to inform the user what stage the process is at (third interface window)
 class progress_window(QtWidgets.QWidget):
     
-    def __init__(self, title, tier_converter, ysize=100, ylabelsize=30):
+    def __init__(self, title, tier_converter):
         super().__init__()
         self.title = title
         self.tier_converter = tier_converter
-        self.ysize = ysize
-        self.ylabelsize = ylabelsize
         self.initUI()
         
     def initUI(self):
-        self.setGeometry(400, 500, 850, self.ysize)
+        self.setGeometry(400, 500, 850, 100)
         self.setWindowTitle(self.title)
         self.setWindowIcon(QtGui.QIcon('icon.jpg'))
         self.label = QtWidgets.QLabel(self)
-        self.label.setGeometry(10, 10, 830, self.ylabelsize)
+        self.label.setGeometry(10, 10, 830, 30)
         self.show()
         
     def closeEvent(self, event):
@@ -129,15 +127,13 @@ class progress_window(QtWidgets.QWidget):
  # Window to inform the user how to use the current tool selected
 class info_window(QtWidgets.QWidget):
     
-    def __init__(self, title, ysize=400, ylabelsize=300):
+    def __init__(self, title):
         super().__init__()
         self.title = title
         self.initUI()
-        self.ysize = ysize
-        self.ylabelsize = ylabelsize
         
     def initUI(self):
-        self.setGeometry(300, 200, 800, self.ysize)
+        self.setGeometry(300, 200, 800, 400)
         self.setWindowTitle(self.title)
         self.setWindowIcon(QtGui.QIcon('icon.jpg'))
         self.labelA = QtWidgets.QLabel(self)
@@ -149,7 +145,7 @@ class info_window(QtWidgets.QWidget):
         self.layout = QVBoxLayout()
         self.setLayout(self.layout)
         self.label.move(10,10)
-        self.label.resize(750, self.ylabelsize)
+        self.label.resize(750, 300)
         
         # Create a push button to move back to the menu
         back_button = QtWidgets.QPushButton(self)

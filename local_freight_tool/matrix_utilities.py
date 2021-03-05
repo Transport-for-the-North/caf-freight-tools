@@ -462,7 +462,7 @@ class ODMatrix:
                 while out_lpx.with_name(f"{out_lpx.stem}_{i}.LPX").exists():
                     i += 1
                     lpx_path.rename(out_lpx.with_name(f"{out_lpx.stem}_{i}.LPX"))
-        
+
         # check created ufm exists and remove temp csv and key file
         if not out_mat.is_file():
             raise FileNotFoundError(f"{out_mat} was not created successfully")
