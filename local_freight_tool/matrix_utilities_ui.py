@@ -67,7 +67,7 @@ class MatrixUtilities(QtWidgets.QWidget):
         self.od_matrix_path = Utilities.add_file_selection(
             self,
             y + 45,
-            "Select the O-D Matrix csv",
+            "Select the O-D Matrix (.csv, .txt)",
             filetype="Comma-separated Values (*.csv *.CSV *.txt *.TXT)",
         )
 
@@ -99,7 +99,7 @@ class MatrixUtilities(QtWidgets.QWidget):
         ) = Utilities.add_file_selection(
             self,
             y + 45,
-            "Select the zone correspondence file",
+            "Select the zone correspondence file (.csv, .txt)",
             filetype="Comma-separated Values (*.csv *.CSV *.txt *.TXT)",
             return_browse=True,
         )
@@ -122,7 +122,7 @@ class MatrixUtilities(QtWidgets.QWidget):
         ) = Utilities.add_file_selection(
             self,
             y + 45,
-            "Select the second matrix",
+            "Select the second matrix (.csv, .txt)",
             filetype="Comma-separated Values (*.csv *.CSV *.txt *.TXT)",
             return_browse=True,
         )
@@ -144,7 +144,7 @@ class MatrixUtilities(QtWidgets.QWidget):
         ) = Utilities.add_file_selection(
             self,
             y + 45,
-            "Select the second matrix or input a scalar value",
+            "Select the second matrix or input a scalar value (.csv, .txt or positive number)",
             filetype="Comma-separated Values (*.csv *.CSV *.txt *.TXT)",
             return_browse=True,
         )
@@ -166,7 +166,7 @@ class MatrixUtilities(QtWidgets.QWidget):
         ) = Utilities.add_file_selection(
             self,
             y + 45,
-            "Select missing zones csv or enter zone numbers separated by commas",
+            "Select missing zones csv or enter zone numbers separated by commas (.csv, .txt or comma-separated list)",
             filetype="Comma-separated Values (*.csv *.CSV *.txt *.TXT)",
             return_browse=True,
         )
@@ -188,7 +188,7 @@ class MatrixUtilities(QtWidgets.QWidget):
         ) = Utilities.add_file_selection(
             self,
             y + 45,
-            "Select external zones csv or enter zone numbers separated by commas",
+            "Select external zones csv or enter zone numbers separated by commas (.csv, .txt or comma-separated list)",
             filetype="Comma-separated Values (*.csv *.CSV *.txt *.TXT)",
             return_browse=True,
         )
