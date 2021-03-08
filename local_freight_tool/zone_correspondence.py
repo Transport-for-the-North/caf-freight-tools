@@ -670,7 +670,7 @@ def point_zone_handling(
     return new_zone_corr, point_zones_info
 
 
-def round_zone_correspondence(zone_corr_no_slithers, zone_names):
+def round_zone_correspondence(zone_corr_no_slithers, zone_names, tolerance):
     """Changes zone_1_to_zone_2 adjustment factors such that they sum to 1 for
     every zone in zone 1.
 
@@ -681,6 +681,8 @@ def round_zone_correspondence(zone_corr_no_slithers, zone_names):
         DataFrame, with slithers filtered out
     zone_names : List[str, str]
         List of zone 1 and zone 2 names
+    tolerance: float
+        The tolerance for rounding.
 
     Returns
     -------
@@ -688,6 +690,32 @@ def round_zone_correspondence(zone_corr_no_slithers, zone_names):
         3 column zone correspondence DataFrame with zone_1_to_zone_2 values
         which sum to 1 for each zone 1 id.
     """
+    # if the factor is below the tolerance, remove them
+    factor_below_tol = (
+        zone_corr_no_slithers[f"{zone_names[0]}_to_{zone_names[1]}"] < 1 - tolerance
+    )
+    zones_below_tol = zone_corr_no_slithers.loc[factor_below_tol]
+    zones_above_tol = zone_corr_no_slithers.loc[~factor_below_tol]
+
+    # check if the gbfm zones left are all accounted for, otherwise add back the small tolerances
+    zones_to_add_back = zones_below_tol.loc[
+        (
+            ~zones_below_tol[f"{zone_names[0]}_zone_id"].isin(
+                zones_above_tol[f"{zone_names[0]}_zone_id"]
+            )
+        )
+        | (
+            ~zones_below_tol[f"{zone_names[1]}_zone_id"].isin(
+                zones_above_tol[f"{zone_names[1]}_zone_id"]
+            )
+        )
+    ]
+
+    # set this as new zone correspondence
+    zone_corr_no_slithers = pd.concat([zones_above_tol, zones_to_add_back]).sort_values(
+        f"{zone_names[0]}_zone_id"
+    )
+
     # find number of zone 2 zones that each zone 1 zone divides into
     gbfm_counts = zone_corr_no_slithers.groupby(f"{zone_names[0]}_zone_id").size()
 
@@ -927,7 +955,9 @@ def main_zone_correspondence(
 
         if rounding:
             print("Checking all adjustment factors add to 1")
-            final_zone_corr = round_zone_correspondence(new_zone_corr, zone_names)
+            final_zone_corr = round_zone_correspondence(
+                new_zone_corr, zone_names, tolerance
+            )
         else:
             zone_corr_slithers = spatial_correspondence_slithers[
                 [

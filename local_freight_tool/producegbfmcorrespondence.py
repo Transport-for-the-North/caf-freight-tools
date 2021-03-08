@@ -158,7 +158,7 @@ class ProduceGBFMCorrespondence(QtWidgets.QWidget):
             maximum=100,
             minimum=85,
             singleStep=0.5,
-            value=99,
+            value=98,
         )
         self.uppertolbox.move(self.x3, 375)
         self.uppertolbox.resize(60, 25)
@@ -418,7 +418,11 @@ class background_thread(QThread):
         """
         QThread.__init__(self)
 
-        self.progress_label = ProduceGBFMCorrespondence.progress.label
+        self.progress_window = ProduceGBFMCorrespondence.progress
+        self.progress_label = self.progress_window.label
+        self.progress_label.move(10,10)
+        self.progress_label.resize(750, 100)
+        #self.progress_label = ProduceGBFMCorrespondence.progress.label
         self.first_zones_path = ProduceGBFMCorrespondence.first_zones_path.text()
         self.second_zones_path = ProduceGBFMCorrespondence.second_zones_path.text()
         self.textbox_zone1 = ProduceGBFMCorrespondence.textbox_zone1.text()
@@ -466,7 +470,7 @@ class background_thread(QThread):
         if self.point_handling:
             self.progress_label.setText(
                 f"Zone correspondence complete. There are {zone_1_missing} unmatched {self.zone1_name} zones and {zone_2_missing} unmatched {self.zone2_name} zones."
-                f"\nCheck {log_file} for missing and point zones, and check against the correspondence outputs. You may now exit the tool."
+                f"\nCheck {log_file} \nfor missing and point zones, and check against the correspondence outputs. \nYou may now exit the tool."
             )
         else:
             self.progress_label.setText(
