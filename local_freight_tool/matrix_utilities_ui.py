@@ -386,6 +386,7 @@ class MatrixUtilities(QtWidgets.QWidget):
         # create dataframe to track processes to perform which require inputs
         processes = {
             "name": [
+                "input",
                 "rezoning",
                 "addition",
                 "factor",
@@ -394,6 +395,7 @@ class MatrixUtilities(QtWidgets.QWidget):
                 "convert to UFM",
             ],
             "execute": [
+                True,
                 self.rezoning,
                 self.addition,
                 self.factoring,
@@ -402,6 +404,7 @@ class MatrixUtilities(QtWidgets.QWidget):
                 self.ufm_convert,
             ],
             "input": [
+                self.od_matrix_path.text().strip(),
                 self.zone_correspondence_path.text().strip(),
                 self.matrix_to_add_path.text().strip(),
                 self.matrix_factor_path.text().strip(),
@@ -419,9 +422,20 @@ class MatrixUtilities(QtWidgets.QWidget):
         )
         self.processes = self.processes.drop(columns="execute")
 
+        # get factor to check if negative
+        factor = 0
+        if 'factor' in self.processes.name.values: 
+            factor_str = self.processes.loc[
+                self.processes.name == "factor", "input"
+            ].values[0]
+            try:
+                factor = float(factor_str)
+            except:
+                pass
+
         # Error messages
         # no processes to run
-        if (len(self.processes) < 1) and (self.summary == False):
+        if (len(self.processes) < 2) and (self.summary == False):
             alert = QtWidgets.QMessageBox(self)
             alert.setWindowTitle("Matrix Utilities")
             alert.setText("Error: you must specifiy a process to run")
@@ -452,28 +466,21 @@ class MatrixUtilities(QtWidgets.QWidget):
                 f"Error: you must specifiy the inputs for the {input_str} {process_str}."
             )
             alert.show()
-        # factor is negative
-        elif self.processes.loc[self.processes.name == "factor", "input"].values[0]:
-            factor_str = self.processes.loc[
-                self.processes.name == "factor", "input"
-            ].values[0]
-            try:
-                factor = float(factor_str)
-                if factor < 0:
-                    alert = QtWidgets.QMessageBox(self)
-                    alert.setWindowTitle("Matrix Utilities")
-                    alert.setText("Error: the factor cannot be negative")
-                    alert.show()
-            except:
-                pass
         # no output folder
         elif self.outpath.text() == "":
             alert = QtWidgets.QMessageBox(self)
             alert.setWindowTitle("Matrix Utilities")
             alert.setText("Error: you must specifiy an output folder")
             alert.show()
+        elif factor < 0:
+            alert = QtWidgets.QMessageBox(self)
+            alert.setWindowTitle("Matrix Utilities")
+            alert.setText("Error: the factor cannot be negative")
+            alert.show()
         # run processes if no errors
         else:
+            
+            
             # if rezoning and another process is checked, alert that other
             # than the input matrix all other inputs need to be in the new
             # zoning system
@@ -583,6 +590,8 @@ class background_thread(QThread):
             matrix_changes = 0
             self.processes["completed"] = "no"
             self.processes["note"] = ''
+            self.processes.loc[self.processes.name == "input", "completed"
+                    ] = "yes"
             self.progress_label.setText(progress_text)
 
             if self.summary:
@@ -926,7 +935,7 @@ class background_thread(QThread):
                         summary_df = pd.DataFrame.from_dict(
                             summary_dict, orient="index"
                         )
-                        summary_df.to_excel(writer, sheet_name="input_summary")
+                        summary_df.to_excel(writer, sheet_name="summary", index=False)
 
             msg = (
                 f"\nMatrix operations complete, all outputs saved to "
