@@ -747,7 +747,12 @@ class background_thread(QThread):
                         missing_zones = list(missing_zones.zone_id)
                     else:
                         print("Missing zones are list")
-                        missing_zones = [int(x) for x in missing_zones_str.split(",")]
+                        missing_zones = [x.strip() for x in missing_zones_str.split(',')]
+                        # check if zones names are integers or strings
+                        try:
+                            missing_zones = [int(x) for x in missing_zones]
+                        except ValueError:
+                            print('Zone names are strings')
                     print("Filling missing zones")
                     od_matrix = od_matrix.fill_missing_zones(missing_zones)
                     if self.summary:
@@ -801,7 +806,12 @@ class background_thread(QThread):
                         )
                         external_zones = list(external_zones.zone_id)
                     else:
-                        external_zones = [int(x) for x in external_zones_str.split(",")]
+                        external_zones = [x.strip() for x in external_zones_str.split(',')]
+                        # check if zones names are integers or strings
+                        try:
+                            external_zones = [int(x) for x in external_zones]
+                        except ValueError:
+                            print('Zone names are strings')
                         print(f"External zones given as list: {external_zones}")
                     od_matrix = od_matrix.remove_external_trips(external_zones)
                     if self.summary:
