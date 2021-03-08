@@ -424,7 +424,7 @@ class MatrixUtilities(QtWidgets.QWidget):
 
         # get factor to check if negative
         factor = 0
-        if 'factor' in self.processes.name.values: 
+        if "factor" in self.processes.name.values:
             factor_str = self.processes.loc[
                 self.processes.name == "factor", "input"
             ].values[0]
@@ -479,8 +479,7 @@ class MatrixUtilities(QtWidgets.QWidget):
             alert.show()
         # run processes if no errors
         else:
-            
-            
+
             # if rezoning and another process is checked, alert that other
             # than the input matrix all other inputs need to be in the new
             # zoning system
@@ -579,20 +578,29 @@ class background_thread(QThread):
     def run(self):
         """Runs matrix processes"""
         try:
-            # read in the O-D matrix and create an ODMatrix instance
-            progress_text = "Reading in input matrix"
-            progress_lines = 1
-            self.progress_label.setText(progress_text)
-            od_matrix = ODMatrix.read_OD_file(self.od_matrix_path)
-            od_matrix_name = od_matrix.name
-
             # keep track of changes to matrix and outputs to log
             matrix_changes = 0
             self.processes["completed"] = "no"
-            self.processes["note"] = ''
-            self.processes.loc[self.processes.name == "input", "completed"
-                    ] = "yes"
+            self.processes["note"] = ""
+
+            # read in the O-D matrix and create an ODMatrix instance
+            progress_text = "Reading in input matrix"
             self.progress_label.setText(progress_text)
+            progress_lines = 1
+            self.progress_label.setText(progress_text)
+            try:
+                od_matrix = ODMatrix.read_OD_file(self.od_matrix_path)
+            except ValueError as e:
+                msg = f"{e}"
+                progress_text, progress_lines = self.update_progress_string(
+                    progress_text, msg, progress_lines + 1
+                )
+                self.progress_label.setText(progress_text)
+                self.processes.loc[self.processes.name == "input", "note"] = msg
+                raise ValueError(msg)
+
+            od_matrix_name = od_matrix.name
+            self.processes.loc[self.processes.name == "input", "completed"] = "yes"
 
             if self.summary:
                 progress_text, progress_lines = self.update_progress_string(
@@ -739,9 +747,7 @@ class background_thread(QThread):
                         progress_text, f"\n{msg}", progress_lines + 1
                     )
                     self.progress_label.setText(progress_text)
-                    self.processes.loc[
-                        self.processes.name == "factor", "note"
-                    ] = f"{e}"
+                    self.processes.loc[self.processes.name == "factor", "note"] = f"{e}"
                     raise Exception(msg) from e
 
             if "fill missing zones" in self.processes.name.values:
@@ -772,12 +778,14 @@ class background_thread(QThread):
                         missing_zones = list(missing_zones.zone_id)
                     else:
                         print("Missing zones are list")
-                        missing_zones = [x.strip() for x in missing_zones_str.split(',')]
+                        missing_zones = [
+                            x.strip() for x in missing_zones_str.split(",")
+                        ]
                         # check if zones names are integers or strings
                         try:
                             missing_zones = [int(x) for x in missing_zones]
                         except ValueError:
-                            print('Zone names are strings')
+                            print("Zone names are strings")
                     print("Filling missing zones")
                     od_matrix = od_matrix.fill_missing_zones(missing_zones)
                     if self.summary:
@@ -837,12 +845,14 @@ class background_thread(QThread):
                         )
                         external_zones = list(external_zones.zone_id)
                     else:
-                        external_zones = [x.strip() for x in external_zones_str.split(',')]
+                        external_zones = [
+                            x.strip() for x in external_zones_str.split(",")
+                        ]
                         # check if zones names are integers or strings
                         try:
                             external_zones = [int(x) for x in external_zones]
                         except ValueError:
-                            print('Zone names are strings')
+                            print("Zone names are strings")
                         print(f"External zones given as list: {external_zones}")
                     od_matrix = od_matrix.remove_external_trips(external_zones)
                     if self.summary:
@@ -916,7 +926,8 @@ class background_thread(QThread):
                         "Error: SATURN EXES path given is not a folder. Conversion process couldn't complete.",
                         progress_lines + 1,
                     )
-                    self.processes.loc[ self.processes.name == "convert to UFM", "note"
+                    self.processes.loc[
+                        self.processes.name == "convert to UFM", "note"
                     ] = "SATURN EXES path is not a folder"
                     self.progress_label.setText(progress_text)
         except Exception as e:
@@ -932,15 +943,23 @@ class background_thread(QThread):
                     self.progress_label.setText(progress_text)
                     self.processes.to_excel(writer, sheet_name="inputs", index=False)
                     if self.summary:
-                        summary_df = pd.DataFrame.from_dict(
-                            summary_dict, orient="index"
-                        )
-                        summary_df.to_excel(writer, sheet_name="summary", index=False)
+                        try:
+                            summary_df = pd.DataFrame.from_dict(
+                                summary_dict, orient="index"
+                            )
+                            summary_df.to_excel(
+                                writer, sheet_name="summary", index=False
+                            )
+                        except UnboundLocalError as e:
+                            msg = f"Error: {e}"
+                            progress_text, progress_lines = self.update_progress_string(
+                                progress_text, msg, progress_lines + 1
+                            )
 
             msg = (
                 f"\nMatrix operations complete, all outputs saved to "
                 f"{self.outpath}.\nYou may exit the program, check"
-                f"matrix_info.xlsx for more information."
+                f" matrix_info.xlsx for more information."
             )
             print(msg)
             progress_text, progress_lines = self.update_progress_string(

@@ -507,6 +507,14 @@ class ODMatrix:
             usecols=[0, 1, 2],
         )
         name = os.path.basename(os.path.splitext(filepath)[0])
+
+        # before turning into a matrix, check that all trips are numbers
+        try:
+            pd.to_numeric(matrix_dataframe.trips, errors="raise")
+        except ValueError as e:
+            msg = f"Error: Problem with input file: {e}"
+            raise ValueError(msg) from e
+
         matrix = cls(matrix_dataframe, name, pivoted=False)
 
         return matrix
