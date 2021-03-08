@@ -582,6 +582,7 @@ class background_thread(QThread):
             # keep track of changes to matrix and outputs to log
             matrix_changes = 0
             self.processes["completed"] = "no"
+            self.processes["note"] = ''
             self.progress_label.setText(progress_text)
 
             if self.summary:
@@ -634,6 +635,9 @@ class background_thread(QThread):
                         progress_text, f"\n{msg}", progress_lines + 1
                     )
                     self.progress_label.setText(progress_text)
+                    self.processes.loc[
+                        self.processes.name == "rezoning", "note"
+                    ] = "zone correspondence lookup not found"
                     raise FileNotFoundError(msg) from e
                 except Exception as e:
                     msg = f"Rezoning unsuccessful, {e.__class__.__name__} occurred - {e!s}"
@@ -641,6 +645,9 @@ class background_thread(QThread):
                         progress_text, f"\n{msg}", progress_lines + 1
                     )
                     self.progress_label.setText(progress_text)
+                    self.processes.loc[
+                        self.processes.name == "rezoning", "note"
+                    ] = f"{e!s}"
                     raise Exception(msg) from e
 
             if "addition" in self.processes.name.values:
@@ -674,6 +681,9 @@ class background_thread(QThread):
                         progress_text, f"\n{msg}", progress_lines + 1
                     )
                     self.progress_label.setText(progress_text)
+                    self.processes.loc[
+                        self.processes.name == "addition", "note"
+                    ] = "second matrix csv not found"
                     raise FileNotFoundError(msg) from e
                 except Exception as e:
                     msg = f"Error: addition unsuccessful, {e.__class__.__name__} occurred - {e}"
@@ -681,6 +691,9 @@ class background_thread(QThread):
                         progress_text, f"\n{msg}", progress_lines + 1
                     )
                     self.progress_label.setText(progress_text)
+                    self.processes.loc[
+                        self.processes.name == "addition", "note"
+                    ] = f"{e}"
                     raise Exception(msg) from e
 
             if "factor" in self.processes.name.values:
@@ -717,6 +730,9 @@ class background_thread(QThread):
                         progress_text, f"\n{msg}", progress_lines + 1
                     )
                     self.progress_label.setText(progress_text)
+                    self.processes.loc[
+                        self.processes.name == "factor", "note"
+                    ] = f"{e}"
                     raise Exception(msg) from e
 
             if "fill missing zones" in self.processes.name.values:
@@ -772,6 +788,9 @@ class background_thread(QThread):
                         progress_text, f"\n{msg}", progress_lines + 1
                     )
                     self.progress_label.setText(progress_text)
+                    self.processes.loc[
+                        self.processes.name == "fill missing zones", "note"
+                    ] = "missing zones are neither a file nor a comma-separated list"
                     raise ValueError(msg) from e
                 except Exception as e:
                     msg = f"Error: filling missing zones unsuccessful, {e.__class__.__name__} occured - {e}"
@@ -779,6 +798,9 @@ class background_thread(QThread):
                         progress_text, f"\n{msg}", progress_lines + 1
                     )
                     self.progress_label.setText(progress_text)
+                    self.processes.loc[
+                        self.processes.name == "fill missing zones", "note"
+                    ] = f"{e}"
                     raise Exception(msg) from e
 
             if "remove EE trips" in self.processes.name.values:
@@ -831,6 +853,9 @@ class background_thread(QThread):
                         progress_text, f"\n{msg}", progress_lines + 1
                     )
                     self.progress_label.setText(progress_text)
+                    self.processes.loc[
+                        self.processes.name == "remove EE trips", "note"
+                    ] = "external zones are neither a file nor a comma-separated list"
                     raise ValueError(msg) from e
                 except Exception as e:
                     msg = f"Error: Remove external-external trips unsuccessful, {e.__class__.__name__} occured - {e}"
@@ -838,6 +863,9 @@ class background_thread(QThread):
                         progress_text, f"\n{msg}", progress_lines + 1
                     )
                     self.progress_label.setText(progress_text)
+                    self.processes.loc[
+                        self.processes.name == "remove EE trips", "note"
+                    ] = f"{e}"
                     raise Exception(msg) from e
 
             # if there have been changes to the o-d matrix, save the output
@@ -879,6 +907,8 @@ class background_thread(QThread):
                         "Error: SATURN EXES path given is not a folder. Conversion process couldn't complete.",
                         progress_lines + 1,
                     )
+                    self.processes.loc[ self.processes.name == "convert to UFM", "note"
+                    ] = "SATURN EXES path is not a folder"
                     self.progress_label.setText(progress_text)
         except Exception as e:
             print(f"{e.__class__.__name__}: {e}")
