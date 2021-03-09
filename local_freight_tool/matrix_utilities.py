@@ -574,7 +574,7 @@ class ODMatrix:
 
         # check whether there is a header row
         try:
-            int(linesplit[0])
+            float(linesplit[2])
             header_row = None
         except:
             header_row = 0
