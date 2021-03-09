@@ -560,7 +560,6 @@ class ODMatrix:
             Indicates the index of the header row of the file, None if there
             is no header.
         """
-        # TODO add to utilities?
         with open(filepath, "rt") as infile:
             line = infile.readline()
 
@@ -573,10 +572,14 @@ class ODMatrix:
             linesplit = line.split("\t")
 
         # check whether there is a header row
-        try:
-            float(linesplit[2])
-            header_row = None
-        except:
+        for i in linesplit:
+            try:
+                float(i)
+                header_row = None
+                break
+            except ValueError:
+                pass
+        else:
             header_row = 0
 
         return whitespace, header_row
