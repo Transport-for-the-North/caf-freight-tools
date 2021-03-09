@@ -544,7 +544,7 @@ class ODMatrix:
     def check_file_header(filepath):
         """Checks whether a csv is delimited by commas or tabs, and whether
         there is a header row or not. A header row is checked for based on
-        whether the first element can be converted to an integer.
+        whether the third element can be converted to an integer.
 
         Parameters
         ----------
