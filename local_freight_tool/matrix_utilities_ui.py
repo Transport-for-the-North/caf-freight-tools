@@ -948,7 +948,7 @@ class background_thread(QThread):
                                 summary_dict, orient="index"
                             )
                             summary_df.to_excel(
-                                writer, sheet_name="summary", index=False
+                                writer, sheet_name="summary", index=True
                             )
                         except UnboundLocalError as e:
                             msg = f"Error: {e}"
