@@ -239,23 +239,18 @@ class ODMatrix:
                 missing_zones = list(missing_zones.zone_id)
             except TypeError:
                 raise TypeError("Missing zones are not a list or pandas dataframe")
+        
+        # Create OD-Matrix full of 0 values of missing zones
+        missing_zones_square_matrix = pd.DataFrame(0, index=missing_zones, columns=missing_zones)
+        missing_zones_square_matrix.index.name = 'origin'
+        missing_zones_square_matrix.columns.name = 'destination'
+        missing_zones_od = ODMatrix(missing_zones_square_matrix, name='missing_zones')
+        
+        # align matrices
+        aligned_matrix, missing_zones_aligned = self.align(self, missing_zones_od)
 
-        # check that the zones are missing, if there are any that appear in
-        # the matrix, remove them from the missing zones list
-        shared_zones = self.matrix.loc[self.matrix.index.isin(missing_zones)].index
-        if len(shared_zones) > 0:
-            missing_zones.remove(shared_zones)
-        if not missing_zones:
-            return self
-
-        # add 0 value columns and rows to matrix
-        columns_to_add = pd.DataFrame(0, index=self.matrix.index, columns=missing_zones)
-        columns_to_add.columns.name = "destination"
-        self.matrix = pd.concat([self.matrix, columns_to_add], axis=1, join="outer")
-        rows_to_add = pd.DataFrame(0, index=missing_zones, columns=self.matrix.columns)
-        rows_to_add.index.name = "origin"
-        self.matrix = pd.concat([self.matrix, rows_to_add], axis=0, join="outer")
-
+        self.matrix = aligned_matrix
+        
         return self
 
     def remove_external_trips(self, external_zones):
