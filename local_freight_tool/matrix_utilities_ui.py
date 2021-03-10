@@ -484,8 +484,8 @@ class MatrixUtilities(QtWidgets.QWidget):
             # than the input matrix all other inputs need to be in the new
             # zoning system
             check_rezoned = self.rezoning & (
-                self.ufm_convert & (len(self.processes.name) > 2)
-                | (not self.ufm_convert & (len(self.processes.name) > 1))
+                self.ufm_convert & (len(self.processes.name) > 3)
+                | (not self.ufm_convert & (len(self.processes.name) > 2))
             )
             if check_rezoned:
                 check_rezoned_str = (
@@ -627,10 +627,10 @@ class background_thread(QThread):
                         summary_dict["Rezoned"] = od_matrix.summary()
                     if (
                         ("convert to UFM" in self.processes.name.values)
-                        & (len(self.processes.name) > 2)
+                        & (len(self.processes.name) > 3)
                     ) | (
                         ("convert to UFM" not in self.processes.name.values)
-                        & (len(self.processes.name) > 1)
+                        & (len(self.processes.name) > 2)
                     ):
                         print("Saving rezoned matrix")
                         od_matrix.export_to_csv(
