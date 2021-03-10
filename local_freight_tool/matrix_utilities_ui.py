@@ -166,7 +166,7 @@ class MatrixUtilities(QtWidgets.QWidget):
         ) = Utilities.add_file_selection(
             self,
             y + 45,
-            "Select missing zones csv or enter zone numbers separated by commas (.csv, .txt or comma-separated list)",
+            "Select missing zones csv or enter zone numbers separated by commas (.csv, .txt or list of zones)",
             filetype="Comma-separated Values (*.csv *.CSV *.txt *.TXT)",
             return_browse=True,
         )
@@ -188,7 +188,7 @@ class MatrixUtilities(QtWidgets.QWidget):
         ) = Utilities.add_file_selection(
             self,
             y + 45,
-            "Select external zones csv or enter zone numbers separated by commas (.csv, .txt or comma-separated list)",
+            "Select external zones csv or enter zone numbers separated by commas (.csv, .txt or list of zones)",
             filetype="Comma-separated Values (*.csv *.CSV *.txt *.TXT)",
             return_browse=True,
         )

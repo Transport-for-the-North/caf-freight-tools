@@ -59,18 +59,18 @@ class Utilities(QtWidgets.QWidget):
         
         # Box which will contain the file selection
         file_path = QtWidgets.QLineEdit(self)
-        file_path.setGeometry(10, y_position, 235, 30)
+        file_path.setGeometry(10, y_position, 380, 30)
         
         # Button to browse for the file
         browse_button = QtWidgets.QPushButton(self)
         browse_button.setText('Browse')
-        browse_button.setGeometry(255, y_position, 235, 30)
+        browse_button.setGeometry(400, y_position, 90, 30)
         browse_button.clicked.connect(browse_file)
         
         # Label with instructions
         label = QtWidgets.QLabel(self)
         label.setText(label_txt)
-        label.setGeometry(10, y_position - 30, 400, 30)
+        label.setGeometry(10, y_position - 30, 480, 30)
         if return_browse:
             return file_path, browse_button
         else:
