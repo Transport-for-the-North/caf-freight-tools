@@ -567,9 +567,9 @@ class background_thread(QThread):
         """
         QThread.__init__(self)
         self.progress_window = MatrixUtilities.progress
-        self.progress_window.resize(750, 220)
+        self.progress_window.resize(770, 240)
         self.progress_label = self.progress_window.label
-        self.progress_label.resize(750, 215)
+        self.progress_label.resize(770, 235)
         self.od_matrix_path = MatrixUtilities.od_matrix_path.text()
         self.outpath = MatrixUtilities.outpath.text()
         self.summary = MatrixUtilities.summary
