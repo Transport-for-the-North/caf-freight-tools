@@ -268,7 +268,7 @@ F_{spatial}(Z_{1i} \rightarrow Z_{2j}) < 1 - T
 $$
 
 $$
-F_{spatial}(Z_{2j}) \rightarrow Z_{1i}) < 1 - T
+F_{spatial}(Z_{2j} \rightarrow Z_{1i}) < 1 - T
 $$
 
 where $T$ is tolerance. If the above conditions are both satisfied then the row that features zone
@@ -276,7 +276,7 @@ i from the first zone system and zone j from the second is removed from the zone
 rounding is off but point handling is on then these rows are removed for the point handling aspect
 of the calculations then reinserted.
 
-If only one of the conditions above is satisfied then the row is only removed if both zones in the
+If only the first condition above is satisfied then the row is only removed if both zones in the
 pairing are present elsewhere in the correspondence output. The reason both conditions are used is
 because zones which have a large difference in size, between the two zone systems, could have a very
 small overlap in one direction even if they are completely within the other zone, see example below.
