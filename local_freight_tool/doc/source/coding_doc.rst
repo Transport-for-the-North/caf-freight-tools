@@ -10,13 +10,15 @@ changes to the tool.
     :toctree: _autosummary/
 
     annualtonne2pcu
+    combine_shapefiles
     cost_conversion
     deltaprocess
     errors
     gbfm2modelpcu
     lgvprocessing
+    matrix_utilities
+    matrix_utilities_ui
     matrixprocessing
-    model2gbfmpcu
     producegbfmcorrespondence
     profile_builder
     profile_ruc
