@@ -176,7 +176,7 @@ class MatrixUtilities(QtWidgets.QWidget):
         # Remove external-external trips
         y += spacing
         self.remove_ee = False
-        self.remove_ee_box = QCheckBox("Remove EE Trips", self)
+        self.remove_ee_box = QCheckBox("Remove External-External Trips", self)
         self.remove_ee_box.move(checkbox_x, y)
         self.remove_ee_box.setStyleSheet(CHECK_STYLE)
         self.remove_ee_box.stateChanged.connect(self.remove_ee_clickbox)
