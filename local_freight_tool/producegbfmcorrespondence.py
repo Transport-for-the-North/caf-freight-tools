@@ -2,10 +2,10 @@
 """
 
 Created on: Tue Mar  3 09:56:44 2020
-Updated on: Wed Dec 23 15:31:50 2020
+Updated on: Thurs Feb 25 10:50 2020
 
 Original author: racs
-Last update made by: cara
+Last update made by: CaraLynch
 
 File purpose:
 Produces zone_correspondence.csv which can be used within the GBFM Annual PCU
@@ -27,6 +27,7 @@ import zone_correspondence as zcorr
 # Other packages
 import textwrap
 import os
+import traceback
 
 
 class ProduceGBFMCorrespondence(QtWidgets.QWidget):
@@ -52,7 +53,7 @@ class ProduceGBFMCorrespondence(QtWidgets.QWidget):
 
     def initUI(self):
         """Initialises UI"""
-        self.setGeometry(500, 320, 510 + 110, 540)
+        self.setGeometry(500, 200, 510 + 110, 540)
         self.setWindowTitle("Zone Correspondence Tool")
         self.setWindowIcon(QtGui.QIcon("icon.jpg"))
 
@@ -77,8 +78,10 @@ class ProduceGBFMCorrespondence(QtWidgets.QWidget):
         self.yspace = 60
         self.y2 = self.y1 + 80
         self.first_zones_path = Utilities.add_file_selection(
-            self, self.y2, "Select the first zone system shapefile:",
-            filetype="Shapefile (*.shp *.SHP)"
+            self,
+            self.y2,
+            "Select the first zone system shapefile:",
+            filetype="Shapefile (*.shp *.SHP)",
         )
 
         # Zone 2
@@ -93,31 +96,49 @@ class ProduceGBFMCorrespondence(QtWidgets.QWidget):
         self.textbox_zone2.resize(235, 30)
 
         self.second_zones_path = Utilities.add_file_selection(
-            self, self.y2 + self.yspace, "Select the second zone system shapefile:",
-            filetype="Shapefile (*.shp *.SHP)"
+            self,
+            self.y2 + self.yspace,
+            "Select the second zone system shapefile:",
+            filetype="Shapefile (*.shp *.SHP)",
         )
 
         # Add file paths to LSOA data
 
-        self.lsoa_shapefile_path = Utilities.add_file_selection(
-            self, self.y2 + self.yspace * 5, "Select the LSOA shapefile:",
-            filetype="Shapefile (*.shp *.SHP)"
+        (
+            self.lsoa_shapefile_path,
+            self.lsoa_shapefile_browse,
+        ) = Utilities.add_file_selection(
+            self,
+            self.y2 + self.yspace * 5,
+            "Select the LSOA shapefile:",
+            filetype="Shapefile (*.shp *.SHP)",
+            return_browse=True,
         )
-        self.lsoa_data_path = Utilities.add_file_selection(
-            self, self.y2 + self.yspace * 4, "Select the LSOA data csv:",
-            filetype="Comma-separated Values (*.csv *.CSV *.txt *.TXT)"
+        self.lsoa_data_path, self.lsoa_data_browse = Utilities.add_file_selection(
+            self,
+            self.y2 + self.yspace * 4,
+            "Select the LSOA data csv:",
+            filetype="Comma-separated Values (*.csv *.CSV *.txt *.TXT)",
+            return_browse=True,
         )
 
         # Add file path to point zone list
-        self.point_zones = Utilities.add_file_selection(
-            self, self.y2 + self.yspace * 3, "(Optional) Select point zone csv:",
-            filetype="Comma-separated Values (*.csv *.CSV *.txt *.TXT)"
+        self.point_zones, self.point_zones_browse = Utilities.add_file_selection(
+            self,
+            self.y2 + self.yspace * 3,
+            "(Optional) Select second zone system (e.g. NoHAM) point zone csv:",
+            filetype="Comma-separated Values (*.csv *.CSV *.txt *.TXT)",
+            return_browse=True,
         )
 
         # Disable these boxes until point handling is checked
         self.lsoa_data_path.setDisabled(True)
+        self.lsoa_data_browse.setDisabled(True)
         self.lsoa_shapefile_path.setDisabled(True)
+        self.lsoa_shapefile_browse.setDisabled(True)
         self.point_zones.setDisabled(True)
+        self.point_zones_browse.setDisabled(True)
+
         # TODO add default file here, will update add_file_selection in utilities
 
         # Folder path for the outputs
@@ -137,7 +158,7 @@ class ProduceGBFMCorrespondence(QtWidgets.QWidget):
             maximum=100,
             minimum=85,
             singleStep=0.5,
-            value=99,
+            value=98,
         )
         self.uppertolbox.move(self.x3, 375)
         self.uppertolbox.resize(60, 25)
@@ -178,18 +199,20 @@ class ProduceGBFMCorrespondence(QtWidgets.QWidget):
 
         # Create checkboxes for rounding and point handling
         # point handling
-        self.point_handling = False
+        self.point_handling = True
         self.pointhandlingbox = QCheckBox("Point handling", self)
         self.pointhandlingbox.move(self.x3, 95)
         self.pointhandlingbox.resize(200, 40)
         self.pointhandlingbox.stateChanged.connect(self.point_handling_clickbox)
+        self.pointhandlingbox.setChecked(self.point_handling)
 
         # rounding
-        self.rounding = False
+        self.rounding = True
         self.roundingbox = QCheckBox("Rounding", self)
         self.roundingbox.move(self.x3, 65)
         self.roundingbox.resize(200, 40)
         self.roundingbox.stateChanged.connect(self.rounding_clickbox)
+        self.roundingbox.setChecked(self.rounding)
 
         # Create a push button for 'info'
         Info_button = QtWidgets.QPushButton(self)
@@ -220,27 +243,31 @@ class ProduceGBFMCorrespondence(QtWidgets.QWidget):
         state : Qt.Checked
             Describes whether checkbox is checked or not.
         """
+        widgets = (
+            self.lsoa_data_path,
+            self.lsoa_data_browse,
+            self.lsoa_shapefile_path,
+            self.lsoa_shapefile_browse,
+            self.labelpointtol,
+            self.labeluptol,
+            self.uppertolbox,
+            self.point_zones,
+            self.point_zones_browse,
+            self.pointtolbox,
+        )
         if state == Qt.Checked:
             self.point_handling = True
-            self.lsoa_data_path.setDisabled(False)
-            self.lsoa_shapefile_path.setDisabled(False)
-            self.labelpointtol.setDisabled(False)
-            self.labeluptol.setDisabled(False)
-            self.uppertolbox.setDisabled(False)
-            self.point_zones.setDisabled(False)
-            self.pointtolbox.setDisabled(False)
+            for w in widgets:
+                w.setDisabled(False)
 
         else:
             self.point_handling = False
-            self.lsoa_data_path.setDisabled(True)
-            self.lsoa_shapefile_path.setDisabled(True)
-            self.labelpointtol.setDisabled(True)
-            self.point_zones.setDisabled(True)
-            self.pointtolbox.setDisabled(True)
+            for w in widgets:
+                w.setDisabled(True)
 
-            if not self.rounding:
-                self.labeluptol.setDisabled(True)
-                self.uppertolbox.setDisabled(True)
+            if self.rounding:  # Keep tolerance enabled if rounding on
+                self.labeluptol.setDisabled(False)
+                self.uppertolbox.setDisabled(False)
 
     def rounding_clickbox(self, state):
         """Changes UI display and assigns rounding bool according to
@@ -323,8 +350,19 @@ class ProduceGBFMCorrespondence(QtWidgets.QWidget):
             alert.show()
 
         else:
+            if self.point_handling & (self.point_zones.text() == ""):
+                alert = QtWidgets.QMessageBox(self)
+                alert.setWindowTitle("Warning")
+                alert.setText(
+                    "No point zones csv specified, the tool will attempt to find point zones with the point zone tolerance.\n"
+                    "This method is not as accurate as supplying a list of zone 2 point zones. Check user manual for more information. \n"
+                    "You may close this window, zone correspondence is running."
+                )
+                alert.show()
             # Start a progress window
-            self.progress = progress_window("Zone Correspondence Tool")
+            self.progress = progress_window(
+                "Zone Correspondence Tool", self.tier_converter
+            )
             self.hide()
 
             # Call the main process
@@ -338,7 +376,9 @@ class ProduceGBFMCorrespondence(QtWidgets.QWidget):
 
     def closeEvent(self, event):
         """Closes the zone correspondence window."""
-        Utilities.closeEvent(self, event)
+        close = Utilities.closeEvent(self, event)
+        if close:
+            self.tier_converter.show()
 
     @pyqtSlot()
     def on_click_Info(self):
@@ -360,7 +400,7 @@ class ProduceGBFMCorrespondence(QtWidgets.QWidget):
 
 
 class background_thread(QThread):
-    """Thread which calls functions from 
+    """Thread which calls functions from
     zone_correspondence.main_zone_correspondence.
 
     Parameters
@@ -378,7 +418,11 @@ class background_thread(QThread):
         """
         QThread.__init__(self)
 
-        self.progress_label = ProduceGBFMCorrespondence.progress.label
+        self.progress_window = ProduceGBFMCorrespondence.progress
+        self.progress_label = self.progress_window.label
+        self.progress_label.move(10,10)
+        self.progress_label.resize(750, 100)
+        #self.progress_label = ProduceGBFMCorrespondence.progress.label
         self.first_zones_path = ProduceGBFMCorrespondence.first_zones_path.text()
         self.second_zones_path = ProduceGBFMCorrespondence.second_zones_path.text()
         self.textbox_zone1 = ProduceGBFMCorrespondence.textbox_zone1.text()
@@ -401,24 +445,35 @@ class background_thread(QThread):
             self.zone1_name = str(self.textbox_zone1)
             self.zone2_name = str(self.textbox_zone2)
 
-        self.progress_label.setText(
-            "Applying the zone correspondence process\
-        ..."
-        )
-        self.zone_correspondence = zcorr.main_zone_correspondence(
-            self.first_zones_path,
-            self.second_zones_path,
-            zone_1_name=self.zone1_name,
-            zone_2_name=self.zone2_name,
-            tolerance=self.tolerance,
-            point_zones_path=self.point_zones,
-            out_path=self.outpath,
-            point_handling=self.point_handling,
-            lsoa_shapefile_path=self.lsoa_shapefile_path,
-            lsoa_data_path=self.lsoa_data_path,
-            rounding=self.rounding,
-        )
+        self.progress_label.setText("Applying the zone correspondence process...")
+        try:
+            log_file, zone_1_missing, zone_2_missing = zcorr.main_zone_correspondence(
+                self.first_zones_path,
+                self.second_zones_path,
+                zone_1_name=self.zone1_name,
+                zone_2_name=self.zone2_name,
+                tolerance=self.tolerance,
+                point_zones_path=self.point_zones,
+                out_path=self.outpath,
+                point_handling=self.point_handling,
+                lsoa_shapefile_path=self.lsoa_shapefile_path,
+                lsoa_data_path=self.lsoa_data_path,
+                rounding=self.rounding,
+            )
+        except Exception as e:
+            self.progress_label.setText(
+                f"{e.__class__.__name__}: {e!s}.\nYou may exit the program."
+            )
+            traceback.print_exc()
+            return
 
-        self.progress_label.setText(
-            "Zone correspondence process complete. You may exit the program."
-        )
+        if self.point_handling:
+            self.progress_label.setText(
+                f"Zone correspondence complete. There are {zone_1_missing} unmatched {self.zone1_name} zones and {zone_2_missing} unmatched {self.zone2_name} zones."
+                f"\nCheck {log_file} \nfor missing and point zones, and check against the correspondence outputs. \nYou may now exit the tool."
+            )
+        else:
+            self.progress_label.setText(
+                f"Zone correspondence complete. There are {zone_1_missing} unmatched {self.zone1_name} zones and {zone_2_missing} unmatched {self.zone2_name} zones."
+                f"\nCheck {log_file} for missing zones. You may now exit the tool."
+            )

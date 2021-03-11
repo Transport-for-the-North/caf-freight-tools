@@ -36,11 +36,12 @@ class Utilities(QtWidgets.QWidget):
             QtWidgets.QMessageBox.No, QtWidgets.QMessageBox.No)
         if reply == QtWidgets.QMessageBox.Yes:
             event.accept()
+            return True
         else:
             event.ignore()
-            
-    # TODO: check file extension, default filepaths        
-    def add_file_selection(self, y_position, label_txt, multiple_files=False, directory=False, filetype=None):
+            return False
+                
+    def add_file_selection(self, y_position, label_txt, multiple_files=False, directory=False, filetype=None, return_browse=False):
         def browse_file():
             if directory == True:
                 selected_file = QtWidgets.QFileDialog(self).getExistingDirectory(self, label_txt)
@@ -48,30 +49,33 @@ class Utilities(QtWidgets.QWidget):
                 if multiple_files == True: # for multiple files, separate with ' % '
                     file_dialog = QtWidgets.QFileDialog(self)
                     file_dialog.setFileMode(QtWidgets.QFileDialog.ExistingFiles)
-                    selected_file, _ = file_dialog.getOpenFileNames(self, label_txt, "./", filetype)
+                    selected_file, _ = file_dialog.getOpenFileNames(self, label_txt, None, filetype)
                     selected_file = ' % '.join(selected_file)
                 else:
-                    selected_file, _ = QtWidgets.QFileDialog(self).getOpenFileName(self, label_txt, "./", filetype)
+                    selected_file, _ = QtWidgets.QFileDialog(self).getOpenFileName(self, label_txt, None, filetype)
                 
             # Update text box
             file_path.setText(selected_file)
         
         # Box which will contain the file selection
         file_path = QtWidgets.QLineEdit(self)
-        file_path.setGeometry(10, y_position, 235, 30)
+        file_path.setGeometry(10, y_position, 380, 30)
         
         # Button to browse for the file
         browse_button = QtWidgets.QPushButton(self)
         browse_button.setText('Browse')
-        browse_button.setGeometry(255, y_position, 235, 30)
+        browse_button.setGeometry(400, y_position, 90, 30)
         browse_button.clicked.connect(browse_file)
         
         # Label with instructions
         label = QtWidgets.QLabel(self)
         label.setText(label_txt)
-        label.setGeometry(10, y_position - 30, 400, 30)
-        
-        return file_path 
+        label.setGeometry(10, y_position - 30, 480, 30)
+        if return_browse:
+            return file_path, browse_button
+        else:
+            return file_path
+ 
     # Some input files are tab and some are comma-separated, so this version of read_csv allows it to accept either
     def read_csv(file_name):
         # Read in the second line of the file
@@ -100,9 +104,10 @@ class Utilities(QtWidgets.QWidget):
 # Window to inform the user what stage the process is at (third interface window)
 class progress_window(QtWidgets.QWidget):
     
-    def __init__(self, title):
+    def __init__(self, title, tier_converter):
         super().__init__()
         self.title = title
+        self.tier_converter = tier_converter
         self.initUI()
         
     def initUI(self):
@@ -114,7 +119,9 @@ class progress_window(QtWidgets.QWidget):
         self.show()
         
     def closeEvent(self, event):
-        Utilities.closeEvent(self, event)
+        close = Utilities.closeEvent(self, event)
+        if close:
+            self.tier_converter.show()
         
         
  # Window to inform the user how to use the current tool selected
@@ -138,7 +145,7 @@ class info_window(QtWidgets.QWidget):
         self.layout = QVBoxLayout()
         self.setLayout(self.layout)
         self.label.move(10,10)
-        self.label.resize(750,300)
+        self.label.resize(750, 300)
         
         # Create a push button to move back to the menu
         back_button = QtWidgets.QPushButton(self)
@@ -247,7 +254,7 @@ class Parameters:
                             'Trips':'Annual_PCU/Annual_Tonnage'}}
     _LOOKUP = {'FILEPATH':'',
                 'INPUT_FORMAT':'TSV/CSV',
-                'INPUT_COLUMNS':{'Old':'', 'New':'', 'SplittingFactor':''}}
+                'INPUT_COLUMNS':{'old':'', 'new':'', 'splitting_factor':''}}
     _ZONE_LOOKUP = {'_comment':'Parameters for the rezoning process, optional.',
                     **_LOOKUP}
     _SECTOR_LOOKUP = {'_comment':('Parameters for the sector OD tables to be produced,'

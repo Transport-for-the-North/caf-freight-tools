@@ -37,7 +37,7 @@ class AnnualTonne2PCU(QtWidgets.QWidget):
     
         
     def initUI(self):
-        self.setGeometry(600, 600, 500, 400)        
+        self.setGeometry(500, 200, 500, 400)        
         self.setWindowTitle('Annual Tonne to Annual PCU Conversion')
         self.setWindowIcon(QtGui.QIcon('icon.jpg'))        
         
@@ -85,7 +85,7 @@ class AnnualTonne2PCU(QtWidgets.QWidget):
             
         else: 
             # Start a progress window
-            self.progress = progress_window('Annual Tonne to Annual PCU Conversion')
+            self.progress = progress_window('Annual Tonne to Annual PCU Conversion', self.tier_converter)
             self.hide()
             
             # Call the main process
@@ -93,7 +93,9 @@ class AnnualTonne2PCU(QtWidgets.QWidget):
             self.worker.start() 
 
     def closeEvent(self, event):
-        Utilities.closeEvent(self, event)
+        close = Utilities.closeEvent(self, event)
+        if close:
+            self.tier_converter.show()
        
     @pyqtSlot()
     def on_click_Info(self):

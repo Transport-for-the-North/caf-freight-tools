@@ -35,7 +35,7 @@ class DeltaProcess(QtWidgets.QWidget):
     
         
     def initUI(self):
-        self.setGeometry(600, 600, 500, 400)        
+        self.setGeometry(500, 200, 500, 400)        
         self.setWindowTitle('Delta Process')
         self.setWindowIcon(QtGui.QIcon('icon.jpg'))        
         
@@ -77,7 +77,7 @@ class DeltaProcess(QtWidgets.QWidget):
             alert.show()   
         else:
             # Start a progress window
-            self.progress = progress_window('Delta Process')
+            self.progress = progress_window('Delta Process', self.tier_converter)
             self.hide()
             
             # Call the main rezone process
@@ -89,7 +89,9 @@ class DeltaProcess(QtWidgets.QWidget):
         self.hide()    
         
     def closeEvent(self, event):
-        Utilities.closeEvent(self, event)
+        close = Utilities.closeEvent(self, event)
+        if close:
+            self.tier_converter.show()
     
     @pyqtSlot()
     def on_click_Info(self):

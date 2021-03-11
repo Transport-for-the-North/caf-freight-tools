@@ -13,6 +13,16 @@ Contains information about each aspect of the tool for display with the GUI.
 """
 
 
+from typing import TYPE_CHECKING
+
+Combine_Shapefiles_Text=(
+        "The GBFM outputs two shapefiles, polygons and centroids. This tool combines them.\n"
+        "Select a buffer radius, which will be added to each point zone in the centroids\n"
+        "shapefile which is not in the polygon shapefile. These zones will then be added\n"
+        "to the polygons shapefile, creating a new shapefile to be used in the rest of the\n"
+        "tool.s"
+)
+
 LGV_Processing_Text = '''
         There are three separate functions within this tool. 
         
@@ -28,13 +38,13 @@ LGV_Processing_Text = '''
         •	The user must input two O-D freight matrix files, for instance, one which contains a freight van O-D trip matrix and the other which contains a non-freight O-D trip matrix, preferably in GBFM zoning. N.B. Both matrices must contain three columns only, with a header row that is of the form; ‘origin’, ‘destination’ and either ‘annual_pcus’ or ‘trips’. 
         •	The user must then enter the global factors to be applied for both the freight and non-freight matrices respectively in number format, decimals are permitted. N.B. If only one matrix needs to be globally factored, select a second file and place a factor of 1 in the textbox corresponding to the matrix that should remain unchanged. The user must then press ‘Run’.
         
-        Once ‘Run’ is pressed, a progress window will be displayed to update the user on the progress of the factoring process. Once complete, two files are outputted named; 'Output_Freight_Global_Factor_Applied.csv' and 'Output _Non_Freight_Global_Factor_Applied.csv'. These files can be found in the same folder is as the Tier Converter application.
+        Once ‘Run’ is pressed, a progress window will be displayed to update the user on the progress of the factoring process. Once complete, two files are outputted named; 'Output_Freight_Global_Factor_Applied.csv' and 'Output _Non_Freight_Global_Factor_Applied.csv'. These files can be found in the same folder is as the Local Freight Tool application.
         
         Aggregation: 
         This function will aggregate together two chosen freight O-D matrices, can be used to aggregate the chosen freight and non-freight matrices together to produce a single full LGV O-D trip matrix.
         How to use
         •	The user must input two O-D freight matrix files, for instance, one which contains a freight van O-D trip matrix and the other which contains a non-freight O-D trip matrix, preferably in GBFM zoning. N.B. Both matrices must contain three columns only, with a header row that is of the form; ‘origin’, ‘destination’ and either ‘annual_pcus’ or ‘trips’. The user must then press ‘Run’.
-        Once ‘Run’ has been pressed, the two freight matrices selected are aggregated, and a progress window will be displayed to update the user on the progress of the aggregation process. Once complete, the aggregated matrix is outputted to a file called 'Output_ Aggregated_Matrix.csv'. This file is located in the same folder is as the Tier Converter application.  
+        Once ‘Run’ has been pressed, the two freight matrices selected are aggregated, and a progress window will be displayed to update the user on the progress of the aggregation process. Once complete, the aggregated matrix is outputted to a file called 'Output_ Aggregated_Matrix.csv'. This file is located in the same folder is as the Local Freight Tool application.  
 
         '''
         
@@ -44,13 +54,13 @@ Profile_Builder_Text = '''
         •	The user is expected to enter a name for the time period selection such as: ‘AM’, ‘PM etc. The user must also select all the days that should be included within the time profile selection by checking the relevant checkboxes. 
         •	Finally, the user should use the drop down menus to select the hour start and hour end needed to produce the correct time profile. There are default values for each of these selections to demonstrate common choices which may be used without any change as long the name of the profile selection is provided. This process should then be repeated until of time period selections have been properly defined. 
         •	The user must then press ‘save selection’.
-        Once ‘save selection’ has been pressed, the information selected is sent to a file named ‘profile_selection.csv’ which is located in the same folder is as the Tier Converter application. This file may then be used as an input within the tool ‘GBFM Annual PCU to Model Time Period PCU’.
+        Once ‘save selection’ has been pressed, the information selected is sent to a file named ‘profile_selection.csv’ which is located in the same folder is as the Local Freight Tool application. This file may then be used as an input within the tool ‘GBFM Annual PCU to Model Time Period PCU’.
         N.B. Once the profile builder has been instantiated and the profile selection file has been created, if changes are required to the time profiles selected, the user may choose to run the profile builder tool again or alternatively the user may decide to edit the ‘Profile_Selection.csv’ file directly but care must be taken to retain the correct format. 
 
         '''
         
 Tier_Converter_Text = '''
-        The menu of the Tier Converter application is separated into three main sections: Pre-Processing, Conversion, and Utilities. 
+        The menu of the Local Freight Tool application is separated into three main sections: Pre-Processing, Conversion, and Utilities. 
 		The Pre-Processing section of the application includes tools that create zone correspondence files and manipulate matrix files 
 		ready to be used as the input for later tools, for instance, within the ‘GBFM Annual PCU to Model Time Period PCU’ conversion 
 		process. 
@@ -71,6 +81,14 @@ Matrix_Processing_Text = '''
         Once ‘Run’ has been pressed, the factoring process is carried out and a progress window is displayed to update the user on the progress. Once factoring is complete, a window will display a completion message, prompting the user to exit the program. An output factor matrix is outputted to a file named ‘Output_Factored_Matrix.csv' in the file directory chosen by the user. 
 
         '''
+
+Matrix_Utilities_Text=(
+        "The matrix utilities tool can be used to perform a number of operations on a selected O-D trip matrix.\n"
+        "This includes rezoning the matrix, adding it to another matrix, factoring it by a scalar or another matrix, filling in the missing zones in the matrix, removing external-external trips, and converting to UFM.\n"
+        "When rezoning, the zone correspondence file must contain all zones to be mapped from the first zoning system or an error will be raised.\n"
+        "Additionally, care must be taken to ensure that any matrices being added or factored are in the same zoning system\n"
+        "Please consult the User Guide for more detailed information."
+        )
         
 Model2GBFMPCU_Text = '''
         The matrix rezoning tool can be used to convert a freight O-D trip matrix from one zoning system to another by applying a zone correspondence file. This tool should be implemented provided that an appropriate zone correspondence file already been produced for the flow.
@@ -85,7 +103,7 @@ Model2GBFMPCU_Text = '''
         
 GBFM2ModelPCU_Text = '''
         The GBFM Annual PCU to Model Time Period PCU tool is used to convert annual GBFM O-D trip/PCU matrices to model time period specific O-D trip/PCU matrices. 
-        N.B. This tool requires input files that are produced using other tools within the tier converter. A zone correspondence file is required which must be create either using the ‘Produce GBFM Zone Correspondence’ tool or produced externally. Moreover, a time period selection file is needed, which is produced using the ‘Profile Builder’ tool. Therefore, it is important to ensure that both the ‘Profile Builder’ and ‘Produce GBFM Zone Correspondence’ tools have been implemented, before attempting to use this tool. 
+        N.B. This tool requires input files that are produced using other tools within the Local Freight Tool. A zone correspondence file is required which must be create either using the ‘Produce GBFM Zone Correspondence’ tool or produced externally. Moreover, a time period selection file is needed, which is produced using the ‘Profile Builder’ tool. Therefore, it is important to ensure that both the ‘Profile Builder’ and ‘Produce GBFM Zone Correspondence’ tools have been implemented, before attempting to use this tool. 
         How to use
         •	The user must choose at least one GBFM output O-D trip matrix file N.B. All matrices chosen must contain three columns only, with a header row that is of the form; ‘origin’, ‘destination’ and either ‘annual_pcus’ or ‘trips’. 
         •	The user must also choose a zone correspondence file. N.B.  The file must contain three columns only with a header row that is usually of the form; ‘Zone1’, ‘Zone2’ and ‘Adjusted Factor’. For instance, for a rezone conversion from NoHam to GBFM, the correspondence file required would include the header columns; ‘NoHam’, ‘GBFM’ and ‘Adjusted Factor’ respectively. 
@@ -114,7 +132,7 @@ Delta_Process_Text = '''
         •	The user must then select a forecast time period O-D trip matrix that was prepared from GBFM annual matrices and converted to the model zoning system and time period which also undertook some factoring.  N.B. This file is likely to have been produced using the ‘Matrix Factoring’ or ‘Apply Global Factors’ tool.
         •	Then the user must press ‘Run’.
         
-        Once ‘Run’ has been pressed, the delta approach process is undertaken and a forecasted O-D trip matrix in Model zoning system for the time period in question is outputted in a file which is located in the same folder is as the Tier Converter application named; ‘Forcasted_Model_O-D_Matrix.csv’
+        Once ‘Run’ has been pressed, the delta approach process is undertaken and a forecasted O-D trip matrix in Model zoning system for the time period in question is outputted in a file which is located in the same folder is as the Local Freight Tool application named; ‘Forcasted_Model_O-D_Matrix.csv’
         General Warnings:
         The user must ensure that all three matrices chosen must use the same model zoning system. 
         The user must also ensure that the same time period selection is used throughout the O-D matrices as well.
@@ -125,8 +143,12 @@ ProduceGBFMCorrespondence_Text = '''
         This tool is used to produce a zone correspondence file that can be used within the tool; ‘GBFM Annual PCU to Model Time Period PCU’ to convert the GBFM zoning system to a model zoning system. This tool is a packaged and integrated version of scripts provided by TfN. 
         How to use
         •	The user should select the first zoning system shapefile, followed by the second zoning system shapefile and finally, the user should select the directory to store the output file in. 
+        •       The user should select whether to use rounding and point handling by ticking the relevant boxes.
+        •       If rounding or point handling is selected, the user should use the tolerance box to select the tolerance used to filter out small overlaps between zones.
+        •       If point handling is selected, the user should select the LSOA data csv and LSOA shapefile. Optionally, the user can also select a csv of point zones, otherwise the point tolerance is used to find point zones.
         •	Then the user must press ‘Run’.
-        Once ‘Run’ is pressed a progress window will be displayed to update the user on the progress of producing of the zone correspondence. Once complete, the zone correspondence file named; ‘zone_correspondence.csv’ is outputted, which is located in the same folder is as the Tier Converter application.
+        Once ‘Run’ is pressed a progress window will be displayed to update the user on the progress of producing of the zone correspondence. Once complete, the outputs are written to the output folder specified.
+        For further information, please consult to user manual.
         N.B. This tool cannot be used in isolation necessarily to build a complete correspondence and it should be checked for completeness. 
 
         '''
