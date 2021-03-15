@@ -911,15 +911,24 @@ class background_thread(QThread):
                 ].values[0]
                 # check this is the path to a folder
                 if os.path.isdir(saturn_exes_path):
-                    ufm_path = od_matrix.export_to_ufm(saturn_exes_path, self.outpath)
-                    self.processes.loc[
-                        self.processes.name == "convert to UFM", "completed"
-                    ] = "yes"
-                    self.progress_label.setText(progress_text)
-                    progress_text, progress_lines = self.update_progress_string(
-                        progress_text, f"\nUFM saved to {ufm_path}", progress_lines + 1
-                    )
-                    self.progress_label.setText(progress_text)
+                    try:
+                        ufm_path = od_matrix.export_to_ufm(saturn_exes_path, self.outpath)
+                        self.processes.loc[
+                            self.processes.name == "convert to UFM", "completed"
+                        ] = "yes"
+                        progress_text, progress_lines = self.update_progress_string(
+                            progress_text, f"\nUFM saved to {ufm_path}", progress_lines + 1
+                        )
+                        self.progress_label.setText(progress_text)
+                    except Exception as e:
+                        msg = f"Error: Convert to UFM unsuccessful {e.__class__.__name__} occured - {e}"
+                        progress_text, progress_lines = self.update_progress_string(
+                            progress_text, f"\n{msg}", progress_lines + 1
+                        )
+                        self.progress_label.setText(progress_text)
+                        self.processes.loc[
+                            self.processes.name == "convert to UFM", "note"
+                        ] = f"{e}"
                 else:
                     progress_text, progress_lines = self.update_progress_string(
                         progress_text,
