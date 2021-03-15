@@ -35,7 +35,8 @@ def convert_3D_2D(gdf):
 
     # Only convert if the first element has a z coordinate, as it's safe to
     # assume that if the first element is 3D, then the rest of them are
-    if geometry[0].has_z:
+    if geometry[geometry.index[0]].has_z:
+        print("Converting to 2D")
         new_geometry = []
         for p in geometry:
             if p.has_z:
@@ -102,6 +103,11 @@ def read_zone_shapefiles(zone_1_path, zone_2_path, zone_1_name, zone_2_name):
             zone_list[i] = zone_list[i].rename(columns=NOHAM_LOOKUP)
         else:
             print("no lookup for this zone system, need to know column names")
+            raise Exception(
+                    "The zone ID column in one of the zone systems"
+                    "is not UniqueID.\n"
+                    " Please rename it to UniqueID."
+                    )
 
         zone_list[i] = zone_list[i].rename(
             columns={"zone_id": f"{zone_names[i]}_zone_id"}
@@ -175,7 +181,7 @@ def spatial_zone_correspondence(zone_list, zone_names):
 
     # create geodataframe for intersection of zones
     zone_overlay = gpd.overlay(
-        zone_list[0], zone_list[1], how="intersection"
+        zone_list[0], zone_list[1], how="intersection", keep_geom_type=False
     ).reset_index()
     zone_overlay.loc[:, "intersection_area"] = zone_overlay.area
 
