@@ -475,5 +475,6 @@ class background_thread(QThread):
         else:
             self.progress_label.setText(
                 f"Zone correspondence complete. There are {zone_1_missing} unmatched {self.zone1_name} zones and {zone_2_missing} unmatched {self.zone2_name} zones."
-                f"\nCheck {log_file} for missing zones. You may now exit the tool."
+                f"\nCheck {log_file} for missing zones.\n "
+                "You may now exit the tool."
             )
