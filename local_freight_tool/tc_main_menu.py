@@ -42,7 +42,7 @@ class tier_converter(QtWidgets.QWidget):
         self.initUI()
 
     def initUI(self):
-        self.setGeometry(500, 200, 500, 490)
+        self.setGeometry(500, 200, 500, 500)
         self.setWindowTitle("Local Freight Tool")
         self.setWindowIcon(QtGui.QIcon("icon.jpg"))
 
@@ -62,12 +62,6 @@ class tier_converter(QtWidgets.QWidget):
         next_button.setGeometry(400, 10, 90, 30)
         next_button.clicked.connect(self.on_click_Info)
 
-        #  Create a push button for Profile Builder
-        next_button = QtWidgets.QPushButton(self)
-        next_button.setText("Profile Builder")
-        next_button.setGeometry(400, 50, 90, 30)
-        next_button.clicked.connect(self.on_click_Profile_Builder)
-
         # Create a push buttons for menu options
         next_button = QtWidgets.QPushButton(self)
         next_button.setText("0: Combine Centroid and Polygon Shapefiles")
@@ -79,43 +73,49 @@ class tier_converter(QtWidgets.QWidget):
         next_button.setGeometry(10, 130, 480, 30)
         next_button.clicked.connect(self.on_click_ProduceGBFMCorrespondence)
 
+        #  Create a push button for Profile Builder
         next_button = QtWidgets.QPushButton(self)
-        next_button.setText("2: Annual Tonne to Annual PCU Conversion")
+        next_button.setText("2: Time Profile Builder")
         next_button.setGeometry(10, 170, 480, 30)
-        next_button.clicked.connect(self.on_click_AnnualTonne2PCU)
-
-        next_button = QtWidgets.QPushButton(self)
-        next_button.setText("3: LGV Processing")
-        next_button.setGeometry(10, 210, 480, 30)
-        next_button.clicked.connect(self.on_click_LGVProcessing)
+        next_button.clicked.connect(self.on_click_Profile_Builder)
 
         labelC = QtWidgets.QLabel(self)
         labelC.setText("Conversion")
         labelC.setFont(QtGui.QFont("Arial", 12, QtGui.QFont.Bold))
-        labelC.setGeometry(10, 250, 700, 30)
+        labelC.setGeometry(10, 200, 700, 30)
 
         next_button = QtWidgets.QPushButton(self)
-        next_button.setText("4: GBFM Annual PCU to Model Time Period PCU")
-        next_button.setGeometry(10, 290, 480, 30)
+        next_button.setText("3: HGV Annual Tonne to Annual PCU Conversion")
+        next_button.setGeometry(10, 230, 480, 30)
+        next_button.clicked.connect(self.on_click_AnnualTonne2PCU)
+
+        next_button = QtWidgets.QPushButton(self)
+        next_button.setText("4: HGV Annual PCU to Model Zoning and Time Periods")
+        next_button.setGeometry(10, 270, 480, 30)
         next_button.clicked.connect(self.on_click_GBFM2ModelPCU)
+
+        next_button = QtWidgets.QPushButton(self)
+        next_button.setText("5: LGV Processing")
+        next_button.setGeometry(10, 310, 480, 30)
+        next_button.clicked.connect(self.on_click_LGVProcessing)
 
         labelD = QtWidgets.QLabel(self)
         labelD.setText("Utilities")
         labelD.setFont(QtGui.QFont("Arial", 12, QtGui.QFont.Bold))
-        labelD.setGeometry(10, 330, 700, 30)
+        labelD.setGeometry(10, 340, 700, 30)
 
         next_button = QtWidgets.QPushButton(self)
-        next_button.setText("5: Matrix Utilities")
+        next_button.setText("6: Matrix Utilities")
         next_button.setGeometry(10, 370, 480, 30)
         next_button.clicked.connect(self.on_click_MatrixUtilities)
 
         next_button = QtWidgets.QPushButton(self)
-        next_button.setText("6: Delta Process")
+        next_button.setText("7: Delta Process")
         next_button.setGeometry(10, 410, 480, 30)
         next_button.clicked.connect(self.on_click_DeltaProcess)
 
         next_button = QtWidgets.QPushButton(self)
-        next_button.setText("7: Cost Conversion")
+        next_button.setText("8: Cost Conversion")
         next_button.setGeometry(10, 450, 480, 30)
         next_button.clicked.connect(self.on_click_CostConversion)
 
