@@ -49,7 +49,11 @@ autodoc_member_order = 'groupwise'
 autoclass_content = 'both'
 autodoc_default_options = {
     'undoc-members': True,
-    'show-inheritance': True
+    'show-inheritance': True,
+    'special-members': True,
+    'private-members': True,
+    'undoc-members': True,
+    'exclude-members': '__module__, __weakref__, __dict__',
 }
 
 # Auto summary options
@@ -61,6 +65,8 @@ autosummary_generate = True
 # a list of builtin themes.
 #
 html_theme = 'alabaster'
+
+html_show_copyright = False
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,

@@ -1,38 +1,54 @@
 {{ fullname | escape | underline }}
 .. automodule:: {{ fullname }}
-
-   {% block functions %}
-   {% if functions %}
-   .. rubric:: Functions
-
-   .. autosummary::
-      :toctree: .
-   {% for item in functions %}
-      {{ item }}
-   {%- endfor %}
-   {% endif %}
-   {% endblock %}
+   :members:
 
    {% block classes %}
    {% if classes %}
-   .. rubric:: Classes
-
-   .. autosummary::
-      :toctree: .
+   Classes
+   -------
+   {{ fullname }} module contains the following classes (see `Documentation`_ for more details):
    {% for item in classes %}
-      {{ item }}
+   - {{ item }}
    {%- endfor %}
    {% endif %}
    {% endblock %}
 
    {% block exceptions %}
    {% if exceptions %}
-   .. rubric:: Exceptions
-
-   .. autosummary::
-      :toctree: .
+   Exceptions
+   ----------
+   {{ fullname }} module contains the following exceptions (see `Documentation`_ for more details):
    {% for item in exceptions %}
-      {{ item }}
+   - {{ item }}
    {%- endfor %}
    {% endif %}
    {% endblock %}
+
+   {% block functions %}
+   {% if functions %}
+   Functions
+   ---------
+   {{ fullname }} module contains the following functions (see `Documentation`_ for more details):
+   {% for item in functions %}
+   - {{ item }}
+   {%- endfor %}
+   {% endif %}
+   {% endblock %}
+
+   {% block attributes %}
+   {% if attributes %}
+   Constants
+   ---------
+   {{ fullname }} module contains the following constants (see `Documentation`_ for more details):
+   {% for item in attributes %}
+   {%- if item not in inherited_members %}
+   .. autoattribute:: {{ name}}.{{ item }}
+   {%- endif %}
+   {%- endfor %}
+   {% endif %}
+   {% endblock %}
+
+   Documentation
+   -------------
+   Documentation of any functions, classes or exceptions in {{ fullname }} module.
+
