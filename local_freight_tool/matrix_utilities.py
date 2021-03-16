@@ -343,7 +343,7 @@ class ODMatrix:
         print("Rezone finished")
         return rezoned_od_matrix
 
-    def export_to_csv(self, outpath, include_zeros=True, include_headers=True):
+    def export_to_csv(self, outpath, include_zeros=True, include_headers=True, float_format=None):
         """Export column matrix to csv file
 
         Parameters
@@ -357,7 +357,7 @@ class ODMatrix:
             default True
         """
         column_matrix = self.column_matrix(include_zeros=include_zeros)
-        column_matrix.to_csv(outpath, header=include_headers, index=False)
+        column_matrix.to_csv(outpath, float_format=float_format, header=include_headers, index=False)
 
     def export_to_ufm(self, saturn_exes_path, outpath):
         """Export ODMatrix as UFM using TBA22UFM.
@@ -423,7 +423,7 @@ class ODMatrix:
         # export matrix as csv in TUBA2 format
         temp_filepath = outpath / "temp_matrix.csv"
         print(f"temp csv: {temp_filepath}")
-        self.export_to_csv(temp_filepath, include_headers=False)
+        self.export_to_csv(temp_filepath, include_headers=False, float_format='%.12f')
 
         # if the matrix has no name, assign a name
         if not self.name:
