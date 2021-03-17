@@ -47,7 +47,7 @@ class Profile_Builder(QtWidgets.QWidget):
 
     def initUI(self):
         """Initialises UI"""
-        TIME_PERIODS = ["AM", "IP", "PM", "OP"]
+        TIME_PERIODS = ["AM", "PM", "IP", "OP"]
 
         self.setGeometry(500, 200, 555, 70 + 24 * (10 + 14))
         self.setWindowTitle("Profile Builder")
@@ -244,7 +244,6 @@ class Profile_Builder(QtWidgets.QWidget):
             df.dropna().to_csv(
                 self.outpath.text().strip() + "/Profile_Selection.csv",
                 index=False,
-                header=False,
             )
 
             alert = QtWidgets.QMessageBox(self)
