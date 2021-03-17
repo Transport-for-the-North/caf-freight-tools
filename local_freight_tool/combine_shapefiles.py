@@ -31,12 +31,28 @@ import geopandas as gpd
 
 
 class CombineShapefiles(QtWidgets.QWidget):
+    """Combine Shapefiles user interface.
+
+    Parameters
+    ----------
+    QtWidgets : QWidget
+        Base class for user interface objects.
+    """
     def __init__(self, tier_converter):
+        """Initialises class
+
+        Parameters
+        ----------
+        tier_converter : Class
+            Tier converter class in tc_main_menu
+        """
         super().__init__()
         self.tier_converter = tier_converter
         self.initUI()
 
     def initUI(self):
+        """Initialises UI
+        """
         self.setGeometry(500, 200, 500, 330)
         self.setWindowTitle("Combine Shapefiles")
         self.setWindowIcon(QtGui.QIcon("icon.jpg"))
@@ -110,6 +126,8 @@ class CombineShapefiles(QtWidgets.QWidget):
         self.show()
 
     def back_button_clicked(self):
+        """Returns to tier converter main menu
+        """
         self.tier_converter.show()
         self.hide()
 
@@ -120,7 +138,7 @@ class CombineShapefiles(QtWidgets.QWidget):
             self.tier_converter.show()
 
     def run_button_clicked(self):
-
+        """Initialises process once run button is clicked."""
         if (
             self.gbfm_polygons.text().strip() == ""
             or self.gbfm_centroids.text().strip() == ""
@@ -147,6 +165,8 @@ class CombineShapefiles(QtWidgets.QWidget):
 
     @pyqtSlot()
     def on_click_Info(self):
+        """Displays info window
+        """
         self.progress = info_window("Combine GBFM Shapefiles")
         self.progress_label = self.progress.label
         self.progress_labelA = self.progress.labelA
@@ -159,11 +179,26 @@ class CombineShapefiles(QtWidgets.QWidget):
         self.progress.show()
 
         def closeEvent(self, event):
+            """Closes info window
+            """
             Utilities.closeEvent(self, event)
 
 
 class background_thread(QThread):
+    """Thread which runs the combine shapefiles process
+
+    Parameters
+    ----------
+    QThread
+    """
     def __init__(self, CombineShapefiles):
+        """Initialises class
+
+        Parameters
+        ----------
+        CombineShapefiles : Class
+            GUI Class
+        """
         QThread.__init__(self)
 
         self.progress_label = CombineShapefiles.progress.label
@@ -173,6 +208,8 @@ class background_thread(QThread):
         self.buffer = CombineShapefiles.buffer_box.value()
 
     def run(self):
+        """Runs combine shapefiles process
+        """
         zone_ID = "UniqueID"
 
         try:

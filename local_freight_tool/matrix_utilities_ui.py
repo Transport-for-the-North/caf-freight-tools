@@ -36,7 +36,7 @@ class MatrixUtilities(QtWidgets.QWidget):
     Parameters
     ----------
     QtWidgets : QWidget
-        Base class for user interfact objects.
+        Base class for user interface objects.
     """
 
     def __init__(self, tier_converter):
