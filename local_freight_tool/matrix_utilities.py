@@ -478,7 +478,7 @@ class ODMatrix:
         return out_mat
 
     @classmethod
-    def read_OD_file(cls, filepath):
+    def read_OD_file(cls, filepath, columns=["origin", "destination", "trips"]):
         """Creates an O-D matrix instance from a csv file.
 
         Parameters
@@ -492,15 +492,37 @@ class ODMatrix:
         -------
         ODMatrix
             Instance of the ODMatrix Class
+
+        Raises
+        ------
+        FileNotFoundError
+            If the input file path is incorrect
+        KeyError
+            If the input file does not have the correct number of columns
+        Exception
+            For any other issues with the file
+        ValueError
+            If not all trip values in the matrix are numeric.
         """
-        whitespace, header_row = cls.check_file_header(filepath)
-        matrix_dataframe = pd.read_csv(
-            filepath,
-            delim_whitespace=whitespace,
-            header=header_row,
-            names=["origin", "destination", "trips"],
-            usecols=[0, 1, 2],
-        )
+        try:
+            whitespace, header_row = cls.check_file_header(filepath)
+            matrix_dataframe = pd.read_csv(
+                filepath,
+                delim_whitespace=whitespace,
+                header=header_row,
+                names=columns,
+                usecols=[0, 1, 2],
+            )
+        except FileNotFoundError as e:
+            msg = f"Error: file not found: {e}"
+            raise FileNotFoundError(msg) from e
+        except KeyError as e:
+            msg = f"Error: problem with file: {e}"
+            raise KeyError(msg) from e
+        except Exception as e:
+            msg = f"Error: problem with file: {e}"
+            raise Exception(msg) from e
+            
         name = os.path.basename(os.path.splitext(filepath)[0])
 
         # before turning into a matrix, check that all trips are numbers
@@ -557,8 +579,12 @@ class ODMatrix:
             Indicates the index of the header row of the file, None if there
             is no header.
         """
-        with open(filepath, "rt") as infile:
-            line = infile.readline()
+        try:
+            with open(filepath, "rt") as infile:
+                line = infile.readline()
+        except FileNotFoundError as e:
+            msg = f"Error: file not found: {e}"
+            raise FileNotFoundError(msg) from e
 
         # check whether comma or tab separated
         if len(line.split(",")) > 1:
