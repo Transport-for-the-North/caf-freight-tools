@@ -132,7 +132,7 @@ class tier_converter(QtWidgets.QWidget):
         self.progress = info_window("Local Freight Tool Information")
         self.progress_label = self.progress.label
         self.progress_labelA = self.progress.labelA
-        dedented_text = textwrap.dedent(Tier_Converter_Text).strip()
+        dedented_text = textwrap.dedent(Tier_Converter_Text)
         line = textwrap.fill(dedented_text, width=140)
         self.progress_label.setText(line)
         self.progress_label.move(10, 40)

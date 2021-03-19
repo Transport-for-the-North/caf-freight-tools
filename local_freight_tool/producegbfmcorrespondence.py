@@ -386,8 +386,8 @@ class ProduceGBFMCorrespondence(QtWidgets.QWidget):
         self.progress = info_window("Zone Correspondence Tool")
         self.progress_label = self.progress.label
         self.progress_labelA = self.progress.labelA
-        dedented_text = textwrap.dedent(ProduceGBFMCorrespondence_Text).strip()
-        line = textwrap.fill(dedented_text, width=140)
+        dedented_text = textwrap.dedent(ProduceGBFMCorrespondence_Text)
+        line = textwrap.fill(dedented_text, width=170, replace_whitespace=False)
         self.progress_label.setText(line)
         self.progress_label.move(10, 40)
         self.progress_labelA.setText("Produce GBFM Zone Correspondence")

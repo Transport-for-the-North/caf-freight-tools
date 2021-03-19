@@ -167,7 +167,7 @@ class LGVProcessing(QtWidgets.QWidget):
          self.progress = info_window('LGV Processing')   
          self.progress_label = self.progress.label
          self.progress_labelA = self.progress.labelA
-         dedented_text = textwrap.dedent(LGV_Processing_Text).strip()          
+         dedented_text = textwrap.dedent(LGV_Processing_Text)        
          line= textwrap.fill(dedented_text, width=140)
          self.progress_label.setText(line)     
          self.progress_label.move(10,40)

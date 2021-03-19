@@ -120,7 +120,7 @@ class GBFM2ModelPCU(QtWidgets.QWidget):
          self.progress = info_window('GBFM to Model PCU')   
          self.progress_label = self.progress.label
          self.progress_labelA = self.progress.labelA
-         dedented_text = textwrap.dedent(GBFM2ModelPCU_Text).strip()          
+         dedented_text = textwrap.dedent(GBFM2ModelPCU_Text)         
          line= textwrap.fill(dedented_text, width=140)
          self.progress_label.setText(line)     
          self.progress_label.move(10,40)
@@ -231,7 +231,7 @@ class set_tp_selections(QtWidgets.QWidget):
     def on_click_Info(self):
          self.progress = info_window('GBFM to Model PCU')   
          self.progress_label = self.progress.label
-         dedented_text = textwrap.dedent(GBFM2ModelPCU_Text).strip()          
+         dedented_text = textwrap.dedent(GBFM2ModelPCU_Text)         
          line = textwrap.fill(dedented_text, width=140)
          self.progress_label.setText(line)      
          self.progress.show()

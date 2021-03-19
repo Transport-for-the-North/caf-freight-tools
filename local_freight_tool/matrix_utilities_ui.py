@@ -536,7 +536,7 @@ class MatrixUtilities(QtWidgets.QWidget):
         self.progress = info_window("Matrix Utilities")
         self.progress_label = self.progress.label
         self.progress_labelA = self.progress.labelA
-        dedented_text = textwrap.dedent(Matrix_Utilities_Text).strip()
+        dedented_text = textwrap.dedent(Matrix_Utilities_Text)
         line = textwrap.fill(dedented_text, width=140)
         self.progress_label.setText(line)
         self.progress_label.move(10, 40)
