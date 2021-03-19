@@ -478,7 +478,7 @@ class ODMatrix:
         return out_mat
 
     @classmethod
-    def read_OD_file(cls, filepath, columns=["origin", "destination", "trips"]):
+    def read_OD_file(cls, filepath):
         """Creates an O-D matrix instance from a csv file.
 
         Parameters
@@ -502,34 +502,35 @@ class ODMatrix:
         Exception
             For any other issues with the file
         ValueError
-            If not all trip values in the matrix are numeric.
+            If not all trip values in the matrix are numeric
+        Exception
+            For any other errors.
         """
+        name = os.path.basename(os.path.splitext(filepath)[0])
         try:
             whitespace, header_row = cls.check_file_header(filepath)
             matrix_dataframe = pd.read_csv(
                 filepath,
                 delim_whitespace=whitespace,
                 header=header_row,
-                names=columns,
+                names=["origin", "destination", "trips"],
                 usecols=[0, 1, 2],
             )
         except FileNotFoundError as e:
-            msg = f"Error: file not found: {e}"
+            msg = f"Error: {name} not found: {e}"
             raise FileNotFoundError(msg) from e
         except KeyError as e:
-            msg = f"Error: problem with file: {e}"
+            msg = f"Error: problem with {name}: {e}"
             raise KeyError(msg) from e
         except Exception as e:
-            msg = f"Error: problem with file: {e}"
+            msg = f"Error: problem with {name}: {e}"
             raise Exception(msg) from e
-            
-        name = os.path.basename(os.path.splitext(filepath)[0])
 
         # before turning into a matrix, check that all trips are numbers
         try:
             pd.to_numeric(matrix_dataframe.trips, errors="raise")
         except ValueError as e:
-            msg = f"Error: Problem with input file: {e}"
+            msg = f"Error: Problem with input {name}: {e}"
             raise ValueError(msg) from e
 
         matrix = cls(matrix_dataframe, name, pivoted=False)
