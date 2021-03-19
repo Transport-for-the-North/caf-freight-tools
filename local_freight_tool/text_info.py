@@ -61,15 +61,15 @@ Profile_Builder_Text = '''
         
 Tier_Converter_Text = '''
         The menu of the Local Freight Tool application is separated into three main sections: Pre-Processing, Conversion, and Utilities. 
-		The Pre-Processing section of the application includes tools that create zone correspondence files and manipulate matrix files 
-		ready to be used as the input for later tools, for instance, within the ‘GBFM Annual PCU to Model Time Period PCU’ conversion 
-		process. 
-		Within the Conversion section of the menu there is one tool, which is the main process that converts annual GBFM PCU 
-		matrices to model time period specific PCU matrices. 
-		The Utilities section of the application contains tools which rezone, factor and forecast input matrices. 
-		In addition, there is a button located on the top right of the menu labelled ‘Profile Builder’. 
-		Importantly, the ‘Profile Builder’ tool allows the user to select the time profiles of interest for use within the other tools in the application, so it is suggested that this function is completed before other tools are used. 
-		‘Info’ buttons are situated on many windows of the application to provide information on how to use the selected tool. 
+        The Pre-Processing section of the application includes tools that create zone correspondence files and manipulate matrix files 
+        ready to be used as the input for later tools, for instance, within the ‘GBFM Annual PCU to Model Time Period PCU’ conversion 
+        process. 
+        Within the Conversion section of the menu there is one tool, which is the main process that converts annual GBFM PCU 
+        matrices to model time period specific PCU matrices. 
+        The Utilities section of the application contains tools which rezone, factor and forecast input matrices. 
+        In addition, there is a button located on the top right of the menu labelled ‘Profile Builder’. 
+        Importantly, the ‘Profile Builder’ tool allows the user to select the time profiles of interest for use within the other tools in the application, so it is suggested that this function is completed before other tools are used. 
+        ‘Info’ buttons are situated on many windows of the application to provide information on how to use the selected tool. 
         '''
         
 Matrix_Processing_Text = '''
@@ -140,8 +140,7 @@ Delta_Process_Text = '''
         '''
         
 ProduceGBFMCorrespondence_Text = '''
-        This tool is used to produce a zone correspondence file that can be used within the tool; ‘GBFM Annual PCU to Model Time Period PCU’ to convert the GBFM zoning system to a model zoning system. This tool is a packaged and integrated version of scripts provided by TfN. 
-        How to use
+        This tool is used to produce a zone correspondence file that can be used within the tool; ‘GBFM Annual PCU to Model Time Period PCU’ to convert the GBFM zoning system to a model zoning system. This tool is a packaged and integrated version of scripts provided by TfN. How to use
         •	The user should select the first zoning system shapefile, followed by the second zoning system shapefile and finally, the user should select the directory to store the output file in. 
         •       The user should select whether to use rounding and point handling by ticking the relevant boxes.
         •       If rounding or point handling is selected, the user should use the tolerance box to select the tolerance used to filter out small overlaps between zones.
