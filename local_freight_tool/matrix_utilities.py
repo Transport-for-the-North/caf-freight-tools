@@ -98,6 +98,19 @@ class ODMatrix:
         sum[sum < 0] = 0
 
         return ODMatrix(sum, name=name)
+    
+    def __iadd__(self, other_matrix):
+        """Update the current matrix instance by adding another matrix.
+        
+        Parameters
+        ----------
+        other_matrix : ODMatrix.Object
+            Second matrix instance
+        """
+        name = self.name
+        self = self + other_matrix
+        self.name = name
+        return self
 
     def __sub__(self, other_matrix):
         """Subract a matrix from the current matrix instance, element-wise. This first aligns the

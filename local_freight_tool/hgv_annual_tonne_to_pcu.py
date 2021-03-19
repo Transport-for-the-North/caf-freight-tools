@@ -93,6 +93,43 @@ def read_csv(path, columns, new_headers=None, numerical_columns=None):
 
     return df
 
+def read_non_eu_imports_exports_file(path, ports):
+    """Reads in the unitised non-European imports/exports file, rezones
+    the port IDs to their GBFM zone IDs, separates imports from exports, and
+    creates OD Matrix instances for imports and exports.
+
+    Parameters
+    ----------
+    path : str
+        Path to unitised non-EU imports/exports csv, with columns 'Imp0Exp1',
+        'GBPortctr', 'GBRawZone', and 'Traffic'.
+    ports: pd.DataFrame
+        Port lookup dataframe, with columns 'port_id' and 'zone_id'.
+
+    Returns
+    -------
+    unitised_non_eu_imports: ODMatrix
+        ODMatrix instance of the unitised non-eu imports
+     unitised_non_eu_exports: ODMatrix
+        ODMatrix instance of the unitised non-eu exports   
+    """
+    non_eu_imports_exports = read_csv(path, ['Imp0Exp1', 'GBPortctr', 'GBRawZone', 'Traffic'], new_headers=['Imp0Exp1', 'port_id', 'zone_id', 'trips'], numerical_columns=['trips'])
+    non_eu_imports_exports = non_eu_imports_exports.merge(ports.rename(columns={'zone_id': 'port_zone_id'}), how='left', on='port_id')
+    imports_dict = {
+        'port_zone_id': 'origin',
+        'zone_id': 'destination',
+    }
+    exports_dict = {
+        'port_zone_id': 'destination',
+        'zone_id': 'origin',
+    }
+    unitised_non_eu_imports = non_eu_imports_exports.loc[non_eu_imports_exports['Imp0Exp1'] == 0].rename(columns=imports_dict)
+    unitised_non_eu_exports = non_eu_imports_exports.loc[non_eu_imports_exports['Imp0Exp1'] == 1].rename(columns=exports_dict)
+    unitised_non_eu_imports = ODMatrix(unitised_non_eu_imports[['origin', 'destination', 'trips']], name='unitised_non_eu_imports', pivoted=False)
+    unitised_non_eu_exports = ODMatrix(unitised_non_eu_exports[['origin', 'destination', 'trips']], name='unitised_non_eu_exports', pivoted=False)
+    return unitised_non_eu_imports, unitised_non_eu_exports
+
+
 
 def read_inputs(inputs, hgv_keys):
     """Reads in all input files required for rigid-artic split and conversion
@@ -108,7 +145,8 @@ def read_inputs(inputs, hgv_keys):
     Returns
     -------
     hgv_matrices: dict
-        Dictionary of HGV ODMatrix instances with the keys given in hgv_keys
+        Dictionary of HGV ODMatrix instances with keys 'domestic_bulk_port', 'unitised_eu_imports',
+        'unitised_eu_exports', 'unitised_non_eu_imports' and 'unitised_non_eu_exports'
     ports: pd.DataFrame
         1-column dataframe GB ports with IDs in GBFM zoning and header
         'zone_id'
@@ -136,6 +174,7 @@ def read_inputs(inputs, hgv_keys):
     for key in hgv_keys:
         hgv_matrices[key] = ODMatrix.read_OD_file(inputs[key])
     ports = read_csv(inputs["ports"], ['GBPortctr', 'GBZone'], new_headers=["port_id", "zone_id"])
+    hgv_matrices['unitised_non_eu_imports'], hgv_matrices['unitised_non_eu_exports']= read_non_eu_imports_exports_file(inputs['unitised_non_eu'], ports)
     distance_bands = read_csv(
         inputs["distance_bands"],
         ["start", "end", "rigid", "artic"],
@@ -172,33 +211,110 @@ def read_inputs(inputs, hgv_keys):
         pcu_factors,
     )
 
-    def main(inputs):
-        """Main function for converting from annual tonnes to PCUs and
-        splitting to rigid and articulated HGVs.
+def unitised_to_artic_rigid_trips(unitised_matrix, port_traffic_proportions, direction, commodity_type='unitised'):
+    """Separate a unitised import or export matrix into artic and rigid
+    trips using port traffic rigid and artic proportions.
 
-        Parameters
-        ----------
-        inputs : dict
-            Dictionary of filepaths for all inputs required, which include
-            HGV matrices 'domestic_bulk_port', 'unitised_eu_imports',
-            'unitised_eu_exports' and 'unitised_non_eu', 'ports',
-            'distance_bands', 'gbfm_distance_matrix',
-            'port_traffic_proportions' and 'pcu_factors'
-        """
-        hgv_keys = ['domestic_bulk_port', 'unitised_eu_imports',
-            'unitised_eu_exports', 'unitised_non_eu']
-        # read in inputs
-        (
-            hgv_matrices,
-            ports,
-            distance_bands,
-            gbfm_distance_matrix,
-            port_traffic_proportions,
-            pcu_factors,
-        ) = read_inputs(inputs, hgv_keys)
+    Parameters
+    ----------
+    unitised_matrix : ODMatrix
+        Unitised matrix.
+    port_traffic_proportions : pd.DataFrame
+        Dataframe with columns 'type', 'direction', 'accompanied', 'artic'
+        and 'rigid'
+    commodity_type : str
+        Whether the input matrix is 'unitised' or 'bulk', by default
+        'unitised'.
+    direction : str
+        Whether the input matrix is 'import' or 'export'.
 
-        # Unitised trade - distance bands not required as global factors used
-        # based on whether the matrix is imports or exports
-        unitised_keys = hgv_keys.copy().remove('domestic_bulk_port')
+    Returns
+    -------
+    artic_matrix: ODMatrix
+        The artic proportion of the unitised matrix's trips.
+    rigid_matrix: ODMatrix
+        The rigid proportion of the unitised matrix's trips.
+    """
+    factors = port_traffic_proportions.loc[(port_traffic_proportions.type == commodity_type) & (port_traffic_proportions.direction == direction)]
+    artic_factor = factors.artic.mean()
+    rigid_factor = factors.rigid.mean()
+    artic_matrix = unitised_matrix * (artic_factor/1000)
+    artic_matrix.name = f"{unitised_matrix.name}_artic"
+    rigid_matrix = unitised_matrix * (rigid_factor/1000)
+    rigid_matrix.name = f"{unitised_matrix.name}_rigid"
+
+    return artic_matrix, rigid_matrix
+
+def aggregate_unitised_trips(imports, exports, port_traffic_proportions):
+    """Aggregate all unitised HGV trips.
+
+    Parameters
+    ----------
+    imports : list
+        List of ODMatrix instances representing unitised imports.
+    exports : list
+        List of ODMatrix instances representing unitised exports.
+    port_traffic_proportions : pd.DataFrame
+        Dataframe with columns 'type', 'direction', 'accompanied', 'artic'
+        and 'rigid'
+
+    Returns
+    -------
+    artic_unitised_sum: ODMatrix
+        The aggregation of all articulated unitised trips.
+    rigid_unitised_sum: ODMatrix
+        The aggregation of all rigid unitised trips.
+    """
+    artic_unitised_sum = None
+    rigid_unitised_sum = None
+    for matrix in (imports + exports):
+        if matrix in imports:
+            artic, rigid = unitised_to_artic_rigid_trips(matrix, port_traffic_proportions, 'import')
+        else:
+            artic, rigid = unitised_to_artic_rigid_trips(matrix, port_traffic_proportions, 'export')
+        if not artic_unitised_sum:
+            artic_unitised_sum = artic
+            artic_unitised_sum.name = 'unitised_artic'
+            rigid_unitised_sum = rigid
+            rigid_unitised_sum.name = 'unitised_rigid'
+        else:
+            artic_unitised_sum += artic
+            rigid_unitised_sum += rigid
         
+    return artic_unitised_sum, rigid_unitised_sum
+
+
+def main(inputs):
+    """Main function for converting from annual tonnes to PCUs and
+    splitting to rigid and articulated HGVs.
+
+    Parameters
+    ----------
+    inputs : dict
+        Dictionary of filepaths for all inputs required, which include
+        HGV matrices 'domestic_bulk_port', 'unitised_eu_imports',
+        'unitised_eu_exports' and 'unitised_non_eu', 'ports',
+        'distance_bands', 'gbfm_distance_matrix',
+        'port_traffic_proportions' and 'pcu_factors'
+    """
+    hgv_keys = ['domestic_bulk_port', 'unitised_eu_imports',
+        'unitised_eu_exports']
+    # read in inputs
+    (
+        hgv_matrices,
+        ports,
+        distance_bands,
+        gbfm_distance_matrix,
+        port_traffic_proportions,
+        pcu_factors,
+    ) = read_inputs(inputs, hgv_keys)
+
+    # Unitised trade - distance bands not required as global factors used
+    # based on whether the matrix is imports or exports
+    unitised_imports = [hgv_matrices['unitised_eu_imports'], hgv_matrices['unitised_non_eu_imports']]
+    unitised_exports = [hgv_matrices['unitised_eu_exports'], hgv_matrices['unitised_non_eu_exports']]
+    unitised_artic, unitised_rigid = aggregate_unitised_trips(unitised_imports, unitised_exports, port_traffic_proportions)
+
+    
+
 
