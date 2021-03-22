@@ -14,7 +14,7 @@ system.
 """
 # PyQt imports
 from PyQt5 import QtWidgets, QtGui
-from PyQt5.QtCore import pyqtSlot
+from PyQt5.QtCore import pyqtSlot, Qt
 
 # User-defined imports
 from profile_builder import Profile_Builder
@@ -42,81 +42,100 @@ class tier_converter(QtWidgets.QWidget):
         self.initUI()
 
     def initUI(self):
-        self.setGeometry(500, 200, 500, 500)
+        self.setGeometry(500, 200, 500, 540)
         self.setWindowTitle("Local Freight Tool")
-        self.setWindowIcon(QtGui.QIcon("icon.jpg"))
+        self.setWindowIcon(QtGui.QIcon("TFN_icon.png"))
+
+        logo_label = QtWidgets.QLabel(self)
+        logo_image = QtGui.QPixmap('TFN_title.png')
+        logo_image = logo_image.scaled(210, 50, Qt.KeepAspectRatio, Qt.FastTransformation)
+        logo_label.setGeometry(280, 0, 210, 50)
+        logo_label.setPixmap(logo_image)
 
         labelA = QtWidgets.QLabel(self)
         labelA.setText("Local Freight Tool")
-        labelA.setFont(QtGui.QFont("Arial", 14, QtGui.QFont.Bold))
-        labelA.setGeometry(10, 10, 700, 30)
+        labelA.setFont(QtGui.QFont("Arial", 20, QtGui.QFont.Bold))
+        labelA.setGeometry(10, 10, 700, 40)
 
+        y = 60
+        sep = 40
         labelB = QtWidgets.QLabel(self)
         labelB.setText("Pre-Processing")
         labelB.setFont(QtGui.QFont("Arial", 12, QtGui.QFont.Bold))
-        labelB.setGeometry(10, 50, 700, 30)
+        labelB.setGeometry(10, y, 700, 30)
 
         # Create a push button for 'info'
         next_button = QtWidgets.QPushButton(self)
         next_button.setText("Info")
-        next_button.setGeometry(400, 10, 90, 30)
+        next_button.setGeometry(400, y, 90, 30)
         next_button.clicked.connect(self.on_click_Info)
 
+        y += sep
         # Create a push buttons for menu options
         next_button = QtWidgets.QPushButton(self)
         next_button.setText("0: Combine Centroid and Polygon Shapefiles")
-        next_button.setGeometry(10, 90, 480, 30)
+        next_button.setGeometry(10, y, 480, 30)
         next_button.clicked.connect(self.on_click_CombineShapefiles)
 
+        y += sep
         next_button = QtWidgets.QPushButton(self)
         next_button.setText("1: Produce Zone Correspondence")
-        next_button.setGeometry(10, 130, 480, 30)
+        next_button.setGeometry(10, y, 480, 30)
         next_button.clicked.connect(self.on_click_ProduceGBFMCorrespondence)
 
+        y += sep
         #  Create a push button for Profile Builder
         next_button = QtWidgets.QPushButton(self)
         next_button.setText("2: Time Profile Builder")
-        next_button.setGeometry(10, 170, 480, 30)
+        next_button.setGeometry(10, y, 480, 30)
         next_button.clicked.connect(self.on_click_Profile_Builder)
 
+        y += sep
         labelC = QtWidgets.QLabel(self)
         labelC.setText("Conversion")
         labelC.setFont(QtGui.QFont("Arial", 12, QtGui.QFont.Bold))
-        labelC.setGeometry(10, 200, 700, 30)
+        labelC.setGeometry(10, y, 700, 30)
 
+        y += sep
         next_button = QtWidgets.QPushButton(self)
         next_button.setText("3: HGV Annual Tonne to Annual PCU Conversion")
-        next_button.setGeometry(10, 230, 480, 30)
+        next_button.setGeometry(10, y, 480, 30)
         next_button.clicked.connect(self.on_click_AnnualTonne2PCU)
 
+        y += sep
         next_button = QtWidgets.QPushButton(self)
         next_button.setText("4: HGV Annual PCU to Model Zoning and Time Periods")
-        next_button.setGeometry(10, 270, 480, 30)
+        next_button.setGeometry(10, y, 480, 30)
         next_button.clicked.connect(self.on_click_GBFM2ModelPCU)
 
+        y += sep
         next_button = QtWidgets.QPushButton(self)
         next_button.setText("5: LGV Processing")
-        next_button.setGeometry(10, 310, 480, 30)
+        next_button.setGeometry(10, y, 480, 30)
         next_button.clicked.connect(self.on_click_LGVProcessing)
 
+        y += sep
         labelD = QtWidgets.QLabel(self)
         labelD.setText("Utilities")
         labelD.setFont(QtGui.QFont("Arial", 12, QtGui.QFont.Bold))
-        labelD.setGeometry(10, 340, 700, 30)
+        labelD.setGeometry(10, y, 700, 30)
 
+        y += sep
         next_button = QtWidgets.QPushButton(self)
         next_button.setText("6: Matrix Utilities")
-        next_button.setGeometry(10, 370, 480, 30)
+        next_button.setGeometry(10, y, 480, 30)
         next_button.clicked.connect(self.on_click_MatrixUtilities)
 
+        y += sep
         next_button = QtWidgets.QPushButton(self)
         next_button.setText("7: Delta Process")
-        next_button.setGeometry(10, 410, 480, 30)
+        next_button.setGeometry(10, y, 480, 30)
         next_button.clicked.connect(self.on_click_DeltaProcess)
 
+        y += sep
         next_button = QtWidgets.QPushButton(self)
         next_button.setText("8: Cost Conversion")
-        next_button.setGeometry(10, 450, 480, 30)
+        next_button.setGeometry(10, y, 480, 30)
         next_button.clicked.connect(self.on_click_CostConversion)
 
         self.show()
