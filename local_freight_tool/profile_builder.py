@@ -51,7 +51,7 @@ class Profile_Builder(QtWidgets.QWidget):
 
         self.setGeometry(500, 200, 555, 70 + 24 * (10 + 14))
         self.setWindowTitle("Profile Builder")
-        self.setWindowIcon(QtGui.QIcon("icon.jpg"))
+        self.setWindowIcon(QtGui.QIcon("icon.png"))
 
         labelB = QtWidgets.QLabel(self)
         labelB.setFont(QtGui.QFont("Arial", 10, QtGui.QFont.Bold))

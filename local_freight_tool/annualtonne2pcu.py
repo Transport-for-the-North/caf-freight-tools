@@ -39,7 +39,7 @@ class AnnualTonne2PCU(QtWidgets.QWidget):
     def initUI(self):
         self.setGeometry(500, 200, 500, 400)        
         self.setWindowTitle('Annual Tonne to Annual PCU Conversion')
-        self.setWindowIcon(QtGui.QIcon('icon.jpg'))        
+        self.setWindowIcon(QtGui.QIcon('icon.png'))        
         
         labelB = QtWidgets.QLabel(self)
         labelB.setText('Annual Tonne to Annual PCU Conversion')

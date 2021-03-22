@@ -55,7 +55,7 @@ class MatrixUtilities(QtWidgets.QWidget):
         """Initialises UI"""
         self.setGeometry(500, 200, 500, 700)
         self.setWindowTitle("Matrix Utilities")
-        self.setWindowIcon(QtGui.QIcon("icon.jpg"))
+        self.setWindowIcon(QtGui.QIcon("icon.png"))
 
         y = 10
         input_label = QtWidgets.QLabel(self)
