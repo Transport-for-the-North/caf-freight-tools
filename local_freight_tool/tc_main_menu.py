@@ -28,6 +28,7 @@ from deltaprocess import DeltaProcess
 from utilities import Utilities, info_window
 from text_info import Tier_Converter_Text
 from cost_conversion import WeightedRezone
+from info_window import InfoWindow
 
 # Other packages
 import sys
@@ -44,7 +45,7 @@ class tier_converter(QtWidgets.QWidget):
     def initUI(self):
         self.setGeometry(500, 200, 500, 540)
         self.setWindowTitle("Local Freight Tool")
-        self.setWindowIcon(QtGui.QIcon("TFN_icon.png"))
+        self.setWindowIcon(QtGui.QIcon("icon.png"))
 
         logo_label = QtWidgets.QLabel(self)
         logo_image = QtGui.QPixmap('TFN_title.png')
@@ -148,19 +149,8 @@ class tier_converter(QtWidgets.QWidget):
 
     @pyqtSlot()
     def on_click_Info(self):
-        self.progress = info_window("Local Freight Tool Information")
-        self.progress_label = self.progress.label
-        self.progress_labelA = self.progress.labelA
-        dedented_text = textwrap.dedent(Tier_Converter_Text)
-        line = textwrap.fill(dedented_text, width=140)
-        self.progress_label.setText(line)
-        self.progress_label.move(10, 40)
-        self.progress_labelA.setText("Local Freight Tool Information")
-        self.progress_labelA.setFont(QtGui.QFont("Arial", 10, QtGui.QFont.Bold))
-        self.progress.show()
-
-        def closeEvent(self, event):
-            Utilities.closeEvent(self, event)
+        self.selections_window = InfoWindow(self, 'README.md')
+        self.selections_window.show()
 
     @pyqtSlot()
     def on_click_CombineShapefiles(self):
