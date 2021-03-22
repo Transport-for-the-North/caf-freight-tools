@@ -55,7 +55,7 @@ class ProduceGBFMCorrespondence(QtWidgets.QWidget):
         """Initialises UI"""
         self.setGeometry(500, 200, 510 + 110, 540)
         self.setWindowTitle("Zone Correspondence Tool")
-        self.setWindowIcon(QtGui.QIcon("icon.jpg"))
+        self.setWindowIcon(QtGui.QIcon("icon.png"))
 
         labelB = QtWidgets.QLabel(self)
         labelB.setFont(QtGui.QFont("Arial", 10, QtGui.QFont.Bold))

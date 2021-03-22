@@ -38,7 +38,7 @@ class WeightedRezone(QtWidgets.QWidget):
     def initUI(self):
         self.setGeometry(500, 200, 500, 400)        
         self.setWindowTitle('Cost Conversion')
-        self.setWindowIcon(QtGui.QIcon('icon.jpg'))              
+        self.setWindowIcon(QtGui.QIcon('icon.png'))              
         
         labelB = QtWidgets.QLabel(self)
         labelB.setFont(QtGui.QFont("Arial", 10, QtGui.QFont.Bold))

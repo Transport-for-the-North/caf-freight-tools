@@ -41,7 +41,7 @@ class LGVProcessing(QtWidgets.QWidget):
     def initUI(self):
         self.setGeometry(500, 200, 500, 700)        
         self.setWindowTitle('LGV Processing')
-        self.setWindowIcon(QtGui.QIcon('icon.jpg'))        
+        self.setWindowIcon(QtGui.QIcon('icon.png'))        
         
         labelD = QtWidgets.QLabel(self)
         labelD.setText('LGV Processing Tool')
