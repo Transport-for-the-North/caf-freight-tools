@@ -356,7 +356,7 @@ class ODMatrix:
         print("Rezone finished")
         return rezoned_od_matrix
 
-    def export_to_csv(self, outpath, include_zeros=True, include_headers=True, float_format=None):
+    def export_to_csv(self, outpath, include_zeros=True, include_headers=True, float_format='%.12f'):
         """Export column matrix to csv file
 
         Parameters
@@ -368,6 +368,8 @@ class ODMatrix:
         include_headers: bool, optional
             Whether to include the column headers in the sabed file, by
             default True
+        float_format: str, optional
+            Format of floats in output csv, by default , '%.12f'
         """
         column_matrix = self.column_matrix(include_zeros=include_zeros)
         column_matrix.to_csv(outpath, float_format=float_format, header=include_headers, index=False)
