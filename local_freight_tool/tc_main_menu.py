@@ -48,8 +48,8 @@ class tier_converter(QtWidgets.QWidget):
 
         logo_label = QtWidgets.QLabel(self)
         logo_image = QtGui.QPixmap('TFN_title.png')
-        logo_image = logo_image.scaled(210, 50, Qt.KeepAspectRatio, Qt.FastTransformation)
-        logo_label.setGeometry(280, 0, 210, 50)
+        logo_image = logo_image.scaled(168, 40, Qt.KeepAspectRatio, Qt.FastTransformation)
+        logo_label.setGeometry(320, 10, 168, 40)
         logo_label.setPixmap(logo_image)
 
         labelA = QtWidgets.QLabel(self)
