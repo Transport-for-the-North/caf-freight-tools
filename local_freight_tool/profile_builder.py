@@ -20,7 +20,7 @@ import numpy as np
 import pandas as pd
 from utilities import info_window, Utilities
 import textwrap
-from text_info import Profile_Builder_Text
+from info_window import InfoWindow
 
 
 class Profile_Builder(QtWidgets.QWidget):
@@ -267,14 +267,5 @@ class Profile_Builder(QtWidgets.QWidget):
 
     @pyqtSlot()
     def on_click_Info(self):
-        """Displays profile builder information"""
-        self.progress = info_window("Profile Builder Information")
-        self.progress_label = self.progress.label
-        self.progress_labelA = self.progress.labelA
-        dedented_text = textwrap.dedent(Profile_Builder_Text)
-        line = textwrap.fill(dedented_text, width=140)
-        self.progress_label.setText(line)
-        self.progress_label.move(10, 40)
-        self.progress_labelA.setText("Profile Builder Tool")
-        self.progress_labelA.setFont(QtGui.QFont("Arial", 10, QtGui.QFont.Bold))
-        self.progress.show()
+        self.selections_window = InfoWindow(self, 'README.md')
+        self.selections_window.show()

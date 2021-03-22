@@ -20,7 +20,7 @@ from PyQt5.QtCore import QThread
 
 # User-defined imports
 from utilities import Utilities, progress_window, info_window
-from text_info import Matrix_Processing_Text
+from info_window import InfoWindow
 
 # Other packages
 import textwrap
@@ -91,19 +91,8 @@ class MatrixProcessing(QtWidgets.QWidget):
         
     @pyqtSlot()
     def on_click_Info(self):
-         self.progress = info_window('Matrix Processing')   
-         self.progress_label = self.progress.label
-         self.progress_labelA = self.progress.labelA
-         dedented_text = textwrap.dedent(Matrix_Processing_Text)      
-         line= textwrap.fill(dedented_text, width=140)
-         self.progress_label.setText(line)     
-         self.progress_label.move(10,40)
-         self.progress_labelA.setText('Matrix Processing Tool')  
-         self.progress_labelA.setFont(QtGui.QFont("Arial", 10, QtGui.QFont.Bold))
-         self.progress.show()
-         
-         def closeEvent(self, event):
-            Utilities.closeEvent(self, event)    
+        self.selections_window = InfoWindow(self, 'README.md')
+        self.selections_window.show() 
         
     def closeEvent(self, event):
         close = Utilities.closeEvent(self, event)

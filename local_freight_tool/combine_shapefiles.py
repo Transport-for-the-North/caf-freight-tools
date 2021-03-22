@@ -19,7 +19,7 @@ from PyQt5.QtWidgets import QLineEdit, QDoubleSpinBox
 
 # User-defined imports
 from utilities import Utilities, info_window, progress_window
-from text_info import Combine_Shapefiles_Text
+from info_window import InfoWindow
 
 # Other packages
 import os
@@ -165,23 +165,8 @@ class CombineShapefiles(QtWidgets.QWidget):
 
     @pyqtSlot()
     def on_click_Info(self):
-        """Displays info window
-        """
-        self.progress = info_window("Combine GBFM Shapefiles")
-        self.progress_label = self.progress.label
-        self.progress_labelA = self.progress.labelA
-        dedented_text = textwrap.dedent(Combine_Shapefiles_Text)
-        line = textwrap.fill(dedented_text, width=140)
-        self.progress_label.setText(line)
-        self.progress_label.move(10, 40)
-        self.progress_labelA.setText("Combine GBFM Shapefiles")
-        self.progress_labelA.setFont(QtGui.QFont("Arial", 10, QtGui.QFont.Bold))
-        self.progress.show()
-
-        def closeEvent(self, event):
-            """Closes info window
-            """
-            Utilities.closeEvent(self, event)
+        self.selections_window = InfoWindow(self, 'README.md')
+        self.selections_window.show()
 
 
 class background_thread(QThread):

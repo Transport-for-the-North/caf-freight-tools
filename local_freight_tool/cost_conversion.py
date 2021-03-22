@@ -20,7 +20,7 @@ from PyQt5.QtCore import QThread
 
 # User-defined imports
 from utilities import Utilities, progress_window, info_window
-from text_info import Cost_Conversion_Text
+from info_window import InfoWindow
 from rezone import Rezone as rz
 
 # Other packages
@@ -95,19 +95,8 @@ class WeightedRezone(QtWidgets.QWidget):
         
     @pyqtSlot()
     def on_click_Info(self):
-         self.progress = info_window('Cost Conversion')   
-         self.progress_label = self.progress.label
-         self.progress_labelA = self.progress.labelA
-         dedented_text = textwrap.dedent(Cost_Conversion_Text)        
-         line = textwrap.fill(dedented_text, width=140)
-         self.progress_label.setText(line)     
-         self.progress_label.move(10,40)
-         self.progress_labelA.setText('Cost Conversion Tool')  
-         self.progress_labelA.setFont(QtGui.QFont("Arial", 10, QtGui.QFont.Bold))
-         self.progress.show()
-         
-         def closeEvent(self, event):
-            Utilities.closeEvent(self, event)    
+        self.selections_window = InfoWindow(self, 'README.md')
+        self.selections_window.show()
         
     def closeEvent(self, event):
         close = Utilities.closeEvent(self, event)

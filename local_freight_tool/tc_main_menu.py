@@ -26,7 +26,6 @@ from combine_shapefiles import CombineShapefiles
 from producegbfmcorrespondence import ProduceGBFMCorrespondence
 from deltaprocess import DeltaProcess
 from utilities import Utilities, info_window
-from text_info import Tier_Converter_Text
 from cost_conversion import WeightedRezone
 from info_window import InfoWindow
 
