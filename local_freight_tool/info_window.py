@@ -67,11 +67,29 @@ class InfoWindow(QtWidgets.QWidget):
 
     def loadPage(self):
         with open(self.readme, 'r') as f:
-            text = f.read()
-            html = markdown.markdown(text, extensions=['toc'])
-            # TODO see if can add css to head
-            # TODO see if can set scrollbar position to specific line position
-            self.webEngineView.setHtml(html)
+            lines = f.readlines()
+        try:
+            intro_end = lines.index('## Profile Builder\n')
+        except:
+            intro_end = 0
+        try:
+            calcs_start = lines.index('### Zone Correspondence Calculations\n') + 1
+            calcs_end = lines.index('#### Missing Zones\n')
+        except:
+            calcs_start = 0
+            calcs_end = 0
+        text = '[TOC]\n'
+        # TODO MAKE IT SO CAN'T ALLOW EXTERNAL LINKS - webbrowser.open()??
+        for line in (lines[intro_end:calcs_start] + lines[calcs_end:]):
+            if not ((line.startswith('![')) | (line.startswith('<!'))):
+                text += line
+            if line == '### Zone Correspondence Calculations\n':
+                text += 'See user guide for detailed information.\n'
+        html = STYLESHEET
+        html += markdown.markdown(text, extensions=['tables', 'toc'])
+        self.webEngineView.setHtml(html)
+        
+        
 
     def closeEvent(self, event):
         """Closes the window"""
