@@ -157,13 +157,12 @@ class ODMatrix:
             Raised if the factor is neither a number nor an ODMatrix.
         """
         if isinstance(factor, (int, float)):
-            print("Factoring by scalar")
             if factor < 0:
                 raise ValueError("The factor cannot be negative.")
             factored = self.matrix * factor
             name = f"{self.name}_by_{factor}"
         elif isinstance(factor, ODMatrix):
-            matrix_1_aligned, matrix_2_aligned = self.align(self, factor)
+            matrix_1_aligned, matrix_2_aligned = self.align(self, factor, fill_value=1)
             if (matrix_2_aligned < 0).sum().sum() > 0:
                 raise ValueError(
                     "There can be no negative values in the factoring matrix"
@@ -201,6 +200,12 @@ class ODMatrix:
         }
 
         return summary
+    
+    def max(self):
+        return self.matrix.max().max()
+    
+    def min(self):
+        return self.matrix.min().min()
 
     def column_matrix(self, include_zeros=True):
         """Transforms the matrix of the ODMatrix instance into a 3 column
@@ -553,7 +558,7 @@ class ODMatrix:
         return matrix
 
     @staticmethod
-    def align(matrix_1, matrix_2):
+    def align(matrix_1, matrix_2, fill_value = 0):
         """Aligns the pivot dataframes of two ODMatrix instances via an outer
         join.
 
@@ -571,7 +576,7 @@ class ODMatrix:
         pd.DataFrame
             Aligned version of matrix_2's pivoted DataFrame
         """
-        return matrix_1.matrix.align(matrix_2.matrix, join="outer", fill_value=0)
+        return matrix_1.matrix.align(matrix_2.matrix, join="outer", fill_value=fill_value)
 
     @staticmethod
     def check_file_header(filepath):
