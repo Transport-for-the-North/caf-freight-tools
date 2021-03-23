@@ -48,7 +48,11 @@
    {% endif %}
    {% endblock %}
 
+   {% block docs %}
+   {% if classes or functions or exceptions %}
    Documentation
    -------------
-   Documentation of any functions, classes or exceptions in {{ fullname }} module.
+   Documentation of classes, functions or exceptions in {{ fullname }} module.
+   {% endif %}
+   {% endblock %}
 

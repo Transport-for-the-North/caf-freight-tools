@@ -50,9 +50,8 @@ autoclass_content = 'both'
 autodoc_default_options = {
     'undoc-members': True,
     'show-inheritance': True,
-    'special-members': True,
-    'private-members': True,
-    'undoc-members': True,
+    'special-members': False,
+    'private-members': False,
     'exclude-members': '__module__, __weakref__, __dict__',
 }
 
