@@ -73,7 +73,7 @@ class tier_converter(QtWidgets.QWidget):
         y += sep
         # Create a push buttons for menu options
         next_button = QtWidgets.QPushButton(self)
-        next_button.setText("0: Combine Centroid and Polygon Shapefiles")
+        next_button.setText("0: Combine Point and Polygon Shapefiles")
         next_button.setGeometry(10, y, 480, 30)
         next_button.clicked.connect(self.on_click_CombineShapefiles)
 

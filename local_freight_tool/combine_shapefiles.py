@@ -54,11 +54,11 @@ class CombineShapefiles(QtWidgets.QWidget):
         """Initialises UI
         """
         self.setGeometry(500, 200, 500, 330)
-        self.setWindowTitle("Combine Shapefiles")
+        self.setWindowTitle("Combine Point and Polygon Shapefiles")
         self.setWindowIcon(QtGui.QIcon("icon.png"))
 
         labelD = QtWidgets.QLabel(self)
-        labelD.setText("Combine GBFM Shapefiles")
+        labelD.setText("Combine Point and Polygon Shapefiles")
         labelD.setFont(QtGui.QFont("Arial", 10, QtGui.QFont.Bold))
         labelD.setGeometry(10, 10, 700, 30)
 
@@ -75,7 +75,7 @@ class CombineShapefiles(QtWidgets.QWidget):
         self.gbfm_polygons = Utilities.add_file_selection(
             self,
             y,
-            "Choose GBFM Polygons shapefile:",
+            "Choose polygons shapefile:",
             directory=False,
             filetype="Shapefile (*.shp *.SHP)",
         )
@@ -83,7 +83,7 @@ class CombineShapefiles(QtWidgets.QWidget):
         self.gbfm_centroids = Utilities.add_file_selection(
             self,
             y,
-            "Choose GBFM Centroids shapefile:",
+            "Choose points shapefile:",
             directory=False,
             filetype="Shapefile (*.shp *.SHP)",
         )
@@ -144,12 +144,12 @@ class CombineShapefiles(QtWidgets.QWidget):
             or self.gbfm_centroids.text().strip() == ""
         ):
             alert = QtWidgets.QMessageBox(self)
-            alert.setWindowTitle("Combine GBFM Shapefiles")
+            alert.setWindowTitle("Combine Point and Polygon Shapefiles")
             alert.setText("Error: you must specify both file paths first")
             alert.show()
         elif self.outpath.text().strip() == "":
             alert = QtWidgets.QMessageBox(self)
-            alert.setWindowTitle("Combine GBFM Shapefiles")
+            alert.setWindowTitle("Combine Point and Polygon Shapefiles")
             alert.setText("Error: you must specify an output folder")
             alert.show()
         else:
@@ -211,7 +211,7 @@ class background_thread(QThread):
             ]
             if gbfm_points.empty:
                 self.progress_label.setText(
-                    "No zones found in centroids file which aren't already in polygon "
+                    "No zones found in points file which aren't already in polygon "
                     "file, so no output file created. You may exit the program"
                 )
 
