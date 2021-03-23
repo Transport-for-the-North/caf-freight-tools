@@ -116,18 +116,24 @@ class InfoWindow(QtWidgets.QWidget):
         with open(self.readme, 'r') as f:
             lines = f.readlines()
         try:
-            calcs_start = lines.index('### Zone Correspondence Calculations\n')
+            intro_end = lines.index('## Profile Builder\n')
+        except:
+            intro_end = 0
+        try:
+            calcs_start = lines.index('### Zone Correspondence Calculations\n') + 1
             calcs_end = lines.index('#### Missing Zones\n')
         except:
             calcs_start = 0
             calcs_end = 0
-        text = ''
-        for line in (lines[:calcs_start] + lines[calcs_end:]):
+        text = '[TOC]\n'
+        # TODO MAKE IT SO CAN'T ALLOW EXTERNAL LINKS - webbrowser.open()??
+        for line in (lines[intro_end:calcs_start] + lines[calcs_end:]):
             if not ((line.startswith('![')) | (line.startswith('<!'))):
                 text += line
+            if line == '### Zone Correspondence Calculations\n':
+                text += 'See user guide for detailed information.\n'
         html = STYLESHEET
-        html += markdown.markdown(text, extensions=['tables'])
-        # TODO see if can set scrollbar position to specific line position
+        html += markdown.markdown(text, extensions=['tables', 'toc'])
         self.webEngineView.setHtml(html)
         
         
