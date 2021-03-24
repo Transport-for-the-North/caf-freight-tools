@@ -15,17 +15,15 @@ external-external trips and converting to UFM.
 # PyQt imports
 from PyQt5 import QtWidgets, QtGui
 from PyQt5.QtCore import pyqtSlot, QThread, Qt
-from PyQt5.QtWidgets import QLineEdit, QCheckBox, QDoubleSpinBox
+from PyQt5.QtWidgets import QCheckBox
 
 
 # User-defined imports
-from utilities import Utilities, info_window, progress_window
+from utilities import Utilities, progress_window
 from info_window import InfoWindow
 from matrix_utilities import ODMatrix
-from rezone import Rezone
 
 # Other packages
-import textwrap
 import os
 import pandas as pd
 
