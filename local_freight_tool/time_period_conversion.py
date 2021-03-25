@@ -9,8 +9,10 @@
 import calendar
 import time
 import itertools
+import re
+import pprint
 from pathlib import Path
-from typing import Dict
+from typing import Dict, List
 
 # Third party imports
 import numpy as np
@@ -24,6 +26,129 @@ import errors
 
 
 ##### CLASSES #####
+class TimeProfiles:
+    """Class for reading and extracting the time profile data,
+
+    This class will read the time profiles CSV created by the
+    `profile_builder` module and extract the hours, days and
+    months for each time period. This class can be passed to
+    `HGVProfiles.time_period_factor` to calculate factors for
+    each time period.
+
+    Parameters
+    ----------
+    path : Path
+        Path to the time profiles CSV, should contain the
+        following columns: name, days, hr_start, hr_end and
+        months.
+
+    Raises
+    ------
+    FileNotFoundError
+        If the path provided doesn't exist or isn't a CSV,
+        or TXT, file.
+
+    See Also
+    --------
+    - `HGVProfiles.time_period_factor` for using the information
+      within this class to create factors for converting annual
+      PCUs into time period PCUs.
+    - `profile_builder.ProfileBuilder` which creates a UI to allow
+      the user to create the time profiles input file.
+    """
+
+    NAME = "Time Period Profiles"
+    EXPECTED_COLUMNS = ["name", "days", "hr_start", "hr_end", "months"]
+    """List of the columns required in the input file."""
+
+    def __init__(self, path: Path):
+        self.path = Path(path)
+        if (
+            not self.path.exists()
+            or not self.path.is_file()
+            or self.path.suffix.lower() not in (".csv", ".txt")
+        ):
+            raise FileNotFoundError(
+                f"Time profiles file is not an existing CSV: {path}"
+            )
+        self._time_periods = None
+
+    def read_input(self) -> Dict[str, Dict[str, List]]:
+        """Read the CSV file and produce a dictionary of the time period data.
+
+        Returns
+        -------
+        Dict[str, Dict[str, List]]
+            Contains key / value pairs for each time period where
+            the key is the time period name and the value is another
+            dictionary containing the following:
+            - hours: list of integer hours for the time period e.g. [12, 13]
+            - days: list of lowercase day names e.g. ["monday"]
+            - months: list of lowercase month names e.g. ["january"]
+        """
+
+        def str_list(s: str, column: str, tp: str) -> List[str]:
+            """Convert a string representation of a list to a list."""
+            ls = re.sub(r"\[|\]", "", s).split(",")
+            # Remove any empty strings from list
+            ls = [s.strip() for s in ls if s.strip() != ""]
+            if ls == []:
+                raise errors.MissingDataError(
+                    self.NAME, f"no {column} found for time period '{tp}'"
+                )
+            return ls
+
+        df = pd.read_csv(self.path)
+        missing = [c for c in self.EXPECTED_COLUMNS if c not in df.columns]
+        if missing:
+            raise errors.MissingColumnsError(self.NAME, missing)
+
+        periods = {}
+        for _, row in df.iterrows():
+            nm = str(row["name"])
+            start = int(row["hr_start"])
+            end = int(row["hr_end"])
+            if end < start:
+                hours = list(range(start, 24)) + list(range(0, end))
+            else:
+                hours = list(range(start, end))
+
+            days = str_list(row["days"], "days", nm)
+            days = [calendar.day_name[int(i)].lower() for i in days]
+            months = str_list(row["months"], "months", nm)
+            # calendar.month_name starts with empty string so adding 1 to index
+            months = [calendar.month_name[int(i) + 1].lower() for i in months]
+            periods[nm] = {"hours": hours, "days": days, "months": months}
+
+        return periods
+
+    @property
+    def time_periods(self) -> Dict[str, Dict[str, List]]:
+        """Dictionary of time period information.
+
+        Returns
+        -------
+        Dict[str, Dict[str, List]]
+            Contains key / value pairs for each time period where
+            the key is the time period name and the value is another
+            dictionary containing the following:
+            - hours: list of integer hours for the time period e.g. [12, 13]
+            - days: list of lowercase day names e.g. ["monday"]
+            - months: list of lowercase month names e.g. ["january"]
+
+        See Also
+        --------
+        `TimeProfiles.read_input` which gets this information from
+        the input file.
+        """
+        if self._time_periods is None:
+            self._time_periods = self.read_input()
+        return self._time_periods
+
+    def __str__(self) -> str:
+        return str(self.time_periods)
+
+
 class HGVProfiles:
     """Class which calculates average HGV time profile distribution.
 
@@ -381,6 +506,9 @@ class HGVProfiles:
             self._weekly_avg = self.calc_weekly_average()
         return self._weekly_avg
 
+    def time_period_factor(self, profiles: TimeProfiles) -> float:
+        raise NotImplementedError("WIP")
+
 
 ##### FUNCTIONS #####
 def read_excel(path: Path, sheet: str, name: str, **kwargs) -> pd.DataFrame:
@@ -445,7 +573,7 @@ def rename_columns(df: pd.DataFrame, rename: Dict[str, str], name: str) -> pd.Da
     return df[rename.keys()].rename(columns=rename)
 
 
-def main(profile_path: Path, output_folder: Path):
+def main(output_folder: Path, profile_path: Path, time_profile_path: Path):
     output_folder = Path(output_folder)
     output_folder.mkdir(exist_ok=True, parents=True)
 
@@ -455,6 +583,12 @@ def main(profile_path: Path, output_folder: Path):
     with pd.ExcelWriter(out, engine="openpyxl") as writer:
         hgv_profiles.monthly_avg.to_excel(writer, sheet_name="Monthly Average")
         hgv_profiles.weekly_avg.to_excel(writer, sheet_name="Weekly Average")
+    print(f"Written: {out}")
+
+    # Read time profiles data
+    time_profiles = TimeProfiles(time_profile_path)
+    print("Time Period Profiles:")
+    pprint.pp(time_profiles.time_periods, width=100)
 
 
 ##### MAIN #####
@@ -468,7 +602,8 @@ if __name__ == "__main__":
         r"C:\WSP_Projects\TfN Local Freight Model\01 - Delivery\01 - Task 1\Test Outputs\Time Period Conversion"
     )
     input_file = data_folder / "time_period_conversion_inputs.xlsx"
+    time_period_file = data_folder / "Profile_Selection.csv"
 
-    start = time.perf_counter()
-    main(input_file, out_folder)
-    print(f"Time taken: {time.perf_counter() - start}s")
+    start_time = time.perf_counter()
+    main(out_folder, input_file, time_period_file)
+    print(f"Time taken: {time.perf_counter() - start_time}s")
