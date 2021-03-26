@@ -175,6 +175,38 @@ class ODMatrix:
             )
 
         return ODMatrix(factored, name=name)
+    
+    def __truediv__(self, divisor):
+        """Divide the current ODMatrix instance by a positive scalar value.
+
+        Parameters
+        ----------
+        divisor : int or float
+            Number to divide the matrix by
+
+        Returns
+        -------
+        ODMatrix
+            Original ODMatrix divided by divisor.
+
+        Raises
+        ------
+        ValueError
+            If the divisor given is negative.
+        TypeError
+            If the divisor given is not a number.
+        """
+        if isinstance(scalar, (int, float)):
+            if scalar < 0:
+                raise ValueError("The divisor cannot be negative.")
+            divided = self.matrix / divisor
+            name = f"{self.name}_divided"
+        else:
+            raise TypeError(
+                "O-D matrix devision is only defined with a integer or float divisor."
+            )
+        
+        return ODMatrix(divided, name=name)
 
     def summary(self):
         """Calculates total number of trips, the mean, standard deviation,
