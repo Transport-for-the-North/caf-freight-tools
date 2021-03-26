@@ -196,8 +196,8 @@ class ODMatrix:
         TypeError
             If the divisor given is not a number.
         """
-        if isinstance(scalar, (int, float)):
-            if scalar < 0:
+        if isinstance(divisor, (int, float)):
+            if divisor < 0:
                 raise ValueError("The divisor cannot be negative.")
             divided = self.matrix / divisor
             name = f"{self.name}_divided"

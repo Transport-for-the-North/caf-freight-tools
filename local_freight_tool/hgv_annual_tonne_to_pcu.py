@@ -26,6 +26,7 @@ class TonneToPCU:
     """Class for the HGV artic-rigid split and annual tonnage to annual PCU
     conversion.
     """
+
     def __init__(
         self,
         inputs,
@@ -39,7 +40,7 @@ class TonneToPCU:
         inputs : dict
             Dictionary of all input file paths as strings, with keys
             'domestic_bulk_port', 'unitised_eu_imports', 'unitised_eu_exports'
-            and 'unitised_non_eu', 'ports', 'distance_bands',#
+            and 'unitised_non_eu', 'ports', 'distance_bands',
             'gbfm_distance_matrix', 'port_traffic_proportions' and
             'pcu_factors'.
         hgv_keys : list, optional
@@ -373,7 +374,7 @@ class TonneToPCU:
                     .combine_first(aligned_destinations)
                 )
                 factors[factors.isnull()] = default_pcu_factors[key]
-                factors = ODMatrix(factors, name="pcu_factors")
+                factors = ODMatrix(factors, name=f"{key}_pcu_factors")
 
                 self.pcu_factors[key] = factors
 
@@ -430,7 +431,9 @@ class TonneToPCU:
         finally:
             trip_summary = {}
             for key in self.total_trips.keys():
-                trip_summary[f"{key}_total_annual_trips"] = self.total_trips[key].summary()
+                trip_summary[f"{key}_total_annual_trips"] = self.total_trips[
+                    key
+                ].summary()
 
             return trip_summary
 
@@ -452,7 +455,7 @@ class TonneToPCU:
                 pcu_summary[f"{key}_total_annual_pcus"] = self.total_pcus[key].summary()
 
             return pcu_summary
-    
+
     def summary_df(self):
         """Outputs summary of all OD Matrices involved in the conversion
         process, including the input HGVs, the total calculated O-D trip
@@ -467,10 +470,12 @@ class TonneToPCU:
         trip_summary = self.total_trips_summary()
         pcu_summary = self.pcu_output_summary()
 
-        summary_df = pd.DataFrame.from_dict({**hgv_summary , **trip_summary , **pcu_summary}, orient='index')
-
+        summary_df = pd.DataFrame.from_dict(
+            {**hgv_summary, **trip_summary, **pcu_summary}, orient="index"
+        )
+        summary_df.index.name = "Matrix"
         return summary_df
-    
+
     def save_pcu_outputs(self, output_folder):
         """Saves the PCU output matrices as csvs.
 
@@ -485,7 +490,9 @@ class TonneToPCU:
             self.run_conversion()
         finally:
             for key in self.total_pcus.keys():
-                self.total_pcus[key].export_to_csv(output_folder / Path(f"{self.total_pcus[key].name}.csv"))
+                self.total_pcus[key].export_to_csv(
+                    output_folder / Path(f"{self.total_pcus[key].name}.csv")
+                )
 
     @staticmethod
     def read_csv(path, columns, new_headers=None, numerical_columns=None):
