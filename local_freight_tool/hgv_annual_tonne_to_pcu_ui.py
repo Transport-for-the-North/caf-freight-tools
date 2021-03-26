@@ -186,8 +186,8 @@ class background_thread(QThread):
 
         Parameters
         ----------
-        MatrixUtilities : Class
-            GUI class for matrix utilities
+        TonneToPCUInterface : Class
+            GUI class for tonne to pcu conversion.
         """
         QThread.__init__(self)
         self.progress_window = TonneToPCUInterface.progress
@@ -198,7 +198,7 @@ class background_thread(QThread):
         self.outpath = Path(f"{TonneToPCUInterface.outpath}")
 
     def run(self):
-        """Runs matrix processes"""
+        """Runs hgv tonne to pcu conversion process"""
         try:
             start = time.perf_counter()
             progress_df = pd.DataFrame(

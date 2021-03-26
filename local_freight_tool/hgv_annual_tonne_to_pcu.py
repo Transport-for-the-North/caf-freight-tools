@@ -42,7 +42,18 @@ class TonneToPCU:
             'domestic_bulk_port', 'unitised_eu_imports', 'unitised_eu_exports'
             and 'unitised_non_eu', 'ports', 'distance_bands',
             'gbfm_distance_matrix', 'port_traffic_proportions' and
-            'pcu_factors'.
+            'pcu_factors'. All input files must be csvs with columns:
+            - domestic_bulk_port, unitised_eu_imports, unitised_eu_exports,
+            gbfm_distance_matrix: origin, destination and
+            trips, there is no need for headers.
+            - unitised_non_eu: "Imp0Exp1", "GBPortctr", "GBRawZone",
+                                "Traffic".
+            - ports: "GBPortctr", "GBZone".
+            - distance_bands: "start", "end", "rigid", "artic".
+            - port_traffic_proportions: "type", "direction", "accompanied",
+                                        "artic", "rigid".
+            - pcu_factors: "zone", "direction", "artic", "rigid". There must
+                            also be a default row.
         hgv_keys : list, optional
             Keys in inputs dictionary corresponding to HGV matrix strings,
             except the EU non-EU import/export matrix, by default
