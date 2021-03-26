@@ -25,6 +25,52 @@ import os
 from pathlib import Path
 import markdown
 
+STYLESHEET = (
+            r'<head>'
+            r'<style>'
+            r'body {'
+            r'  background-color: White;'
+            r'  font-family: Arial;'
+            r'}'
+
+            r'h1 {'
+            r'  color: DarkBlue;'
+            r'  font-size: 24px;'
+            r'}'
+            r'h2 {'
+            r'  color: DarkBlue;'
+            r'  font-size: 20px;'
+            r'}'
+            r'h3 {'
+            r'  color: DarkBlue;'
+            r'  font-size: 17px;'
+            r'}'
+            r'h4 {'
+            r'  color: DarkBlue;'
+            r'  font-size: 15px;'
+            r'}'
+            r'h5 {'
+            r'  color: DarkBlue;'
+            r'  font-size: 14px;'
+            r'}'
+            r'p {'
+            r'  font-size: 14px;'
+            r'}'
+            r'li {'
+            r'  font-size: 14px;'
+            r'}'
+            r'table {'
+            r'  font-size: 14px;'
+            r'  border: 1px solid black;'
+            r'  padding: 10px;'
+            r'  text-align: left;'
+            r'}'
+            r'a {'
+            r'  color: black;'
+            r'}'
+            r'</style>'
+            r'</head>'
+            r'<body>')
 
 class InfoWindow(QtWidgets.QWidget):
     """Local Freight Tool Information window.
