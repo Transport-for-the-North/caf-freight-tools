@@ -17,7 +17,8 @@ from utilities import Utilities
 from PyQt5 import QtWidgets, QtGui
 from PyQt5.QtCore import pyqtSlot, QEventLoop, QUrl
 from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout
-from PyQt5.QtWebEngineWidgets import QWebEngineView
+#from PyQt5.QtWebEngineWidgets import QWebEngineView
+from PyQt5 import QtWebEngineWidgets
 
 # Other packages
 import os
@@ -101,12 +102,16 @@ class InfoWindow(QtWidgets.QWidget):
         self.setWindowTitle("Local Freight Tool Information")
         self.setWindowIcon(QtGui.QIcon("icon.png"))
 
-        self.webEngineView = QWebEngineView()
+        #self.webEngineView = QWebEngineView()
+        self.view = QtWebEngineWidgets.QWebEngineView()
+        self.page = QtWebEngineWidgets.QWebEnginePage()
         self.loadPage()
+        self.view.setPage(self.page)
 
         vbox = QVBoxLayout()
         vbox.setContentsMargins(0, 0, 0, 0)
-        vbox.addWidget(self.webEngineView)
+        #vbox.addWidget(self.webEngineView)
+        vbox.addWidget(self.view)
 
         self.setLayout(vbox)
 
@@ -134,9 +139,7 @@ class InfoWindow(QtWidgets.QWidget):
                 text += 'See user guide for detailed information.\n'
         html = STYLESHEET
         html += markdown.markdown(text, extensions=['tables', 'toc'])
-        self.webEngineView.setHtml(html)
-        
-        
+        self.page.setHtml(html)
 
     def closeEvent(self, event):
         """Closes the window"""
