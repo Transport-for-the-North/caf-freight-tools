@@ -92,7 +92,7 @@ class ODMatrix:
         """
         matrix_1_aligned, matrix_2_aligned = self.align(self, other_matrix)
         sum = matrix_1_aligned + matrix_2_aligned
-        name = f"{self.name}_add_{other_matrix.name}"
+        name = f"{self.name}_add"
 
         # make sure there are no negative trips by setting then to 0
         sum[sum < 0] = 0
@@ -128,7 +128,7 @@ class ODMatrix:
         """
         matrix_1_aligned, matrix_2_aligned = self.align(self, other_matrix)
         subtracted = matrix_1_aligned - matrix_2_aligned
-        name = f"{self.name}_sub_{other_matrix.name}"
+        name = f"{self.name}_sub"
 
         # make sure there are no negative trips by setting then to 0
         subtracted[subtracted < 0] = 0
@@ -160,7 +160,7 @@ class ODMatrix:
             if factor < 0:
                 raise ValueError("The factor cannot be negative.")
             factored = self.matrix * factor
-            name = f"{self.name}_by_{factor}"
+            name = f"{self.name}_factored"
         elif isinstance(factor, ODMatrix):
             matrix_1_aligned, matrix_2_aligned = self.align(self, factor, fill_value=1)
             if (matrix_2_aligned < 0).sum().sum() > 0:
@@ -168,7 +168,7 @@ class ODMatrix:
                     "There can be no negative values in the factoring matrix"
                 )
             factored = matrix_1_aligned * matrix_2_aligned
-            name = f"{self.name}_by_{factor.name}"
+            name = f"{self.name}_factored"
         else:
             raise TypeError(
                 "Can only multiply an O-D matrix by a scalar or another O-D matrix"

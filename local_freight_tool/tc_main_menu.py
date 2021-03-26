@@ -18,7 +18,7 @@ from PyQt5.QtCore import pyqtSlot, Qt
 
 # User-defined imports
 from profile_builder import Profile_Builder
-from annualtonne2pcu import AnnualTonne2PCU
+from hgv_annual_tonne_to_pcu_ui import TonneToPCU
 from matrix_utilities_ui import MatrixUtilities
 from gbfm2modelpcu import GBFM2ModelPCU
 from lgvprocessing import LGVProcessing
@@ -165,7 +165,7 @@ class tier_converter(QtWidgets.QWidget):
 
     @pyqtSlot()
     def on_click_AnnualTonne2PCU(self):
-        self.selections_window = AnnualTonne2PCU(self)
+        self.selections_window = TonneToPCU(self)
         self.hide()
         self.selections_window.show()
 
