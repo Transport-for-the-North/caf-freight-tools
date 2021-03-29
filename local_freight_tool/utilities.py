@@ -23,6 +23,8 @@ import json
 import csv
 import pandas as pd
 from itertools import islice
+from pathlib import Path
+
 
  # Function which asks the user if they really want to trigger sys.exit()
 class Utilities(QtWidgets.QWidget):
@@ -393,3 +395,87 @@ def getSeparator(format, parameter=None):
         # Raise error for wrong format given
         expected = list(forms.keys())
         raise IncorrectParameterError(format, parameter=parameter, expected=expected)
+
+
+def check_file_path(path: Path, name: str, *extensions: str) -> bool:
+    """Check that the given `path` is an existing file.
+
+    Also checks if the file contains the correct file
+    extension, if any are given.
+
+    Parameters
+    ----------
+    path : Path
+        Path to be checked.
+    name : str
+        Name used for error messages.
+    *extensions : str, optional
+        Any number of extension strings to check
+        e.g. ".csv", ".txt"
+
+    Returns
+    -------
+    bool
+        True, if the file exists and has the correct
+        extension.
+
+    Raises
+    ------
+    FileNotFoundError
+        If the file doesn't exist, is a folder or
+        isn't the correct extension.
+    """
+    path = Path(path)
+    if not path.exists():
+        raise FileNotFoundError(f"{name} file does not exist: {path}")
+    if not path.is_file():
+        raise FileNotFoundError(f"{name} is a folder not a file: {path}")
+    if extensions is not None:
+        extensions = [s.lower() for s in extensions]
+        if path.suffix.lower() not in extensions:
+            msg = " or".join(", ".join(extensions).rsplit(",", 1))
+            raise FileNotFoundError(
+                f"{name} should file of type {msg} not: {path.suffix}"
+            )
+    return True
+
+
+def check_folder(path: Path, name: str, create: bool = False) -> True:
+    """Checks if given `path` is an existing folder.
+
+    Can create a new folder if it doesn't already
+    exist.
+
+    Parameters
+    ----------
+    path : Path
+        Path to check.
+    name : str
+        Name used for error messages.
+    create : bool, optional
+        Whether the folder should be created if it doesn't
+        already exist, by default False
+
+    Returns
+    -------
+    bool
+        True if the folder already exists and
+        False if the folder had to be created.
+
+    Raises
+    ------
+    NotADirectoryError
+        If the given `path` is a file not a folder.
+    FileNotFoundError
+        If the folder doesn't exist and `create` is
+        False.
+    """
+    path = Path(path)
+    if path.is_dir():
+        return True
+    if path.is_file():
+        raise NotADirectoryError(f"{name} is a file when it should be a folder: {path}")
+    if create:
+        path.mkdir(parents=True)
+        return False
+    raise FileNotFoundError(f"{name} folder does not exist: {path}")
