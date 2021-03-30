@@ -71,7 +71,7 @@ class TonneToPCUInterface(QtWidgets.QWidget):
         label_spacing = 50
         y += label_spacing
 
-        input_text = {
+        self.input_text = {
             "domestic_bulk_port": "domestic and bulk port matrix",
             "unitised_eu_imports": "unitised EU imports matrix",
             "unitised_eu_exports": "unitised EU exports matrix",
@@ -84,11 +84,11 @@ class TonneToPCUInterface(QtWidgets.QWidget):
         }
         input_spacing = 60
         self.inputs = {}
-        for key in input_text.keys():
+        for key in self.input_text.keys():
             self.inputs[key] = Utilities.add_file_selection(
                 self,
                 y,
-                f"Select the {input_text[key]} (.csv, .txt)",
+                f"Select the {self.input_text[key]} (.csv, .txt)",
                 filetype="Comma-separated Values (*.csv *.CSV *.txt *.TXT)",
             )
             y += input_spacing
@@ -128,24 +128,40 @@ class TonneToPCUInterface(QtWidgets.QWidget):
 
     def run_button_clicked(self):
         """Initialises process once run button is clicked."""
-        self.outpath = self.outpath.text().strip()
+        not_file = []
         for key in self.inputs.keys():
-            self.inputs[key] = self.inputs[key].text().strip()
+            if not Path(self.inputs[key].text().strip()).is_file():
+                not_file += [key]
 
         # show alert if not all inputs have been given
-        if "" in self.inputs.values():
+        if not_file:
+            files_missing = ""
+            for i, value in enumerate(not_file):
+                files_missing += f" {self.input_text[value]}"
+                if i != len(not_file) - 1:
+                    files_missing += ","
             alert = QtWidgets.QMessageBox(self)
             alert.setWindowTitle("HGV Annual Tonne to PCU")
-            alert.setText("Error: you must specific all input files")
+            alert.setText(
+                "Error: Missing input files!\n"
+                f"Files missing: {files_missing}.\n"
+                "Please select these files to run the conversion process."
+            )
             alert.show()
         # show alert if output folder has not been given
-        elif self.outpath == "":
+        elif not Path(self.outpath.text().strip()).is_dir():
             alert = QtWidgets.QMessageBox(self)
             alert.setWindowTitle("HGV Annual Tonne to PCU")
-            alert.setText("Error: you must specifiy an output folder")
+            alert.setText("Error: No output folder!\n"
+                        "The output folder specified is not a folder. "
+                        "Please specify an output folder to run the "
+                        "conversion process.")
             alert.show()
         # run processes if no errors
         else:
+            for key in self.inputs.keys():
+                self.inputs[key] = self.inputs[key].text().strip()
+            self.outpath = self.outpath.text().strip()
             self.progress = progress_window(
                 "HGV Annual Tonne to PCU", self.tier_converter
             )

@@ -71,6 +71,9 @@ class TonneToPCU:
 
         Raises
         ------
+        KeyError
+            Raised when there are missing O-D pairs in the GBFM distance
+            matrix.
         ValueError
             Raised when duplicate zone-direction values are found in the PCU
             factors file.
@@ -94,6 +97,25 @@ class TonneToPCU:
         self.inputs["gbfm_distance_matrix"] = ODMatrix.read_OD_file(
             self.input_files["gbfm_distance_matrix"]
         )
+
+        # Check all zones in the domestic and bulk port matrix are present in
+        # the GBFM distance matrix
+        some_missing = (
+            ~self.inputs["domestic_bulk_port"].matrix.index.isin(
+                self.inputs["gbfm_distance_matrix"].matrix.index
+            )
+        ).any() | (
+            ~self.inputs["domestic_bulk_port"].matrix.columns.isin(
+                self.inputs["gbfm_distance_matrix"].matrix.columns
+            )
+        ).any()
+
+        if some_missing:
+            raise KeyError(
+                "Error: The GBFM distance matrix does not contain"
+                " all O-D pairs in the domestic and bulk port matrix"
+            )
+
         self.inputs["port_traffic_proportions"] = self.read_csv(
             self.input_files["port_traffic_proportions"],
             ["type", "direction", "accompanied", "artic", "rigid"],
@@ -111,7 +133,7 @@ class TonneToPCU:
             .any()
             .any()
         ):
-            msg = f"Error: duplicate values found in PCU factors file."
+            msg = f"Error: duplicate zone-direction values found in PCU factors file."
             raise ValueError(msg)
 
         # check PCU factors contains a default column
@@ -123,6 +145,12 @@ class TonneToPCU:
         """Reads in the unitised non-European imports/exports file, rezones
         the port IDs to their GBFM zone IDs, separates imports from exports, and
         creates OD Matrix instances for imports and exports.
+
+        Raises
+        ------
+        KeyError:
+            Raised when there are ports in the non-EU imports/exports matrix
+            missing from the port lookup file.
         """
         non_eu_imports_exports = self.read_csv(
             self.input_files["unitised_non_eu"],
@@ -130,6 +158,30 @@ class TonneToPCU:
             new_headers=["Imp0Exp1", "port_id", "zone_id", "trips"],
             numerical_columns=["trips"],
         )
+
+        if (
+            len(
+                non_eu_imports_exports[
+                    ~non_eu_imports_exports.port_id.isin(self.inputs["ports"].port_id)
+                ]
+            )
+            > 0
+        ):
+            missing_from_lookup = non_eu_imports_exports[
+                ~non_eu_imports_exports.port_id.isin(
+                    self.inputs["ports"].port_id.unique()
+                )
+            ]
+            missing_str = ""
+            for index, port in enumerate(missing_from_lookup):
+                missing_str += f" {port}"
+                if index != len(missing_from_lookup) - 1:
+                    missing_str += ","
+            raise KeyError(
+                f"Error with unitised non-EU imports and exports file:"
+                f"\nPorts{missing_str} missing from ports lookup file."
+            )
+
         non_eu_imports_exports = non_eu_imports_exports.merge(
             self.inputs["ports"].rename(columns={"zone_id": "port_zone_id"}),
             how="left",
@@ -149,7 +201,6 @@ class TonneToPCU:
         unitised_non_eu_exports = non_eu_imports_exports.loc[
             non_eu_imports_exports["Imp0Exp1"] == 1
         ].rename(columns=exports_dict)
-        self.hgv_keys += ["unitised_non_eu_imports", "unitised_non_eu_exports"]
         self.inputs["unitised_non_eu_imports"] = ODMatrix(
             unitised_non_eu_imports[["origin", "destination", "trips"]],
             name="unitised_non_eu_imports",
@@ -160,6 +211,7 @@ class TonneToPCU:
             name="unitised_non_eu_exports",
             pivoted=False,
         )
+        self.hgv_keys += ["unitised_non_eu_imports", "unitised_non_eu_exports"]
 
     def _unitised_to_artic_rigid_trips(
         self, unitised_matrix, direction, commodity_type="unitised"
