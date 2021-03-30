@@ -158,7 +158,7 @@ class ProduceGBFMCorrespondence(QtWidgets.QWidget):
             maximum=100,
             minimum=85,
             singleStep=0.5,
-            value=98,
+            value=96.5,
         )
         self.uppertolbox.move(self.x3, 375)
         self.uppertolbox.resize(60, 25)
