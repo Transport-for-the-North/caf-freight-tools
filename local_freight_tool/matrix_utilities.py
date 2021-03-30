@@ -17,6 +17,8 @@ import os
 import subprocess as sp
 from pathlib import Path
 
+from numpy.lib.arraysetops import isin
+
 # User-defined imports
 from rezone import Rezone
 
@@ -406,7 +408,7 @@ class ODMatrix:
             Whether to include the column headers in the sabed file, by
             default True
         float_format: str, optional
-            Format of floats in output csv, by default , '%.12f'
+            Format of floats in output csv, by default, '%.12f'
         """
         column_matrix = self.column_matrix(include_zeros=include_zeros)
         column_matrix.to_csv(outpath, float_format=float_format, header=include_headers, index=False)
