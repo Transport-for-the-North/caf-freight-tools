@@ -94,6 +94,7 @@ class TonneToPCU:
             ["start", "end", "rigid", "artic"],
             numerical_columns=["start", "end", "rigid", "artic"],
         )
+
         self.inputs["gbfm_distance_matrix"] = ODMatrix.read_OD_file(
             self.input_files["gbfm_distance_matrix"]
         )
@@ -171,17 +172,17 @@ class TonneToPCU:
                 ~non_eu_imports_exports.port_id.isin(
                     self.inputs["ports"].port_id.unique()
                 )
-            ]
+            ].port_id.unique()
             missing_str = ""
             for index, port in enumerate(missing_from_lookup):
                 missing_str += f" {port}"
                 if index != len(missing_from_lookup) - 1:
                     missing_str += ","
-            raise KeyError(
+            msg = (
                 f"Error with unitised non-EU imports and exports file:"
-                f"\nPorts{missing_str} missing from ports lookup file."
+                f" port(s){missing_str} missing from ports lookup file."
             )
-
+            raise KeyError(msg)
         non_eu_imports_exports = non_eu_imports_exports.merge(
             self.inputs["ports"].rename(columns={"zone_id": "port_zone_id"}),
             how="left",
@@ -601,13 +602,13 @@ class TonneToPCU:
             )
         except FileNotFoundError as e:
             msg = f"Error: {filename} not found: {e}"
-            raise FileNotFoundError(msg) from e
+            raise FileNotFoundError(msg)
         except KeyError as e:
             msg = f"Error: problem with {filename}: {e}"
-            raise KeyError(msg) from e
+            raise KeyError(msg)
         except Exception as e:
             msg = f"Error: problem with {filename}: {e}"
-            raise Exception(msg) from e
+            raise Exception(msg)
         if new_headers:
             if len(new_headers) != len(columns):
                 msg = f"Error: new column names do not match number of columns in {filename}"
@@ -624,6 +625,6 @@ class TonneToPCU:
                 )
             except ValueError as e:
                 msg = f"Error: Problem with {filename}: {e}"
-                raise ValueError(msg) from e
+                raise ValueError(msg)
 
         return df

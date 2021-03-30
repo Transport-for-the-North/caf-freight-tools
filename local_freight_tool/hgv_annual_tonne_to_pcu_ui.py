@@ -207,9 +207,9 @@ class background_thread(QThread):
         """
         QThread.__init__(self)
         self.progress_window = TonneToPCUInterface.progress
-        self.progress_window.resize(770, 130)
+        self.progress_window.resize(770, 145)
         self.progress_label = self.progress_window.label
-        self.progress_label.resize(770, 125)
+        self.progress_label.resize(770, 140)
         self.inputs = TonneToPCUInterface.inputs
         self.outpath = Path(f"{TonneToPCUInterface.outpath}")
 
@@ -217,6 +217,9 @@ class background_thread(QThread):
         """Runs hgv tonne to pcu conversion process"""
         try:
             start = time.perf_counter()
+            error_occurred = False
+            log_file = self.outpath / Path("tonne_to_pcu_log.xlsx")
+            i = 0
             progress_df = pd.DataFrame(
                 {
                     "Process": [
@@ -234,7 +237,21 @@ class background_thread(QThread):
             self.update_progress_string("\nReading inputs")
             hgv = TonneToPCU(self.inputs)
             self.inputs["output_folder"] = str(self.outpath)
-            i = 0
+            inputs_df = pd.DataFrame.from_dict(
+                self.inputs, orient="index", columns=["path"]
+            )
+            inputs_df.index.name = "file"
+            with pd.ExcelWriter(log_file, engine="openpyxl") as writer:
+                inputs_df.to_excel(writer, sheet_name="inputs", index=True)
+                hgv.inputs["distance_bands"].to_excel(
+                    writer, sheet_name="distance_bands", index=False
+                )
+                hgv.inputs["port_traffic_proportions"].to_excel(
+                    writer, sheet_name="port_traffic", index=False
+                )
+                hgv.inputs["pcu_factors"].to_excel(
+                    writer, sheet_name="pcu_factors", index=False
+                )
             progress_df.loc[i, "Completed"] = "yes"
             self.update_progress_string("\nRunning conversion process")
             hgv.run_conversion()
@@ -242,6 +259,10 @@ class background_thread(QThread):
             progress_df.loc[i, "Completed"] = "yes"
             self.update_progress_string("\nSummarising input and output matrices")
             summary_df = hgv.summary_df()
+            with pd.ExcelWriter(log_file, engine="openpyxl") as writer:
+                summary_df.to_excel(
+                    writer, sheet_name="matrix_summaries", index=True
+                )
             i += 1
             progress_df.loc[i, "Completed"] = "yes"
             self.update_progress_string(
@@ -251,40 +272,29 @@ class background_thread(QThread):
             i += 1
             progress_df.loc[i, "Completed"] = "yes"
         except Exception as e:
-            self.update_progress_string(f"{e}")
+            self.update_progress_string(f"\n{e}")
             progress_df.loc[i, "Error"] = str(e)
+            error_occurred = True
         finally:
             # create log file for matrix summaries and processes information
-            log_file = self.outpath / Path("tonne_to_pcu_log.xlsx")
             with pd.ExcelWriter(log_file, engine="openpyxl") as writer:
                 try:
                     progress_df.to_excel(writer, sheet_name="process", index=False)
-                    inputs_df = pd.DataFrame.from_dict(
-                        self.inputs, orient="index", columns=["path"]
-                    )
-                    inputs_df.index.name = "file"
-                    inputs_df.to_excel(writer, sheet_name="inputs", index=True)
-                    summary_df.to_excel(
-                        writer, sheet_name="matrix_summaries", index=True
-                    )
-                    hgv.inputs["distance_bands"].to_excel(
-                        writer, sheet_name="distance_bands", index=False
-                    )
-                    hgv.inputs["port_traffic_proportions"].to_excel(
-                        writer, sheet_name="port_traffic", index=False
-                    )
-                    hgv.inputs["pcu_factors"].to_excel(
-                        writer, sheet_name="pcu_factors", index=False
-                    )
                 except UnboundLocalError as e:
-                    msg = f"Error: {e}"
+                    msg = f"\nError: {e}"
                     self.update_progress_string(msg)
-            msg = (
-                f"Time taken: {timedelta(seconds = time.perf_counter() - start)}"
-                f"\nAnnual tonnes to annual PCU complete, all outputs saved to "
-                f"{self.outpath}.\nYou may exit the program, check"
-                f" tonne_to_pcu_log.xlsx for more information.\n"
-            )
+            if error_occurred:
+                msg = ("\nAnnual tonnes to annual PCUs conversion process "
+                    "incomplete as an error occurred. Outputs saved to"
+                    f"\n{self.outpath}\nSee "
+                    "tonne_to_pcu_log.xlsx for more information.")
+            else:
+                msg = (
+                    f"\nTime taken: {timedelta(seconds = time.perf_counter() - start)}"
+                    f"\nAnnual tonnes to annual PCU complete, all outputs saved to "
+                    f"\n{self.outpath}.\nYou may exit the program, check"
+                    f" tonne_to_pcu_log.xlsx for more information.\n"
+                )
             self.update_progress_string(msg, lines_to_add=3)
 
     def update_progress_string(self, text_to_add, lines_to_add=1, line_limit=10):
