@@ -149,7 +149,7 @@ class TonneToPCUInterface(QtWidgets.QWidget):
             )
             alert.show()
         # show alert if output folder has not been given
-        elif not Path(self.outpath.text().strip()).is_dir():
+        elif (not Path(self.outpath.text().strip()).is_dir()) | (self.outpath.text().strip() == ""):
             alert = QtWidgets.QMessageBox(self)
             alert.setWindowTitle("HGV Annual Tonne to PCU")
             alert.setText("Error: No output folder!\n"
