@@ -319,8 +319,10 @@ island with no NoHAM zone.
 
 ## 2: Time Profile Builder
 
+![Profile Builder GUI](doc/images/profile_builder_menu.png "Profile Builder GUI")
+
 ## 3: HGV Annual Tonne to Annual PCU Conversion
-![Annual Tonne to Annual PCU GUI](doc/images/module_3_menu.png "Annual Tonne to Annual PCU GUI")
+![Annual Tonne to Annual PCU GUI](doc/images/tonne_to_pcu_menu.png "Annual Tonne to Annual PCU GUI")
 
 The HGV Annual Tonne to Annual PCU Conversion module enables the split and conversion of GBFM HGV annual tonnage 
 matrices into rigid and articulated PCU matrices. The conversion process is detailed in the flowchart below.
@@ -354,6 +356,7 @@ Table: Outputs for HGV annual tonne to annual PCU conversion module
 
 ## 5: LGV Processing
 
+![LGV Processing GUI](doc/images/lgv_processing_menu.png "LGV Processing GUI")
 ## 6: Matrix Utilities
 The matrix utilities module provides functionality for a variety of different operations which can
 be applied to an O-D matrix CSV file. This functionality has been developed to be extremely
@@ -422,5 +425,8 @@ Table: Outputs from matrix utilities module
 
 ## 7: Delta Process
 
+![Delta Process GUI](doc/images/delta_process_menu.png "Delta Process GUI")
+
 ## 8: Cost Conversion
 
+![Cost Conversion GUI](doc/images/delta_process_menu.png "Cost Conversion GUI")
