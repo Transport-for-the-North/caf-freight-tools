@@ -321,7 +321,7 @@ island with no NoHAM zone.
 
 ## 3: HGV Annual Tonne to Annual PCU Conversion
 The HGV Annual Tonne to Annual PCU Conversion module enables the split and conversion of GBFM HGV annual tonnage 
-matrices into rigid and articulated PCU matrices. The conversion process is outlined in the flowchart below.
+matrices into rigid and articulated PCU matrices. The conversion process is detailed in the flowchart below.
 ![Annual Tonne to Annual PCU flowchart](doc/images/module_3_flowchart.png "Annual Tonne to Annual PCU flowchart")
 
 The inputs and outputs are outlined in the tables below.
@@ -337,8 +337,8 @@ Table: Inputs for HGV annual tonne to annual PCU conversion module
 | Ports lookup                                   | CSV        | Shows lookup between GBPortctr and GBFM zones                                                                                                            | "GBPortctr", "GBZone"                                                                      | All ports in the unitised non-EU imports and exports matrix                           |
 | Vehicle trips per 1000 tonnes by distance band | CSV        | Artic/rigid factors to apply for each trip distance per 1000 tonnes                                                                                      | "start", "end", "rigid", "artic"                                                           | N/A                                                                                   |
 | GBFM distance matrix                           | CSV        | Average distance between each O-D pair                                                                                                                   | Origin, destination, trips, column names are optional but columns must be in correct order | All GBFM zones in domestic and bulk port matrix                                       |
-| Port traffic trips per 1000 tonnes file        | .csv, .txt |                                                                                                                                                          | "type", "direction", "accompanied", "artic", "rigid"                                       | Factors for bulk traffic in both directions, and unitised traffic import and exports. |
-| PCU factors                                    | .csv, .txt |                                                                                                                                                          | "zone", "direction", "artic", "rigid"                                                      | Row with default artic and rigid values                                               |
+| Port traffic trips per 1000 tonnes file        | CSV |                                                                                                                                                          | "type", "direction", "accompanied", "artic", "rigid"                                       | Factors for bulk traffic in both directions, and unitised traffic import and exports. |
+| PCU factors                                    | CSV |                                                                                                                                                          | "zone", "direction", "artic", "rigid"                                                      | Row with default artic and rigid values                                               |
 
 Table: Outputs for HGV annual tonne to annual PCU conversion module
 
