@@ -320,6 +320,8 @@ island with no NoHAM zone.
 ## 2: Time Profile Builder
 
 ## 3: HGV Annual Tonne to Annual PCU Conversion
+![Annual Tonne to Annual PCU GUI](doc/images/module_3_menu.png "Annual Tonne to Annual PCU GUI")
+
 The HGV Annual Tonne to Annual PCU Conversion module enables the split and conversion of GBFM HGV annual tonnage 
 matrices into rigid and articulated PCU matrices. The conversion process is detailed in the flowchart below.
 ![Annual Tonne to Annual PCU flowchart](doc/images/module_3_flowchart.png "Annual Tonne to Annual PCU flowchart")
