@@ -68,8 +68,6 @@ in the image below, it is split into the following three sections:
 
 ![Local Freight Tool main menu](doc/images/main_menu.png "Local Freight Tool main menu")
 
-## Profile Builder
-
 ## 0: Combine Centroid and Polygon Shapefiles
 This module provides functionality to combine two shapefiles together where one contains points
 and the other contains polygons, this is to allow the GBFM zone system shapefiles to be combined
@@ -319,13 +317,15 @@ not have a corresponding GBFM zone as they're in the middle of the sea. There ar
 zones which don't overlap with any NoHAM zones; these are on the coast, in rivers or in one case an
 island with no NoHAM zone.
 
-## 2: Annual Tonne to Annual PCU Conversion
+## 2: Time Profile Builder
 
-## 3: LGV Processing
+## 3: HGV Annual Tonne to Annual PCU Conversion
 
 ## 4: GBFM Annual PCU to Model Time Period PCU
 
-## 5: Matrix Utilities
+## 5: LGV Processing
+
+## 6: Matrix Utilities
 The matrix utilities module provides functionality for a variety of different operations which can
 be applied to an O-D matrix CSV file. This functionality has been developed to be extremely
 flexible and as such any number of operations can be turned off or on and the inputs can be any CSV
@@ -391,7 +391,7 @@ Table: Outputs from matrix utilities module
 | {input matrix}           | LPX            | Output if "Convert to UFM" is selected.                                                     | SATURN MX log file of the conversion from CSV to UFM.                                                                                                                                                                                                                                                                                                                                                                            |
 | {input matrix}_VDU       | VDU            | Output if "Convert to UFM" is selected.                                                     | SATURN MX VDU file of the conversion from CSV to UFM.                                                                                                                                                                                                                                                                                                                                                                            |
 
-## 6: Delta Process
+## 7: Delta Process
 
-## 7: Cost Conversion
+## 8: Cost Conversion
 
