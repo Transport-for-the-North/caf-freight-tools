@@ -319,7 +319,19 @@ island with no NoHAM zone.
 
 ## 2: Time Profile Builder
 
+This module is used to produce the profile selection csv, to be used as an input in the [Annual PCU to Model Time Period PCU](#annual-pcu-to-model-time-period-pcu) conversion. The module enables the user to set time profiles, including the name of the profile, days to use, the time period start and end hours, and the months. The profile builder menu is shown below.
+
 ![Profile Builder GUI](doc/images/profile_builder_menu.png "Profile Builder GUI")
+
+Table: Time Profile Builder output
+
+| Name              | Type | Columns  | Description                                                                                       |
+|-------------------|------|----------|---------------------------------------------------------------------------------------------------|
+|                   |      | name     | Name of the time profile                                                                          |
+|                   |      | days     | Days of the week in time profile. Monday corresponds to 0, Tuesday 1, etc                         |
+| Profile_Selection | CSV  | hr_start | Start hour of time profile                                                                        |
+|                   |      | hr_end   | End hour of time profile                                                                          |
+|                   |      | months   | Months for all time profiles (this column is the same in all rows). January is 0, February 2, etc |
 
 ## 3: HGV Annual Tonne to Annual PCU Conversion
 ![Annual Tonne to Annual PCU GUI](doc/images/tonne_to_pcu_menu.png "Annual Tonne to Annual PCU GUI")
@@ -352,7 +364,8 @@ Table: Outputs for HGV annual tonne to annual PCU conversion module
 | rigid_total_annual_pcus | CSV  | Annual rigid PCUs csv with columns “origin”, “destination” and “trips”                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
 | tonne_to_pcu_log        | XLSX | Log of the process, containing a list of inputs provided, processes completed, errors if they occurred, and a summary of matrix statistics. Contains the following sheets:<br>- `process`: indicates which processes completed and any errors that occurred;<br>- `inputs`: a list of all the input files<br>- `matrix_summaries`: summaries of the four input HGV matrices, the rigid and articulated total annual trip matrices, and the rigid and articulated total annual PCU matrices<br>- `distance_bands`: the distance bands used<br>- `port_traffic`: the port traffic factors used<br>- `pcu_factors`: the PCU factors used |
 
-## 4: GBFM Annual PCU to Model Time Period PCU
+## 4: Annual PCU to Model Time Period PCU
+<a name="annual-pcu-to-model-time-period-pcu">
 
 ## 5: LGV Processing
 
