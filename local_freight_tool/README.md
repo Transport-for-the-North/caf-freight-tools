@@ -1,4 +1,3 @@
-[TOC]
 # Local Freight Tool
 Freight tools for developing HGV and LGV freight demand matrices for model integration.
 
