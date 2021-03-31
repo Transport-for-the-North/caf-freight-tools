@@ -233,8 +233,8 @@ $$
 where:
 
 - $Z_{2m} \in \{Z_{2j}\}$;
-- $V(L_{pt})$ is the LSOA data (in var column) for $L_{pt}$;
 - $L_{pt}$ is the LSOA which contains $Z_{2pt}$;
+- $V(L_{pt})$ is the LSOA data (in var column) for $L_{pt}$;
 - $\{L_n\}$ is the set of LSOAs which overlap with $Z_{1k}$; and
 - $\{L_l\}$ is the set of LSOAs which overlap with $Z_{2m}$, excluding $L_{pt}$.
 
@@ -259,7 +259,7 @@ $$
 
 #### Rounding (optional)
 When rounding or point handling is turned on, small overlaps (slithers) these are defined as
-satisfying the following:
+satisfying both of the following:
 
 $$
 F_{spatial}(Z_{1i} \rightarrow Z_{2j}) < 1 - T
@@ -312,14 +312,9 @@ these should be fixed by manually updating the input or outputs.
 - The output lookup could be manually updated to add in the correspondence for any missing zones
   based on the user's understanding of the two zone systems.
 
-For the GBFM to NoHAM correspondence there are 62 reserve zones in the NoHAM zone system which do
-not have a corresponding GBFM zone as they're in the middle of the sea. There are also some GBFM
-zones which don't overlap with any NoHAM zones; these are on the coast, in rivers or in one case an
-island with no NoHAM zone.
-
 ## 2: Time Profile Builder
 
-This module is used to produce the profile selection csv, to be used as an input in the [Annual PCU to Model Time Period PCU](#annual-pcu-to-model-time-period-pcu) conversion. The module enables the user to set time profiles, including the name of the profile, days to use, the time period start and end hours, and the months. The profile builder menu is shown below.
+This module is used to produce the profile selection to be used as an input in the [Annual PCU to Model Time Period PCU](#annual-pcu-to-model-time-period-pcu) conversion. The module enables the user to set time profiles, including the name of the profile, days to use, the time period start and end hours, and the months. The profile builder menu is shown below.
 
 ![Profile Builder GUI](doc/images/profile_builder_menu.PNG "Profile Builder GUI")
 
