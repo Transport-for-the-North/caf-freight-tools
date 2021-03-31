@@ -71,7 +71,7 @@ class TonneToPCU:
 
         Raises
         ------
-        KeyError
+        ValueError
             Raised when there are missing O-D pairs in the GBFM distance
             matrix.
         ValueError
@@ -112,7 +112,7 @@ class TonneToPCU:
         ).any()
 
         if some_missing:
-            raise KeyError(
+            raise ValueError(
                 "Error: The GBFM distance matrix does not contain"
                 " all O-D pairs in the domestic and bulk port matrix"
             )
@@ -149,7 +149,7 @@ class TonneToPCU:
 
         Raises
         ------
-        KeyError:
+        ValueError:
             Raised when there are ports in the non-EU imports/exports matrix
             missing from the port lookup file.
         """
@@ -175,14 +175,14 @@ class TonneToPCU:
             ].port_id.unique()
             missing_str = ""
             for index, port in enumerate(missing_from_lookup):
-                missing_str += f" {port}"
-                if index != len(missing_from_lookup) - 1:
-                    missing_str += ","
+               missing_str += f" {port}"
+               if index != len(missing_from_lookup) - 1:
+                   missing_str += ","
             msg = (
-                f"Error with unitised non-EU imports and exports file:"
-                f" port(s){missing_str} missing from ports lookup file."
+               f"Error with unitised non-EU imports and exports file:"
+               f" port(s){missing_str} missing from ports lookup file."
             )
-            raise KeyError(msg)
+            raise ValueError(msg)
         non_eu_imports_exports = non_eu_imports_exports.merge(
             self.inputs["ports"].rename(columns={"zone_id": "port_zone_id"}),
             how="left",
@@ -212,7 +212,7 @@ class TonneToPCU:
             name="unitised_non_eu_exports",
             pivoted=False,
         )
-        self.hgv_keys += ["unitised_non_eu_imports", "unitised_non_eu_exports"]
+        self.non_eu_hgv_keys = ["unitised_non_eu_imports", "unitised_non_eu_exports"]
 
     def _unitised_to_artic_rigid_trips(
         self, unitised_matrix, direction, commodity_type="unitised"
@@ -475,7 +475,7 @@ class TonneToPCU:
             Dictionary of ODMatrix summaries for the 4 HGV inputs.
         """
         hgv_summary = {}
-        for key in self.hgv_keys:
+        for key in (self.hgv_keys + self.non_eu_hgv_keys):
             hgv_summary[key] = self.inputs[key].summary()
         return hgv_summary
 
@@ -583,10 +583,10 @@ class TonneToPCU:
         ------
         FileNotFoundError
             If the input file path is incorrect
-        KeyError
-            If the input file does not have the correct number of columns
         Exception
             For any other issues with the file
+        ValueError
+            If new column names do not match number of columns in the file
         ValueError
             If not all values in numeric columns are numeric
         """
@@ -603,16 +603,13 @@ class TonneToPCU:
         except FileNotFoundError as e:
             msg = f"Error: {filename} not found: {e}"
             raise FileNotFoundError(msg)
-        except KeyError as e:
-            msg = f"Error: problem with {filename}: {e}"
-            raise KeyError(msg)
         except Exception as e:
             msg = f"Error: problem with {filename}: {e}"
             raise Exception(msg)
         if new_headers:
             if len(new_headers) != len(columns):
                 msg = f"Error: new column names do not match number of columns in {filename}"
-                raise KeyError(msg)
+                raise ValueError(msg)
             else:
                 new_names = {}
                 for i in range(len(new_headers)):

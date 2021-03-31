@@ -13,6 +13,7 @@ Original author: CaraLynch
 from PyQt5 import QtWidgets, QtGui
 from PyQt5.QtCore import pyqtSlot, QThread, Qt
 from PyQt5.QtWidgets import QCheckBox
+from numpy.core.fromnumeric import trace
 
 
 # User-defined imports
@@ -26,6 +27,7 @@ from pathlib import Path
 import pandas as pd
 import time
 from datetime import timedelta
+import traceback
 
 
 class TonneToPCUInterface(QtWidgets.QWidget):
@@ -207,42 +209,50 @@ class background_thread(QThread):
         """
         QThread.__init__(self)
         self.progress_window = TonneToPCUInterface.progress
-        self.progress_window.resize(770, 145)
+        self.progress_window.resize(770, 200)
         self.progress_label = self.progress_window.label
-        self.progress_label.resize(770, 140)
+        self.progress_label.resize(770, 185)
         self.inputs = TonneToPCUInterface.inputs
         self.outpath = Path(f"{TonneToPCUInterface.outpath}")
 
     def run(self):
         """Runs hgv tonne to pcu conversion process"""
-        try:
-            start = time.perf_counter()
-            error_occurred = False
-            log_file = self.outpath / Path("tonne_to_pcu_log.xlsx")
-            i = 0
-            progress_df = pd.DataFrame(
-                {
-                    "Process": [
-                        "Read inputs",
-                        "Perform conversion",
-                        "Generate summaries",
-                        "Save output matrices",
-                    ],
-                    "Completed": ["no"] * 4,
-                    "Error": [""] * 4,
-                }
-            )
-            self.progress_text = ""
-            self.progress_lines = 0
-            self.update_progress_string("\nReading inputs")
-            hgv = TonneToPCU(self.inputs)
-            self.inputs["output_folder"] = str(self.outpath)
-            inputs_df = pd.DataFrame.from_dict(
-                self.inputs, orient="index", columns=["path"]
-            )
-            inputs_df.index.name = "file"
-            with pd.ExcelWriter(log_file, engine="openpyxl") as writer:
+        log_file = self.outpath / Path("tonne_to_pcu_log.xlsx")
+        start = time.perf_counter()
+        with pd.ExcelWriter(log_file, engine="openpyxl") as writer:
+            try:
+                error_occurred = False
+            
+                i = 0
+                progress_df = pd.DataFrame(
+                    {
+                        "Process": [
+                            "Read inputs",
+                            "Perform conversion",
+                            "Generate summaries",
+                            "Save output matrices",
+                        ],
+                        "Completed": ["no"] * 4,
+                        "Error": [""] * 4,
+                    }
+                )
+                self.progress_text = ""
+                self.progress_lines = 0
+                
+                # add selected input paths to log file
+                inputs_to_log = self.inputs.copy()
+                inputs_to_log["output_folder"] = str(self.outpath)
+                inputs_df = pd.DataFrame.from_dict(
+                    inputs_to_log, orient="index", columns=["path"]
+                )
+                inputs_df.index.name = "file"
                 inputs_df.to_excel(writer, sheet_name="inputs", index=True)
+
+                # read input files
+                self.update_progress_string("\nReading inputs")
+                hgv = TonneToPCU(self.inputs)
+                
+                # add inputs to log file
                 hgv.inputs["distance_bands"].to_excel(
                     writer, sheet_name="distance_bands", index=False
                 )
@@ -252,50 +262,50 @@ class background_thread(QThread):
                 hgv.inputs["pcu_factors"].to_excel(
                     writer, sheet_name="pcu_factors", index=False
                 )
-            progress_df.loc[i, "Completed"] = "yes"
-            self.update_progress_string("\nRunning conversion process")
-            hgv.run_conversion()
-            i += 1
-            progress_df.loc[i, "Completed"] = "yes"
-            self.update_progress_string("\nSummarising input and output matrices")
-            summary_df = hgv.summary_df()
-            with pd.ExcelWriter(log_file, engine="openpyxl") as writer:
+                progress_df.loc[i, "Completed"] = "yes"
+                self.update_progress_string("\nRunning conversion process")
+                hgv.run_conversion()
+                i += 1
+                progress_df.loc[i, "Completed"] = "yes"
+                self.update_progress_string("\nSummarising input and output matrices")
+                summary_df = hgv.summary_df()
                 summary_df.to_excel(
-                    writer, sheet_name="matrix_summaries", index=True
+                    writer, sheet_name="matrix_summaries", index=False
                 )
-            i += 1
-            progress_df.loc[i, "Completed"] = "yes"
-            self.update_progress_string(
-                f"\nSaving output PCU matrices to\n{self.outpath}", lines_to_add=2
-            )
-            hgv.save_pcu_outputs(self.outpath)
-            i += 1
-            progress_df.loc[i, "Completed"] = "yes"
-        except Exception as e:
-            self.update_progress_string(f"\n{e}")
-            progress_df.loc[i, "Error"] = str(e)
-            error_occurred = True
-        finally:
-            # create log file for matrix summaries and processes information
-            with pd.ExcelWriter(log_file, engine="openpyxl") as writer:
+                i += 1
+                progress_df.loc[i, "Completed"] = "yes"
+                self.update_progress_string(
+                    f"\nSaving output PCU matrices to\n{self.outpath}", lines_to_add=2
+                )
+                hgv.save_pcu_outputs(self.outpath)
+                i += 1
+                progress_df.loc[i, "Completed"] = "yes"
+            except Exception as e:
+                traceback.print_exc()
+                self.update_progress_string(f"\n{e}")
+                progress_df.loc[i, "Error"] = str(e)
+                error_occurred = True
+            finally:
+                # create log file for matrix summaries and processes information
                 try:
                     progress_df.to_excel(writer, sheet_name="process", index=False)
                 except UnboundLocalError as e:
                     msg = f"\nError: {e}"
                     self.update_progress_string(msg)
-            if error_occurred:
-                msg = ("\nAnnual tonnes to annual PCUs conversion process "
-                    "incomplete as an error occurred. Outputs saved to"
-                    f"\n{self.outpath}\nSee "
-                    "tonne_to_pcu_log.xlsx for more information.")
-            else:
-                msg = (
-                    f"\nTime taken: {timedelta(seconds = time.perf_counter() - start)}"
-                    f"\nAnnual tonnes to annual PCU complete, all outputs saved to "
-                    f"\n{self.outpath}.\nYou may exit the program, check"
-                    f" tonne_to_pcu_log.xlsx for more information.\n"
-                )
-            self.update_progress_string(msg, lines_to_add=3)
+                if error_occurred:
+                    msg = ("\nAnnual tonnes to annual PCUs conversion process "
+                        "incomplete as an error occurred. Outputs saved to"
+                        f"\n{self.outpath}\nSee "
+                        "tonne_to_pcu_log.xlsx for more information.")
+                else:
+                    msg = (
+                        f"\nAnnual tonnes to annual PCU complete, all outputs saved to "
+                        f"\n{self.outpath}."
+                        f"\nTime taken: {timedelta(seconds = time.perf_counter() - start)}"
+                        f"\nYou may exit the program, check"
+                        f" tonne_to_pcu_log.xlsx for more information.\n"
+                    )
+                self.update_progress_string(msg, lines_to_add=3)
 
     def update_progress_string(self, text_to_add, lines_to_add=1, line_limit=10):
         """

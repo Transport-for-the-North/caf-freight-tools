@@ -140,11 +140,11 @@ class info_window(QtWidgets.QWidget):
         self.labelA.setGeometry(10, 10, 830, 30)
         self.labelA.setText('info text')
         self.label = QtWidgets.QLabel(self)
-        self.label.setGeometry(10, 50, 830, 30)
+        self.label.setGeometry(10, 0, 830, 30)
         self.label.setText('info text')
         self.layout = QVBoxLayout()
         self.setLayout(self.layout)
-        self.label.move(10,10)
+        self.label.move(10, 0)
         self.label.resize(750, 300)
         
         # Create a push button to move back to the menu
