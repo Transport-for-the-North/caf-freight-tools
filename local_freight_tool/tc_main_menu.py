@@ -45,7 +45,7 @@ class tier_converter(QtWidgets.QWidget):
     def initUI(self):
         self.setGeometry(500, 200, 500, 540)
         self.setWindowTitle("Local Freight Tool")
-        self.setWindowIcon(QtGui.QIcon("TFN_icon.png"))
+        self.setWindowIcon(QtGui.QIcon("icon.png"))
 
         logo_label = QtWidgets.QLabel(self)
         logo_image = QtGui.QPixmap('TFN_title.png')

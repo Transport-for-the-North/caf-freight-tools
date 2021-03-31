@@ -1,12 +1,8 @@
 """
-
 File purpose:
 GUI to render README.md when clicking the Info button from main menu.
-
 Created on: Mon Mar 22 2021
-
 Original author: CaraLynch
-
 """
 
 
@@ -15,7 +11,7 @@ from utilities import Utilities
 
 # PyQt imports
 from PyQt5 import QtWidgets, QtGui
-from PyQt5.QtCore import pyqtSlot, QEventLoop
+from PyQt5.QtCore import pyqtSlot, QEventLoop, QUrl
 from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout
 #from PyQt5.QtWebEngineWidgets import QWebEngineView
 from PyQt5 import QtWebEngineWidgets
@@ -74,15 +70,14 @@ STYLESHEET = (
 
 class InfoWindow(QtWidgets.QWidget):
     """Local Freight Tool Information window.
-
     Parameters
     ----------
     QtWidgets : QWidget
         Base class for user interface objects.
     """
+
     def __init__(self, tier_converter, readme='README.md'):
         """Initialises class
-
         Parameters
         ----------
         tier_converter : Class
@@ -97,7 +92,7 @@ class InfoWindow(QtWidgets.QWidget):
         """Initialises UI
         """
 
-        self.setGeometry(500, 100, 700, 800)
+        self.setGeometry(500, 100, 800, 800)
         self.setWindowTitle("Local Freight Tool Information")
         self.setWindowIcon(QtGui.QIcon("icon.png"))
 
