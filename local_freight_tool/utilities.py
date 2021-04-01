@@ -115,7 +115,7 @@ class progress_window(QtWidgets.QWidget):
     def initUI(self):
         self.setGeometry(400, 500, 850, 100)
         self.setWindowTitle(self.title)
-        self.setWindowIcon(QtGui.QIcon('icon.jpg'))
+        self.setWindowIcon(QtGui.QIcon('icon.png'))
         self.label = QtWidgets.QLabel(self)
         self.label.setGeometry(10, 10, 830, 30)
         self.show()
@@ -137,7 +137,7 @@ class info_window(QtWidgets.QWidget):
     def initUI(self):
         self.setGeometry(300, 200, 800, 400)
         self.setWindowTitle(self.title)
-        self.setWindowIcon(QtGui.QIcon('icon.jpg'))
+        self.setWindowIcon(QtGui.QIcon('icon.png'))
         self.labelA = QtWidgets.QLabel(self)
         self.labelA.setGeometry(10, 10, 830, 30)
         self.labelA.setText('info text')

@@ -39,7 +39,7 @@ class CombineShapefiles(QtWidgets.QWidget):
     def initUI(self):
         self.setGeometry(500, 200, 500, 330)
         self.setWindowTitle("Combine Shapefiles")
-        self.setWindowIcon(QtGui.QIcon("icon.jpg"))
+        self.setWindowIcon(QtGui.QIcon("icon.png"))
 
         labelD = QtWidgets.QLabel(self)
         labelD.setText("Combine GBFM Shapefiles")

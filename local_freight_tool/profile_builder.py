@@ -41,10 +41,13 @@ class Profile_Builder(QtWidgets.QWidget):
         return dropdown
         
     def initUI(self):
-        self.setGeometry(500, 200, 870, 70+ 20*(10+14))        
-        self.setWindowTitle('Profile Builder')
-        self.setWindowIcon(QtGui.QIcon('icon.jpg'))
-        
+        """Initialises UI"""
+        TIME_PERIODS = ["AM", "PM", "IP", "OP"]
+
+        self.setGeometry(500, 200, 555, 70 + 24 * (10 + 14))
+        self.setWindowTitle("Profile Builder")
+        self.setWindowIcon(QtGui.QIcon("icon.png"))
+
         labelB = QtWidgets.QLabel(self)
         labelB.setFont(QtGui.QFont("Arial", 10, QtGui.QFont.Bold))
         labelB.setText('Profile Builder')
