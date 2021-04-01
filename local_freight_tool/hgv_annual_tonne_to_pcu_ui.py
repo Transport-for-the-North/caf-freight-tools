@@ -324,7 +324,7 @@ class background_thread(QThread):
             finally:
                 # create log file for matrix summaries and processes information
                 try:
-                    progress_df.to_excel(writer, sheet_name="process", index=False)
+                    progress_df.style.apply(self.flag_error_row, axis=1).to_excel(writer, sheet_name="process", index=False)
                 except UnboundLocalError as e:
                     msg = f"\nError: {e}"
                     self.update_progress_string(msg)
@@ -343,8 +343,8 @@ class background_thread(QThread):
                         f"\nYou may exit the program, check"
                         f" tonne_to_pcu_log.xlsx for more information.\n"
                     )
-                self.update_progress_string(msg, lines_to_add=3)
-                os.startfile(log_file, "open")
+        self.update_progress_string(msg, lines_to_add=3)
+        os.startfile(log_file, "open")
 
     def update_progress_string(self, text_to_add, lines_to_add=1, line_limit=10):
         """
@@ -402,3 +402,12 @@ class background_thread(QThread):
                     "color: green" if v == most_common_value else "color: red"
                     for v in column
                 ]
+    
+    @staticmethod
+    def flag_error_row(row):
+        if row['Completed'] == 'yes':
+            return ['color: green']*len(row)
+        elif not row['Error']:
+            return ['']*len(row)
+        else:
+            return ['background-color: red; color: white']*len(row)    
