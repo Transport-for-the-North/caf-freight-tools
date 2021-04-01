@@ -21,6 +21,7 @@ import pandas as pd
 from utilities import info_window, Utilities
 import textwrap
 from info_window import InfoWindow
+from pathlib import Path
 
 
 class Profile_Builder(QtWidgets.QWidget):
@@ -189,11 +190,11 @@ class Profile_Builder(QtWidgets.QWidget):
 
     def go_button_clicked(self):
         """Creates Profile_Selection.csv from selections."""
-        if not self.outpath.text().strip():
+        if (not self.outpath.text().strip()) | (not Path(self.outpath.text().strip()).is_dir()):
             alert = QtWidgets.QMessageBox(self)
             alert.setWindowTitle("Profile Builder")
             alert.setGeometry(600, 600, 200, 200)
-            alert.setText("You must specify an output directory.")
+            alert.setText("You must specify a valid output directory.")
             alert.show()
         else:
             months = []
@@ -241,16 +242,50 @@ class Profile_Builder(QtWidgets.QWidget):
 
             df = pd.DataFrame(self.tp)
             df["name"].replace("", np.nan, inplace=True)
-            df.dropna().to_csv(
+            df = df.dropna()
+            hour_diffs = df['hr_end'].astype(int) - df['hr_start'].astype(int)
+            hour_diffs.loc[hour_diffs < 0] += 24
+            if hour_diffs.sum() != 24:
+                hour_diff_str = (
+                    "The time periods selected do not sum up to 24 hours.\n"
+                    "Do you wish to continue?"
+                )
+                reply = QtWidgets.QMessageBox.question(
+                    self,
+                    "Warning",
+                    hour_diff_str,
+                    QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No,
+                    QtWidgets.QMessageBox.No,
+                )
+                if reply == QtWidgets.QMessageBox.Yes:
+                    df.to_csv(
+                    self.outpath.text().strip() + "/Profile_Selection.csv",
+                    index=False,
+                    )
+
+                    alert = QtWidgets.QMessageBox(self)
+                    alert.setWindowTitle("Profile Builder")
+                    alert.setGeometry(600, 600, 200, 200)
+                    alert.setText("Building selected profiles complete.")
+                    alert.show()
+                else:
+                    alert = QtWidgets.QMessageBox(self)
+                    alert.setWindowTitle("Profile Builder")
+                    alert.setGeometry(600, 600, 200, 200)
+                    alert.setText("Building selected profiles cancelled.")
+                    alert.show()
+            else:
+                df.to_csv(
                 self.outpath.text().strip() + "/Profile_Selection.csv",
                 index=False,
-            )
+                )
+                
+                alert = QtWidgets.QMessageBox(self)
+                alert.setWindowTitle("Profile Builder")
+                alert.setGeometry(600, 600, 200, 200)
+                alert.setText("Building selected profiles complete.")
+                alert.show()
 
-            alert = QtWidgets.QMessageBox(self)
-            alert.setWindowTitle("Profile Builder")
-            alert.setGeometry(600, 600, 200, 200)
-            alert.setText("Building Selected Profiles Complete")
-            alert.show()
 
     def back_button_clicked(self):
         """Returns to tier converter main menu"""
