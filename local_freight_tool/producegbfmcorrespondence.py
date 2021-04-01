@@ -25,7 +25,6 @@ from info_window import InfoWindow
 import zone_correspondence as zcorr
 
 # Other packages
-import textwrap
 import os
 import traceback
 
@@ -465,3 +464,4 @@ class background_thread(QThread):
                 f"\nCheck {log_file} for missing zones.\n "
                 "You may now exit the tool."
             )
+        os.startfile(log_file, 'open')
