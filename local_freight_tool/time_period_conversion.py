@@ -13,7 +13,7 @@ import re
 import traceback
 import os
 from pathlib import Path
-from typing import Dict, List, Callable, Union
+from typing import Dict, List, Callable, Union, Tuple
 
 # Third party imports
 import numpy as np
@@ -712,6 +712,38 @@ def check_parameter_paths(
     return inputs
 
 
+def extract_zc_names(zone_correspondence_path: Path) -> Tuple[str, str]:
+    """Extract the zone system names from the column headers in correspondence.
+
+    Zone names are extracted from the 3rd column which is expected
+    to be in the format "{from}_to_{to}" where from and to and the
+    zone system names. If the zone system names can't be extracted
+    then "original" and "rezoned" are returned.
+
+    Parameters
+    ----------
+    zone_correspondence_path : Path
+        Path to the zone correspondence CSV.
+
+    Returns
+    -------
+    str
+        Name of zone system being converted from.
+    str
+        Name of zone system being converted to.
+    """
+    with open(zone_correspondence_path, "rt") as f:
+        line = f.readline()
+    try:
+        text = line.split(",")[2]
+    except IndexError:
+        text = ""
+    match = re.match(r"(\w+)_\w+_(\w+)", text)
+    if match is None:
+        return "original", "rezoned"
+    return match.groups()
+
+
 def to_time_period(
     matrices: Dict[str, mu.ODMatrix],
     factors: Dict[str, float],
@@ -762,6 +794,11 @@ def to_time_period(
     missing = [v for v in ("artic", "rigid") if v not in matrices]
     if missing:
         raise errors.MissingDataError("matrices", missing)
+    # Create sub-folder for saving intermediary matrices
+    output_subfolder = output_folder / f"{time_per}_intermediate"
+    output_subfolder.mkdir(exist_ok=True, parents=True)
+    # Extract zone system names from correpondence
+    names = extract_zc_names(zone_correspondence_path)
 
     rezoned = {}
     summaries = {}
@@ -771,19 +808,19 @@ def to_time_period(
         if f is None:
             raise errors.MissingDataError(f"time period factors - {time_per}", veh)
         tp_mat = mat * f
-        tp_mat.name = f"{time_per}_HGV_{veh}"
-        summaries[f"{veh.title()} - {time_per}"] = tp_mat.summary()
-        tp_mat.export_to_csv(output_folder / (tp_mat.name + ".csv"))
+        tp_mat.name = f"{time_per}_HGV_{veh}-{names[0]}"
+        summaries[f"{veh.title()} - {time_per} - {names[0]}"] = tp_mat.summary()
+        tp_mat.export_to_csv(output_subfolder / (tp_mat.name + ".csv"))
 
         rezoned[veh] = tp_mat.rezone(zone_correspondence_path)
-        rezoned[veh].name = f"{time_per}_HGV_{veh}-rezoned"
-        summaries[f"{veh.title()} - {time_per} - Rezoned"] = rezoned[veh].summary()
-        rezoned[veh].export_to_csv(output_folder / (rezoned[veh].name + ".csv"))
+        rezoned[veh].name = f"{time_per}_HGV_{veh}-{names[1]}"
+        summaries[f"{veh.title()} - {time_per} - {names[1]}"] = rezoned[veh].summary()
+        rezoned[veh].export_to_csv(output_subfolder / (rezoned[veh].name + ".csv"))
     del tp_mat
 
     message_hook(f"Combining artic and rigid matrices for {time_per}")
     combined = rezoned["artic"] + rezoned["rigid"]
-    combined.name = f"{time_per}_HGV_combined"
+    combined.name = f"{time_per}_HGV_combined-{names[1]}"
     summaries[f"Combined - {time_per}"] = combined.summary()
     combined.export_to_csv(output_folder / (combined.name + ".csv"))
     message_hook(f"Finished processing {time_per}")
@@ -907,7 +944,7 @@ def write_log(
     with pd.ExcelWriter(path, engine="openpyxl") as writer:
         msg = "Log for the time period conversion module for the Local Freight Tool"
         df = pd.DataFrame({"Notes": msg}, index=[1])
-        df.to_excel(writer, sheet_name="Notes")
+        df.to_excel(writer, sheet_name="Notes", index=False)
         if inputs:
             inputs_df = pd.DataFrame.from_dict(
                 inputs, orient="index", columns=["Parameter Value"]

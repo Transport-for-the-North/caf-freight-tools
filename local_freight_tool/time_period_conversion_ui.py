@@ -186,7 +186,7 @@ class Worker(QThread):
         `main` function.
     """
 
-    LINE_LIMIT = 15
+    LINE_LIMIT = 20
     PROGRESS_WIDTH = 800
     error = pyqtSignal(str, str)
 
