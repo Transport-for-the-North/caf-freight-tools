@@ -109,7 +109,7 @@ class Profile_Builder(QtWidgets.QWidget):
             if i == 3:
                 self.names[i].setPlaceholderText(TIME_PERIODS[i])
                 self.hr_starts[i].setCurrentIndex(19)
-                self.hr_ends[i].setCurrentIndex(0)
+                self.hr_ends[i].setCurrentIndex(7)
 
         self.choices = []
         for i in range(7):
