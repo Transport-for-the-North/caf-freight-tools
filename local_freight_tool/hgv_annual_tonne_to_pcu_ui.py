@@ -152,13 +152,17 @@ class TonneToPCUInterface(QtWidgets.QWidget):
             )
             alert.show()
         # show alert if output folder has not been given
-        elif (not Path(self.outpath.text().strip()).is_dir()) | (self.outpath.text().strip() == ""):
+        elif (not Path(self.outpath.text().strip()).is_dir()) | (
+            self.outpath.text().strip() == ""
+        ):
             alert = QtWidgets.QMessageBox(self)
             alert.setWindowTitle("HGV Annual Tonne to PCU")
-            alert.setText("Error: No output folder!\n"
-                        "The output folder specified is not a folder. "
-                        "Please specify an output folder to run the "
-                        "conversion process.")
+            alert.setText(
+                "Error: No output folder!\n"
+                "The output folder specified is not a folder. "
+                "Please specify an output folder to run the "
+                "conversion process."
+            )
             alert.show()
         # run processes if no errors
         else:
@@ -223,7 +227,7 @@ class background_thread(QThread):
         with pd.ExcelWriter(log_file, engine="openpyxl") as writer:
             try:
                 error_occurred = False
-            
+
                 i = 0
                 progress_df = pd.DataFrame(
                     {
@@ -239,7 +243,7 @@ class background_thread(QThread):
                 )
                 self.progress_text = ""
                 self.progress_lines = 0
-                
+
                 # add selected input paths to log file
                 inputs_to_log = self.inputs.copy()
                 inputs_to_log["output_folder"] = str(self.outpath)
@@ -252,7 +256,7 @@ class background_thread(QThread):
                 # read input files
                 self.update_progress_string("\nReading inputs")
                 hgv = TonneToPCU(self.inputs)
-                
+
                 # add inputs to log file
                 hgv.inputs["distance_bands"].to_excel(
                     writer, sheet_name="distance_bands", index=False
@@ -270,8 +274,39 @@ class background_thread(QThread):
                 progress_df.loc[i, "Completed"] = "yes"
                 self.update_progress_string("\nSummarising input and output matrices")
                 summary_df = hgv.summary_df()
-                summary_df.to_excel(
-                    writer, sheet_name="matrix_summaries", float_format='%.0f', index=False, 
+                (
+                    summary_df.style.apply(
+                        self.highlight_cells,
+                        axis=0,
+                        subset=pd.IndexSlice[
+                            summary_df.Name.isin(
+                                [
+                                    "artic_total_annual_trips",
+                                    "rigid_total_annual_trips",
+                                    "artic_total_annual_pcus",
+                                    "rigid_total_annual_pcus",
+                                ]
+                            ),
+                            "Cell Count",
+                        ],
+                    ).apply(
+                        (lambda row: ["font-weight: bold"] * len(row)),
+                        axis=1,
+                        subset=pd.IndexSlice[
+                            summary_df.Name.isin(
+                                [
+                                    "artic_total_annual_pcus",
+                                    "rigid_total_annual_pcus",
+                                ]
+                            ),
+                            :,
+                        ],
+                    )
+                ).to_excel(
+                    writer,
+                    sheet_name="matrix_summaries",
+                    float_format="%.0f",
+                    index=False,
                 )
                 i += 1
                 progress_df.loc[i, "Completed"] = "yes"
@@ -294,10 +329,12 @@ class background_thread(QThread):
                     msg = f"\nError: {e}"
                     self.update_progress_string(msg)
                 if error_occurred:
-                    msg = ("\nAnnual tonnes to annual PCUs conversion process "
+                    msg = (
+                        "\nAnnual tonnes to annual PCUs conversion process "
                         "incomplete as an error occurred. Outputs saved to"
                         f"\n{self.outpath}\nSee "
-                        "tonne_to_pcu_log.xlsx for more information.")
+                        "tonne_to_pcu_log.xlsx for more information."
+                    )
                 else:
                     msg = (
                         f"\nAnnual tonnes to annual PCU complete, all outputs saved to "
@@ -307,7 +344,7 @@ class background_thread(QThread):
                         f" tonne_to_pcu_log.xlsx for more information.\n"
                     )
                 self.update_progress_string(msg, lines_to_add=3)
-                os.startfile(log_file, 'open')
+                os.startfile(log_file, "open")
 
     def update_progress_string(self, text_to_add, lines_to_add=1, line_limit=10):
         """
@@ -333,3 +370,35 @@ class background_thread(QThread):
             self.progress_lines += lines_to_add
 
         self.progress_label.setText(self.progress_text)
+    
+    @staticmethod
+    def highlight_cells(column):
+        """Creates styling lists for a given column. If the values given all
+        match, they are set to green. If there are multiple values, the most
+        common value is taken to be the true value if it is present in over
+        half of the cells, and all cells with the true value are set to green
+        while the others are set to red. If no true value can be found all
+        cells are set to red.
+
+        Parameters
+        ----------
+        column : pd.Series
+            Column to style
+
+        Returns
+        -------
+        list
+            Styles to use for each cell in the column
+        """
+        if len(column.unique()) == 1:
+            return ["color: green"] * len(column)
+        else:
+            column_counts = column.value_counts()
+            if column_counts.max() <= int(len(column)) / 2:
+                return ["color: red"] * len(column)
+            else:
+                most_common_value = column_counts.idxmax()
+                return [
+                    "color: green" if v == most_common_value else "color: red"
+                    for v in column
+                ]
