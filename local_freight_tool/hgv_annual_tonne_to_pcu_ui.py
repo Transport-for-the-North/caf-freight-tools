@@ -28,6 +28,7 @@ import pandas as pd
 import time
 from datetime import timedelta
 import traceback
+import os
 
 
 class TonneToPCUInterface(QtWidgets.QWidget):
@@ -270,7 +271,7 @@ class background_thread(QThread):
                 self.update_progress_string("\nSummarising input and output matrices")
                 summary_df = hgv.summary_df()
                 summary_df.to_excel(
-                    writer, sheet_name="matrix_summaries", index=False
+                    writer, sheet_name="matrix_summaries", float_format='%.0f', index=False, 
                 )
                 i += 1
                 progress_df.loc[i, "Completed"] = "yes"
@@ -306,6 +307,7 @@ class background_thread(QThread):
                         f" tonne_to_pcu_log.xlsx for more information.\n"
                     )
                 self.update_progress_string(msg, lines_to_add=3)
+                os.startfile(log_file, 'open')
 
     def update_progress_string(self, text_to_add, lines_to_add=1, line_limit=10):
         """

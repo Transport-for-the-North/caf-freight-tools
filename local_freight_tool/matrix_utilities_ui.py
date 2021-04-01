@@ -942,7 +942,7 @@ class background_thread(QThread):
                                 summary_dict, orient="index"
                             )
                             summary_df.to_excel(
-                                writer, sheet_name="summary", index=True
+                                writer, sheet_name="summary", float_format='%.0f', index=True
                             )
                         except UnboundLocalError as e:
                             msg = f"Error: {e}"
@@ -960,6 +960,8 @@ class background_thread(QThread):
                 progress_text, msg, progress_lines + 2
             )
             self.progress_label.setText(progress_text)
+
+            os.startfile(log_file, 'open')
 
     @staticmethod
     def update_progress_string(progress_text, new_line, line_counter, line_limit=20):
