@@ -10,6 +10,8 @@ import calendar
 import time
 import itertools
 import re
+import traceback
+import os
 from pathlib import Path
 from typing import Dict, List, Callable, Union
 
@@ -862,6 +864,7 @@ def process_matrices(
             )
             mat_summary.update(summaries)
         except Exception as e:
+            traceback.print_exc()
             msg = f"{e.__class__.__name__}: {e}"
             mat_summary[tp] = {"Comment": msg}
             message_hook(f"{tp} {msg}")
@@ -902,16 +905,25 @@ def write_log(
     """
     message_hook(f"Writing {path}")
     with pd.ExcelWriter(path, engine="openpyxl") as writer:
-        inputs_df = pd.DataFrame.from_dict(
-            inputs, orient="index", columns=["Parameter Value"]
-        )
-        inputs_df.to_excel(writer, sheet_name="Input Parameters")
-        hgv_profiles.monthly_avg.to_excel(writer, sheet_name="Monthly Avg Profile")
-        hgv_profiles.weekly_avg.to_excel(writer, sheet_name="Weekly Avg Profile")
-        factors_df = pd.DataFrame.from_dict(factors, orient="index")
-        factors_df.to_excel(writer, sheet_name="Time Period Factors")
-        mat_sum_df = pd.DataFrame.from_dict(matrix_summary, orient="index")
-        mat_sum_df.to_excel(writer, sheet_name="Matrix Summaries")
+        msg = "Log for the time period conversion module for the Local Freight Tool"
+        df = pd.DataFrame({"Notes": msg}, index=[1])
+        df.to_excel(writer, sheet_name="Notes")
+        if inputs:
+            inputs_df = pd.DataFrame.from_dict(
+                inputs, orient="index", columns=["Parameter Value"]
+            )
+            inputs_df.to_excel(writer, sheet_name="Input Parameters")
+        if hgv_profiles:
+            hgv_profiles.monthly_avg.to_excel(writer, sheet_name="Monthly Avg Profile")
+            hgv_profiles.weekly_avg.to_excel(writer, sheet_name="Weekly Avg Profile")
+        if factors:
+            factors_df = pd.DataFrame.from_dict(factors, orient="index")
+            factors_df.to_excel(writer, sheet_name="Time Period Factors")
+        if matrix_summary:
+            mat_sum_df = pd.DataFrame.from_dict(matrix_summary, orient="index")
+            mat_sum_df.to_excel(writer, sheet_name="Matrix Summaries")
+    message_hook(f"Opening {path}")
+    os.startfile(path.resolve())
 
 
 def main(
@@ -948,80 +960,59 @@ def main(
     message_hook : Callable, optional
         Function for writing messages, by default print
     """
-    log_sheets = {}
-    # Check input paramters and add to dictionary for logging
-    log_sheets["inputs"] = check_parameter_paths(
-        output_folder, profile_path, time_profile_path, artic_matrix, rigid_matrix
-    )
-    log_sheets["inputs"]["Year"] = year
-
-    # Calculate weighted average distributions
-    message_hook("Processing HGV profiles")
-    hgv_profiles = HGVProfiles(profile_path, year)
-    # Read time profiles data and calculate factors
-    message_hook("Processing time profiles")
-    time_profiles = TimeProfiles(time_profile_path)
-    message_hook("Calculating time period factors")
-    factors = hgv_profiles.time_period_factors(time_profiles)
-
-    # Read matrices and apply factors
-    log_sheets["matrix_summary"] = process_matrices(
-        {"artic": artic_matrix, "rigid": rigid_matrix},
-        factors,
-        output_folder,
-        zone_correspondence_path,
-        message_hook=message_hook,
-    )
-
-    # Write log file
-    log_sheets["factors"] = time_profiles.time_periods.copy()
-    for tp, vals in log_sheets["factors"].items():
-        vals.update(factors.get(tp, {}))
+    start_time = time.perf_counter()
+    hgv_profiles = None
     try:
-        write_log(
-            output_folder / "time_period_conversion_log.xlsx",
-            log_sheets["inputs"],
-            hgv_profiles,
-            log_sheets["factors"],
-            log_sheets["matrix_summary"],
+        log_sheets = {}
+        # Check input paramters and add to dictionary for logging
+        log_sheets["inputs"] = check_parameter_paths(
+            output_folder, profile_path, time_profile_path, artic_matrix, rigid_matrix
+        )
+        log_sheets["inputs"]["Year"] = year
+
+        # Calculate weighted average distributions
+        message_hook("Processing HGV profiles")
+        hgv_profiles = HGVProfiles(profile_path, year)
+        # Read time profiles data and calculate factors
+        message_hook("Processing time profiles")
+        time_profiles = TimeProfiles(time_profile_path)
+        message_hook("Calculating time period factors")
+        factors = hgv_profiles.time_period_factors(time_profiles)
+
+        # Read matrices and apply factors
+        log_sheets["matrix_summary"] = process_matrices(
+            {"artic": artic_matrix, "rigid": rigid_matrix},
+            factors,
+            output_folder,
+            zone_correspondence_path,
             message_hook=message_hook,
         )
+
+        # Write log file
+        log_sheets["factors"] = time_profiles.time_periods.copy()
+        for tp, vals in log_sheets["factors"].items():
+            vals.update(factors.get(tp, {}))
     except Exception as e:
-        message_hook(f"Error writing log spreadsheet - {e.__class__.__name__}: {e}")
+        message_hook(f"{e.__class__.__name__}: {e}")
         raise
-    message_hook("Time period conversion done")
+    finally:
+        try:
+            write_log(
+                output_folder / "time_period_conversion_log.xlsx",
+                log_sheets.get("inputs", None),
+                hgv_profiles,
+                log_sheets.get("factors", None),
+                log_sheets.get("matrix_summary", None),
+                message_hook=message_hook,
+            )
+        except Exception as e:
+            message_hook(f"Error writing log spreadsheet - {e.__class__.__name__}: {e}")
+            raise
 
-
-##### MAIN #####
-if __name__ == "__main__":
-    # TODO remove paths used for testing
-    data_folder = Path(r"U:\Lot3_LFT\HGV_inputs")
-    data_folder = Path(
-        r"C:\WSP_Projects\TfN Local Freight Model\01 - Delivery\01 - Task 1\Input Datasets"
-    )
-    out_folder = Path(
-        r"C:\WSP_Projects\TfN Local Freight Model\01 - Delivery\01 - Task 1\Test Outputs\Time Period Conversion"
-    )
-    input_file = data_folder / "time_period_conversion_inputs.xlsx"
-    time_period_file = data_folder / "Profile_Selection.csv"
-    artic_mat_path = data_folder / "artic_total_annual_pcus.csv"
-    rigid_mat_path = data_folder / "rigid_total_annual_pcus.csv"
-    zc_path = data_folder / "gbfm_to_noham_zone_correspondence_final_98.csv"
-
-    start_time = time.perf_counter()
-    main(
-        out_folder,
-        input_file,
-        time_period_file,
-        2018,
-        artic_mat_path,
-        rigid_mat_path,
-        zc_path,
-    )
     time_taken = time.perf_counter() - start_time
     if time_taken < 60:
         tt_str = f"{time_taken:.1f}s"
     else:
         mins, secs = divmod(time_taken, 60)
         tt_str = f"{mins:.0f}m {secs:.0f}s"
-    print(f"Time taken: {tt_str}")
+    message_hook(f"Time period conversion done in {tt_str}")
