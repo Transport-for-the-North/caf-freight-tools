@@ -5,7 +5,6 @@
 
 ##### IMPORTS #####
 # Standard imports
-import sys
 import pprint
 import traceback
 from pathlib import Path
@@ -20,6 +19,7 @@ import ui_widgets as ui
 import time_period_conversion as tp_conv
 import errors
 from utilities import Utilities, progress_window
+from info_window import InfoWindow
 
 
 ##### CLASSES #####
@@ -38,6 +38,7 @@ class TimeConversionUI(QtWidgets.QWidget):
         self.tier_converter = tier_converter
         self.progress = None
         self.worker = None
+        self.info_window = None
         self.init_ui()
 
     def init_ui(self):
@@ -153,10 +154,8 @@ class TimeConversionUI(QtWidgets.QWidget):
 
     def on_click_info(self):
         """Display help menu."""
-        print("Info")
-        # TODO Add info window
-        # self.selections_window = InfoWindow(self, "README.md")
-        # self.selections_window.show()
+        self.info_window = InfoWindow(self, "README.md")
+        self.info_window.show()
 
     def show_error(self, msg: str, details: str = None):
         """Display an error message box.
