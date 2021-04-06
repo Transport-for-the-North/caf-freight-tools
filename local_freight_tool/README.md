@@ -143,7 +143,7 @@ are provided to produce a more robust correspondence, these are as follows:
   would suggest, e.g. ports or distribution centres, these can be given to the tool as a list of
   zone IDs (**recommended method**) or can be calculated by the tool based on the point tolerance.
 
-![Zone correspondence menu](doc/images/zone_correspondence_menu.PNG "Zone correspondence menu")
+![Zone correspondence menu](doc/images/zone_correspondence_menu.png "Zone correspondence menu")
 
 Table: Zone correspondence inputs
 
@@ -416,7 +416,7 @@ rezoning, matrix factoring and convert to UFM are selected then the input matrix
 and then the rezoned matrix will be multiplied by the given factor to produce an output, this
 output will then be converted to a UFM.*
 
-![Matrix utilities menu](doc/images/matrix_utilities_menu.PNG "Matrix utilities menu")
+![Matrix utilities menu](doc/images/matrix_utilities_menu.png "Matrix utilities menu")
 
 The menu for this module is shown above (any greyed out boxes aren't required until that process is
 selected) and the inputs are listed in the table below, once these have been filled in the "Run"
