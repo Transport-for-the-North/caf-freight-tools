@@ -368,7 +368,23 @@ Table: Outputs for HGV annual tonne to annual PCU conversion module
 
 ## 5: LGV Processing
 
+This module contains three separate functionalities for LGV matrix processing. These functionalitie are present in a more generalised form in module 6: [Matrix Utilities](#6-matrix-utilities). The interface is shown below.
+
 ![LGV Processing GUI](doc/images/lgv_processing_menu.PNG "LGV Processing GUI")
+
+All O-D freight matrices used as inputs in the functionalities of this module must contain three columns only and the header row must be of the form 'origin', 'destination' and either 'annual_pcus' or 'trips'.
+
+### LGV Processing Tool
+This function displays the total size of two selected O-D freight matrices for comparison purposes. The user must input two O-D freight matrices. Once 'Run' is clicked, the total trips/PCUs of both matrices are summed across all O-D zone pairs and the totals are displayed in the interface. This is a less detailed version of the Matrix Utilities summary function.
+
+### Apply Global Factors
+
+This allows up to two O-D freight matrices to be multiplied by a global factor. The user must input two O-D freight matrices and select the global factors to be applied for both the freight and non-freight matrices respectively in number format. Decimals are permitted. Once 'Run' is clicked, a progress window will update the user on the factoring process. Once complete, two CSVs are output to the Local Freight Tool directory, named 'Output_Freight_Global_Factor_Applied' and 'Output_Non_Freight_Global_Factor_Applied'. This is a less general version of the Matrix Utilities Matrix Factoring function.
+
+### Aggregation
+
+This aggregates two freight O-D matrices. Once 'Run' is clicked, a progress window will update the user on the aggregation process. Once complete, the aggregated matrix is saved to a CSV names 'Output_Aggregated_Matrix' in the Local Freight Tool directory.
+
 ## 6: Matrix Utilities
 The matrix utilities module provides functionality for a variety of different operations which can
 be applied to an O-D matrix CSV file. This functionality has been developed to be extremely
