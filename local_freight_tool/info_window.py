@@ -74,7 +74,6 @@ STYLESHEET = (
 
 class InfoWindow(QtWidgets.QWidget):
     """Local Freight Tool Information window.
-
     Parameters
     ----------
     QtWidgets : QWidget
@@ -83,7 +82,6 @@ class InfoWindow(QtWidgets.QWidget):
 
     def __init__(self, tier_converter, readme='README.md'):
         """Initialises class
-
         Parameters
         ----------
         tier_converter : Class
