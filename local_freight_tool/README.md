@@ -68,27 +68,26 @@ in the image below, it is split into the following three sections:
 
 ![Local Freight Tool main menu](doc/images/main_menu.PNG "Local Freight Tool main menu")
 
-## 0: Combine Centroid and Polygon Shapefiles
-This module provides functionality to combine two shapefiles together where one contains points
-and the other contains polygons, this is to allow the GBFM zone system shapefiles to be combined
-together into a single file for use in module 1: Produce Zone Correspondence. The GBFM zone
+## 0: Combine Point and Polygon Shapefiles
+This module provides functionality to combine two shapefiles where one contains points
+and the other contains polygons. For example, this allows the GBFM zone system shapefiles to be combined into a single file for use in module 1: [Produce Zone Correspondence](#1-produce-zone-correspondence), as the GBFM zone
 system is provided as one polygon shapefile which doesn't contain all the zones and a point
 (centroids) shapefile which contains all zones.
 
 ![Combine shapefiles menu](doc/images/combine_shapefiles_menu.png "Combine shapefiles menu")
 
 The menu for this module is shown above and the inputs are listed in the table below, once these
-have been filled in the "Run" button can be clicked to start the process. The process runs through
+have been entered the "Run" button is clicked to start the process. The process runs through
 the following steps to produce the outputs (see outputs table below):
 
-- Find any zones present in the centroids shapefile which aren't present in the polygons, the zone
+1. Find any zones in the points shapefile which aren't in the polygons shapefile, the zone
   IDs are expected to be given in a column with the name "UniqueID" in both shapefiles. If no zones
-  are present in the centroids shapefile which aren't already in the polygon shapefile then the
+  are present in the points shapefile which aren't already in the polygon shapefile then the
   process stops here and no output is created.
-- Create a buffer around all centroids found to change these to polygon shapes, buffer radius can
+2. Create a buffer around all points found to convert these to polygons, the buffer radius can
   be provided in the interface.
-- Finally, the newly created polygons (from the centroids shapefile) are combined with all other
-  polygons (from the polygon shapefile) to produce the output combined shapefile.
+3. The newly created polygons are combined with all other
+  polygons to produce the output combined shapefile.
 
 The output provided by this process can then be given to module 1 in order to create a
 correspondence between two zone systems. This module has been developed to be flexible so that it
