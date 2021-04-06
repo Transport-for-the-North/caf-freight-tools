@@ -146,3 +146,4 @@ class InfoWindow(QtWidgets.QWidget):
         close = Utilities.closeEvent(self, event)
         if close:
             self.tier_converter.show()
+            
