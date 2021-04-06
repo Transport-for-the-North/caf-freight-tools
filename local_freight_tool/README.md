@@ -453,8 +453,26 @@ Table: Outputs from matrix utilities module
 
 ## 7: Delta Process
 
+This module can be used to implement the delta approach to produce a forecasted model O-D trip matrix. The interface is shown below.
+
 ![Delta Process GUI](doc/images/delta_process_menu.PNG "Delta Process GUI")
 
+The user must select a base model time period O-D trip matrix file from the models output, a base time period O-D trip matrix file produced using modules 3 and 4 from the GBFM annual matrices, and a forecast time period O-D trips matrix prepared from the GBFM annual matrices and converted to the model zoning system and time period. **All input matrices must be in the same zoning system and have the same time period selection.**
+
+Once 'Run' has been clicked, the process produces a forecasted O-D trip matrix CSV named 'Forecasted_Model_O-D_Matrix', saved to the Local Freight Tool directory.
+
+### Calculations
+The delta approach formula used is:
+$$
+Model_{Forecast} = Model_{Base} + (GBFM Freight_{Forecast} - GBFM Freight_{Base})
+$$
+where negative O-D trips in the formulated matrices produced are converted to zero trips.
+For example, when considering the NoHAM model the delta approach formula is applied as follows:
+$$
+NoHAM_{Forecast} = NoHAM_{Base} + (GBFM Freight_{Forecast} - GBFM Freight_{Base})
+$$
 ## 8: Cost Conversion
+
+
 
 ![Cost Conversion GUI](doc/images/cost_conversion_menu.PNG "Cost Conversion GUI")
