@@ -332,11 +332,11 @@ Table: Time Profile Builder output
 ## 3: HGV Annual Tonne to Annual PCU Conversion
 
 The HGV Annual Tonne to Annual PCU Conversion module enables the split and conversion of GBFM HGV annual tonnage 
-matrices into rigid and articulated PCU matrices. The interface is shown below.
+matrices into rigid and articulated annual PCU matrices. The interface is shown below.
 
 ![Annual Tonne to Annual PCU GUI](doc/images/tonne_to_pcu_menu.PNG "Annual Tonne to Annual PCU GUI")
 
-The conversion and splitting processes are detailed in the flowchart below.
+The conversion and splitting process is based on the specification proposed by Ian Williams in the technical note 035_Separating_Rigids_Artics. The process is detailed in the flowchart below.
 
 ![Annual Tonne to Annual PCU flowchart](doc/images/module_3_flowchart.png "Annual Tonne to Annual PCU flowchart")
 
