@@ -383,7 +383,7 @@ This allows up to two O-D freight matrices to be multiplied by a global factor. 
 
 ### Aggregation
 
-This aggregates two freight O-D matrices. Once 'Run' is clicked, a progress window will update the user on the aggregation process. Once complete, the aggregated matrix is saved to a CSV names 'Output_Aggregated_Matrix' in the Local Freight Tool directory.
+This aggregates two freight O-D matrices. Once 'Run' is clicked, a progress window will update the user on the aggregation process. Once complete, the aggregated matrix is saved to a CSV names 'Output_Aggregated_Matrix' in the Local Freight Tool directory. This is a less general version of the Matrix Utilities Matrix Addition function.
 
 ## 6: Matrix Utilities
 The matrix utilities module provides functionality for a variety of different operations which can
