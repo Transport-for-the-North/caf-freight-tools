@@ -463,16 +463,23 @@ Once 'Run' has been clicked, the process produces a forecasted O-D trip matrix C
 
 ### Calculations
 The delta approach formula used is:
+
 $$
 Model_{Forecast} = Model_{Base} + (GBFM Freight_{Forecast} - GBFM Freight_{Base})
 $$
+
 where negative O-D trips in the formulated matrices produced are converted to zero trips.
 For example, when considering the NoHAM model the delta approach formula is applied as follows:
+
 $$
 NoHAM_{Forecast} = NoHAM_{Base} + (GBFM Freight_{Forecast} - GBFM Freight_{Base})
 $$
 ## 8: Cost Conversion
 
-
+This module uses a the zone correspondence produced with module 1: [Produce Zone Correspondence](#1-produce-zone-correspondence) to perform a demand-weighted conversion of costs in O-D format to the new zoning system. The interface is shown below.
 
 ![Cost Conversion GUI](doc/images/cost_conversion_menu.PNG "Cost Conversion GUI")
+
+All O-D matrices chosen must contain three columns only, with a header row that is of the form 'origin', 'destination' and 'trips' (or a cost attribute where applicable).
+
+The user must select an O-D cost matrix file to convert, an O-D trip matrix file for the weighting, the zone correspondence file produced in module 1, and an output directory. Once 'Run' is clicked, a progress window displays the cost conversion process. Once completed, the cost CSV in the new zoning system is saved to the output directory under the name 'Output_Cost_Converted'.
