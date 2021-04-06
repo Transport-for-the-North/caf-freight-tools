@@ -17,8 +17,6 @@ import os
 import subprocess as sp
 from pathlib import Path
 
-from numpy.lib.arraysetops import isin
-
 # User-defined imports
 from rezone import Rezone
 

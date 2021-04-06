@@ -17,14 +17,13 @@ from PyQt5.QtCore import pyqtSlot
 from PyQt5.QtCore import QThread
 
 # User-defined imports
-from utilities import Utilities, info_window, progress_window
+from utilities import Utilities, progress_window
 from info_window import InfoWindow
 
 # Other packages
 import os
 import numpy as np
 import pandas as pd
-import textwrap
 
 class DeltaProcess(QtWidgets.QWidget):
     

@@ -18,8 +18,7 @@ from PyQt5.QtCore import pyqtSlot
 from PyQt5.QtWidgets import QCheckBox
 import numpy as np
 import pandas as pd
-from utilities import info_window, Utilities
-import textwrap
+from utilities import Utilities
 from info_window import InfoWindow
 from pathlib import Path
 

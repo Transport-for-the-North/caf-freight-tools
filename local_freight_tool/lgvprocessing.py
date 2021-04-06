@@ -23,12 +23,11 @@ from PyQt5.QtCore import QThread
 from PyQt5.QtWidgets import QLineEdit
 
 # User-defined imports
-from utilities import Utilities, info_window, progress_window
+from utilities import Utilities, progress_window
 from info_window import InfoWindow
 
 # Other packages
 import os
-import textwrap
 import pandas as pd
 
 class LGVProcessing(QtWidgets.QWidget):

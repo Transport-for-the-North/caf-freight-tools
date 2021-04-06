@@ -15,14 +15,10 @@ from utilities import Utilities
 
 # PyQt imports
 from PyQt5 import QtWidgets, QtGui
-from PyQt5.QtCore import pyqtSlot, QEventLoop, QUrl
-from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout
-#from PyQt5.QtWebEngineWidgets import QWebEngineView
+from PyQt5.QtWidgets import QVBoxLayout
 from PyQt5 import QtWebEngineWidgets
 
 # Other packages
-import os
-from pathlib import Path
 import markdown
 
 STYLESHEET = (

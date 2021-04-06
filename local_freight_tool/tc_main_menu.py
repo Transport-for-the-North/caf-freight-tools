@@ -18,20 +18,19 @@ from PyQt5.QtCore import pyqtSlot, Qt
 
 # User-defined imports
 from profile_builder import Profile_Builder
-from hgv_annual_tonne_to_pcu_ui import TonneToPCU, TonneToPCUInterface
+from hgv_annual_tonne_to_pcu_ui import TonneToPCUInterface
 from matrix_utilities_ui import MatrixUtilities
 from gbfm2modelpcu import GBFM2ModelPCU
 from lgvprocessing import LGVProcessing
 from combine_shapefiles import CombineShapefiles
 from producegbfmcorrespondence import ProduceGBFMCorrespondence
 from deltaprocess import DeltaProcess
-from utilities import Utilities, info_window
+from utilities import Utilities
 from cost_conversion import WeightedRezone
 from info_window import InfoWindow
 
 # Other packages
 import sys
-import textwrap
 
 #########################################################################
 

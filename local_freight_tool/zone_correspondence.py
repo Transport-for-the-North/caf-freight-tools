@@ -9,7 +9,7 @@ File purpose:
 Nest two shapefiles to produce adjustment factors from one zone to another.
 """
 
-from shapely.geometry import Polygon, MultiPolygon, shape, Point
+from shapely.geometry import Polygon, MultiPolygon
 import geopandas as gpd
 import pandas as pd
 

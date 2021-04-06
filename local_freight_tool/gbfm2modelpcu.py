@@ -20,8 +20,7 @@ from PyQt5.QtCore import QThread
 
 # User-defined imports
 from profile_ruc import main_converter_process
-from utilities import Utilities, progress_window, info_window
-import textwrap
+from utilities import Utilities, progress_window
 from info_window import InfoWindow
 
 # Other packages
