@@ -313,11 +313,11 @@ these should be fixed by manually updating the input or outputs.
 
 ## 2: Time Profile Builder
 
-This module is used to produce the time profile selection to be used as an input in the [Annual PCU to Model Time Period PCU](#4-annual-pcu-to-model-time-period-pcu) conversion. It enables the user to set model time profiles, including the name of the profile, days to use, the time period start and end hours, and the months. The profile builder menu is shown below.
+This module is used to produce the time profile selection to be used as an input in the [Annual PCU to Model Time Period PCU](#4-annual-pcu-to-model-time-period-pcu) conversion. It enables the user to set up to seven different time profiles, including the name of the profile, days to use, the time period start and end hours, and the months. The months selected are used for all time profiles. The profile builder menu is shown below.
 
 ![Profile Builder GUI](doc/images/profile_builder_menu.PNG "Profile Builder GUI")
 
-A warning appears when the time periods selected do not add up to 24 hours. The months selected are used for all time profiles. The output is summarised in the table below.
+The user is expected to enter a name for the time period selection. The days and time periods have default values which can be changed by selecting the relevant checkboxes and drop down menus. To create the selected profiles, the user must click 'Save Selection'. A warning appears when the time periods selected do not add up to 24 hours. The output is summarised in the table below.
 
 Table: Time Profile Builder output
 
