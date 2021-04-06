@@ -20,6 +20,7 @@ from typing import Dict, Callable, Union, Tuple
 
 # Third party imports
 import pandas as pd
+import numpy as np
 
 # Local imports
 import errors
@@ -272,6 +273,137 @@ def process_matrices(
     return mat_summary
 
 
+def _style_tp_factors(df: pd.DataFrame) -> pd.DataFrame.style:
+    """Style the time period factors DataFrame.
+
+    Formats the DataFrame to produce a more readable
+    output and emphasises the time period factors.
+    """
+    df = df.copy()
+    for c in ("hours", "days", "months"):
+        df[c] = df[c].astype(str).str.replace(r"[\[\'\]]", "", regex=True)
+    bold = lambda c: ["font-weight: bold"] * len(c)
+    return df.style.apply(bold, axis=1, subset=["artic", "rigid"])
+
+
+def _style_mat_summary(df: pd.DataFrame) -> pd.DataFrame.style:
+    """Style the matrix summary DataFrame.
+
+    Formats the numeric columns to sensible number of decimal
+    places, emboldens the comined matrix rows and highlights
+    the Cell Count and Total column green based on the following
+    checks (red if any cells don't pass the checks):
+    - Cell Count is the same for input artic and rigid matrices;
+    - Cell count is the same for all matrices before rezoning;
+    - Cell count is the same for all matrices after rezoning;
+    - Total is the same for each matrix before/after it is rezoned;
+    - Combined total is the same as the sum of artic & rigid totals.
+    """
+
+    def highlight_cell_count(col: pd.Series) -> np.ndarray:
+        """Returns list of CSS background colours for highlighting Cell Count."""
+        highlight = np.array([""] * len(col), dtype="U64")
+        if col["Input Artic"] == col["Input Rigid"]:
+            highlight[:2] = "background-color: green"
+        else:
+            highlight[:2] = "background-color: red"
+
+        # Loop through rows in chunks of N_ROWS as there are that many
+        # rows per time period
+        N_ROWS = 5
+        for n in range(1, len(col) - N_ROWS, N_ROWS):
+            # Check that 1st and 3rd row for each time period have
+            # same cell count as the inputs
+            for check, test in (("Input Artic", 1), ("Input Rigid", 3)):
+                i = n + test
+                if col[check] == col.iloc[i]:
+                    highlight[i] = "background-color: green"
+                else:
+                    highlight[i] = "background-color: red"
+            # Check 2nd, 4th and 5th row have same cell count
+            ind = [n + i for i in (2, 4, 5)]
+            if col[ind[0]] == col[ind[2]] and col[ind[1]] == col[ind[2]]:
+                highlight[ind] = "background-color: green"
+            else:
+                highlight[ind] = "background-color: red"
+        return highlight
+
+    def highlight_total(col: pd.Series) -> np.ndarray:
+        """Returns list of CSS background colours for highlighting Total."""
+        highlight = np.array([""] * len(col), dtype="U64")
+        # Loop through rows in chunks of N_ROWS as there are that many
+        # rows per time period
+        N_ROWS = 5
+        for n in range(1, len(col) - N_ROWS, N_ROWS):
+            # Check that rezoning doesn't change totals
+            for i, j in ((1, 2), (3, 4)):
+                i += n
+                j += n
+                if round(col[i]) == round(col[j]):
+                    highlight[[i, j]] = "background-color: green"
+                else:
+                    highlight[[i, j]] = "background-color: red"
+            # Check combined total is sum of rezoned totals
+            if round(col[n + 2] + col[n + 4]) == round(col[n + 5]):
+                highlight[n + 5] = "background-color: green"
+            else:
+                highlight[n + 5] = "background-color: red"
+        return highlight
+
+    # Round total and max columns
+    for c in ("Total", "Max"):
+        df[c] = df[c].round()
+    bold = lambda x: ["font-weight: bold"] * len(x)
+    combined = [r for r in df.index if r.lower().startswith("combined")]
+    subset = pd.IndexSlice[combined, :]
+    return (
+        df.style.apply(bold, axis=1, subset=subset)
+        .apply(highlight_cell_count, axis=0, subset=["Cell Count"])
+        .apply(highlight_total, axis=0, subset=["Total"])
+    )
+
+
+def to_excel_format(
+    df: pd.DataFrame,
+    writer: pd.ExcelWriter,
+    sheet_name: str,
+    col_fmt: Union[Dict[str, str], str] = None,
+    **kwargs,
+):
+    """Write DataFrame to Excel and format given number columns.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        DataFrame to be written to Excel.
+    writer : pd.ExcelWriter
+        Writer object to write to, should use openpyxl engine.
+    sheet_name : str
+        Name of the sheet to create.
+    col_fmt : Union[Dict[str, str], str], optional
+        Dictionary containing name of column in DataFrame (keys) and
+        the number format to use based on Excel formats e.g. #,##0.0,
+        by default None. If a string is given then all columns will be
+        formatted using that single string.
+    **kwargs : Keyword arguments
+        Any other keyword arguments will be passed to
+        `pd.DataFrame.to_excel`.
+    """
+    df.to_excel(writer, sheet_name=sheet_name, **kwargs)
+    if col_fmt is None:
+        return
+    if isinstance(col_fmt, str):
+        col_fmt = dict.fromkeys(df.columns.tolist(), col_fmt)
+    sheet = writer.sheets[sheet_name]
+    for nm, fmt in col_fmt.items():
+        # Get column number openpyxl column numbers are 1 based
+        col = df.columns.tolist().index(nm) + 1
+        if kwargs.get("index", True):
+            col += df.index.nlevels
+        for (cell,) in sheet.iter_rows(min_col=col, max_col=col):
+            cell.number_format = fmt
+
+
 def write_log(
     path: Path,
     inputs: Dict[str, Union[str, int, Path]],
@@ -314,14 +446,35 @@ def write_log(
             )
             inputs_df.to_excel(writer, sheet_name="Input Parameters")
         if hgv_profiles:
-            hgv_profiles.monthly_avg.to_excel(writer, sheet_name="Monthly Avg Profile")
-            hgv_profiles.weekly_avg.to_excel(writer, sheet_name="Weekly Avg Profile")
+            to_excel_format(
+                hgv_profiles.monthly_avg, writer, "Monthly Avg Profile", col_fmt="0.0"
+            )
+            to_excel_format(
+                hgv_profiles.weekly_avg.set_index(["time_str"], append=True),
+                writer,
+                "Weekly Avg Profile",
+                col_fmt="0.0",
+            )
         if factors:
             factors_df = pd.DataFrame.from_dict(factors, orient="index")
-            factors_df.to_excel(writer, sheet_name="Time Period Factors")
+            to_excel_format(
+                _style_tp_factors(factors_df),
+                writer,
+                "Time Period Factors",
+                col_fmt=dict.fromkeys(("artic", "rigid"), "0.0E+0"),
+            )
         if matrix_summary:
             mat_sum_df = pd.DataFrame.from_dict(matrix_summary, orient="index")
-            mat_sum_df.to_excel(writer, sheet_name="Matrix Summaries")
+            to_excel_format(
+                _style_mat_summary(mat_sum_df),
+                writer,
+                "Matrix Summaries",
+                col_fmt={
+                    "Total": "#,##0",
+                    "Mean": "0.000",
+                    "Standard deviation": "0.000",
+                },
+            )
     message_hook(f"Opening {path}")
     os.startfile(path.resolve())
 
