@@ -73,8 +73,14 @@ class TonneToPCU:
         Raises
         ------
         ValueError
+            Raised when duplicate distance bands are found in the distance
+            bands file
+        ValueError
             Raised when there are missing O-D pairs in the GBFM distance
             matrix.
+        ValueError
+            Raised when duplicate type-direction values are found in the port
+            traffic proportions file.
         ValueError
             Raised when duplicate zone-direction values are found in the PCU
             factors file.
@@ -95,6 +101,15 @@ class TonneToPCU:
             ["start", "end", "rigid", "artic"],
             numerical_columns=["start", "end", "rigid", "artic"],
         )
+
+        # Check all distance bands are unique
+        if (
+            (self.inputs["distance_bands"].groupby(["start", "end"]).count() > 1)
+            .any()
+            .any()
+        ):
+            msg = "Error: duplicate distance bands found in distance bands file."
+            raise ValueError(msg)
 
         self.inputs["gbfm_distance_matrix"] = ODMatrix.read_OD_file(
             self.input_files["gbfm_distance_matrix"]
@@ -123,6 +138,22 @@ class TonneToPCU:
             ["type", "direction", "accompanied", "artic", "rigid"],
             numerical_columns=["artic", "rigid"],
         )
+
+        # check port traffic proportions are unique for each type-direction
+        # pair
+        if (
+            (
+                self.inputs["port_traffic_proportions"]
+                .groupby(["type", "direction"])
+                .count()
+                > 1
+            )
+            .any()
+            .any()
+        ):
+            msg = "Error: duplicate type-direction values found in port traffic proportions file."
+            raise ValueError(msg)
+
         self.inputs["pcu_factors"] = self.read_csv(
             self.input_files["pcu_factors"],
             ["zone", "direction", "artic", "rigid"],
@@ -169,8 +200,8 @@ class TonneToPCU:
                 if index != len(missing_from_lookup) - 1:
                     missing_str += ","
             msg = (
-               "Error with unitised non-EU imports and exports file:"
-               f" port(s){missing_str} missing from ports lookup file."
+                "Error with unitised non-EU imports and exports file:"
+                f" port(s){missing_str} missing from ports lookup file."
             )
             raise ValueError(msg)
         non_eu_imports_exports = non_eu_imports_exports.merge(
@@ -458,7 +489,7 @@ class TonneToPCU:
             Dictionary of ODMatrix summaries for the 4 HGV inputs.
         """
         hgv_summary = {}
-        for key in (self.hgv_keys + self.non_eu_hgv_keys):
+        for key in self.hgv_keys + self.non_eu_hgv_keys:
             hgv_summary[key] = self.inputs[key].summary()
         return hgv_summary
 
