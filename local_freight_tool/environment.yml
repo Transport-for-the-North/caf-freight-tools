@@ -9,3 +9,4 @@ dependencies:
   - pandas>=1.2.2
   - geopandas>=0.8.2
   - markdown>=3.3.4
+  - jinja2>=2.11
