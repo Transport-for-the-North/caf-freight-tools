@@ -95,14 +95,27 @@ def extract_zc_names(zone_correspondence_path: Path) -> Tuple[str, str]:
         Name of zone system being converted from.
     str
         Name of zone system being converted to.
+
+    Raises
+    ------
+    IndexError
+        If the correpondence file doesn't contain 3 columns.
     """
-    with open(zone_correspondence_path, "rt") as f:
-        line = f.readline()
-    try:
-        text = line.split(",")[2]
-    except IndexError:
-        text = ""
-    match = re.match(r"(\w+)_\w+_(\w+)", text)
+    tabs, header = mu.ODMatrix.check_file_header(zone_correspondence_path)
+    if header is not None:
+        with open(zone_correspondence_path, "rt") as f:
+            line = f.readline()
+        try:
+            delimeter = "\t" if tabs else ","
+            text = line.split(delimeter)[2]
+        except IndexError as e:
+            raise IndexError(
+                "Zone correspondence file doesn't have 3 columns: "
+                f"'{zone_correspondence_path}'"
+            ) from e
+        match = re.match(r"(\w+)_\w+_(\w+)", text)
+    else:
+        match = None
     if match is None:
         return "original", "rezoned"
     return match.groups()
