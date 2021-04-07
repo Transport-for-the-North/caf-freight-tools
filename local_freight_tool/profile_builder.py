@@ -25,7 +25,7 @@ from pathlib import Path
 
 class Profile_Builder(QtWidgets.QWidget):
     """Profile Builder user interface, which enables the user to create
-    Profile_Selection.csv for use in module 4.
+    Profile_Selection.csv for use in time period conversion module (`time_period_conversion`).
 
     Parameters
     ----------
