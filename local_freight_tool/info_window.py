@@ -117,7 +117,7 @@ class InfoWindow(QtWidgets.QWidget):
         with open(self.readme, "r") as f:
             lines = f.readlines()
         try:
-            intro_end = lines.index("## Profile Builder\n")
+            intro_end = lines.index("## 0: Combine Point and Polygon Shapefiles\n")
         except:
             intro_end = 0
         try:
