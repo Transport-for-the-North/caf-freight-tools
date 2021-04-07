@@ -5,12 +5,26 @@ demand matrices for model integration.
 
 The document is split into the following sections:
 
+- [Tool Location](#tool-location): describes where the Local Freight tool can be obtained from;
 - [Installation](#installation): covers the requirements for the tool and how to install them;
 - [Running Local Freight Tool](#running-local-freight-tool): covers information on how the tool
   is ran; and
 - [Tool Functionality](#tool-functionality): outlines all the functionality provided by the tool
   and provides information on how to run each module, including any required inputs and the
   expected outputs.
+
+# Tool Location
+The source code for the Local Freight tool is available on the [TfN-Freight-Tools](
+  https://github.com/Transport-for-the-North/TfN-Freight-Tools) GitHub repository. For just running
+the tool the required version can be selected by using the dropdown menu to select a branch then
+clicking on the "Code" button and downloading the zip file. In order to edit the tool the GitHub
+repository should be cloned, see [GitHub guide about remote repositories](
+  https://docs.github.com/en/github/getting-started-with-github/about-remote-repositories).
+
+Once the zip file has been downloaded it should be unzipped to the local machine then the
+requirements should be installed using the instructions in the [Installation section](#installation).
+When all the requirements are installed the Local Freight tool can be ran following the steps
+outlined in the [Running section](#running-local-freight-tool).
 
 # Installation
 Installation of the Local Freight Tool requires Anaconda (or Miniconda) to be installed, which
@@ -52,7 +66,8 @@ can be launched with the following steps:
 - Launch the menu using `python tc_main_meny.py`.
 
 *Tip: start writing the file name and press tab, the command prompt will autocomplete it for you.
-For more information on the command prompt see [Command Prompt cheat sheet](http://www.cs.columbia.edu/~sedwards/classes/2017/1102-spring/Command%20Prompt%20Cheatsheet.pdf).*
+For more information on the command prompt see [Command Prompt cheat sheet](
+  http://www.cs.columbia.edu/~sedwards/classes/2017/1102-spring/Command%20Prompt%20Cheatsheet.pdf).*
 
 # Tool Functionality
 This section outlines the functionality provided in the tool, this functionality is split across
