@@ -158,7 +158,7 @@ class TimeProfiles:
 class HGVProfiles:
     """Class which calculates average HGV time profile distribution.
 
-    This expected the HGV time distribution profiles to be provided
+    This expects the HGV time distribution profiles to be provided
     at both monthly and weekly/daily level for different road types,
     along with a road type distribution for rigid and articulated vehicles.
 
