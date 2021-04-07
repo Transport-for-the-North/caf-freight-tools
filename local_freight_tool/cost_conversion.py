@@ -19,12 +19,11 @@ from PyQt5.QtCore import pyqtSlot
 from PyQt5.QtCore import QThread
 
 # User-defined imports
-from utilities import Utilities, progress_window, info_window
-from text_info import Cost_Conversion_Text
+from utilities import Utilities, progress_window
+from info_window import InfoWindow
 from rezone import Rezone as rz
 
 # Other packages
-import textwrap
 import numpy as np
 
 
@@ -36,9 +35,9 @@ class WeightedRezone(QtWidgets.QWidget):
         self.initUI()
     
     def initUI(self):
-        self.setGeometry(600, 600, 500, 400)        
+        self.setGeometry(500, 200, 500, 400)        
         self.setWindowTitle('Cost Conversion')
-        self.setWindowIcon(QtGui.QIcon('icon.jpg'))              
+        self.setWindowIcon(QtGui.QIcon('icon.png'))              
         
         labelB = QtWidgets.QLabel(self)
         labelB.setFont(QtGui.QFont("Arial", 10, QtGui.QFont.Bold))
@@ -82,7 +81,7 @@ class WeightedRezone(QtWidgets.QWidget):
             
         else: 
             # Start a progress window
-            self.progress = progress_window('Cost Conversion Tool')
+            self.progress = progress_window('Cost Conversion Tool', self.tier_converter)
             self.hide()
             
             # Call the main rezone process
@@ -95,22 +94,13 @@ class WeightedRezone(QtWidgets.QWidget):
         
     @pyqtSlot()
     def on_click_Info(self):
-         self.progress = info_window('Cost Conversion')   
-         self.progress_label = self.progress.label
-         self.progress_labelA = self.progress.labelA
-         dedented_text = textwrap.dedent(Cost_Conversion_Text).strip()         
-         line = textwrap.fill(dedented_text, width=140)
-         self.progress_label.setText(line)     
-         self.progress_label.move(10,40)
-         self.progress_labelA.setText('Cost Conversion Tool')  
-         self.progress_labelA.setFont(QtGui.QFont("Arial", 10, QtGui.QFont.Bold))
-         self.progress.show()
-         
-         def closeEvent(self, event):
-            Utilities.closeEvent(self, event)    
+        self.selections_window = InfoWindow(self, 'README.md')
+        self.selections_window.show()
         
     def closeEvent(self, event):
-        Utilities.closeEvent(self, event)
+        close = Utilities.closeEvent(self, event)
+        if close:
+            self.tier_converter.show()
         
 class background_thread(QThread):
     

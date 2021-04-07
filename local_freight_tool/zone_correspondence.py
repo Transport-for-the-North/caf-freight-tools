@@ -1,16 +1,59 @@
 """
 Created on: Thurs Jan 28 2021
+Updated on: Thurs Feb 25 10:50 2020
 
 Original author: CaraLynch
+Last update made by: CaraLynch
 
 File purpose:
 Nest two shapefiles to produce adjustment factors from one zone to another.
 """
 
+from shapely.geometry import Polygon, MultiPolygon
 import geopandas as gpd
 import pandas as pd
 
-# TODO check all docstrings accurate
+
+def convert_3D_2D(gdf):
+    """
+    Takes a GeoDataFrame with a 3D geometry (of Polygons Z or MultiPolygon Z)
+    and converts the geometry to 2D.
+    Adapted from
+    https://gist.github.com/rmania/8c88377a5c902dfbc134795a7af538d8
+
+    Parameters
+    ----------
+    gdf: gpd.GeoDataFrame
+        GeoDataFrame with a 3D geometry.
+
+    Returns
+    -------
+    gdf: gpd.GeoDataFrame
+        Updated GeoDataFrame with a 2D geometry.
+    """
+    geometry = gdf.geometry
+
+    # Only convert if the first element has a z coordinate, as it's safe to
+    # assume that if the first element is 3D, then the rest of them are
+    if geometry[geometry.index[0]].has_z:
+        print("Converting to 2D")
+        new_geometry = []
+        for p in geometry:
+            if p.has_z:
+                if p.geom_type == "Polygon":
+                    lines = [xy[:2] for xy in list(p.exterior.coords)]
+                    new_p = Polygon(lines)
+                    new_geometry.append(new_p)
+                elif p.geom_type == "MultiPolygon":
+                    new_multi_p = []
+                    for ap in p:
+                        lines = [xy[:2] for xy in list(ap.exterior.coords)]
+                        new_p = Polygon(lines)
+                        new_multi_p.append(new_p)
+                    new_geometry.append(MultiPolygon(new_multi_p))
+        gdf.geometry = new_geometry
+
+    return gdf
 
 
 def read_zone_shapefiles(zone_1_path, zone_2_path, zone_1_name, zone_2_name):
@@ -37,9 +80,9 @@ def read_zone_shapefiles(zone_1_path, zone_2_path, zone_1_name, zone_2_name):
         the zones
     """
     # zone column lookups
-    OLD_GBFM_LOOKUP = {"ID": "zone_id"}
-    NEW_GBFM_LOOKUP = {"UniqueID": "zone_id"}
+    GBFM_LOOKUP = {"UniqueID": "zone_id"}
     NOHAM_LOOKUP = {"zone_id": "empty", "unique_id": "zone_id"}
+    ESPG = "EPSG:27700"
 
     # create geodataframes from zone shapefiles
     zone_1 = gpd.read_file(zone_1_path)
@@ -53,16 +96,18 @@ def read_zone_shapefiles(zone_1_path, zone_2_path, zone_1_name, zone_2_name):
     for i in range(2):
 
         if "UniqueID" in zone_list[i].columns:
-            # this uses GBFM zone ID column name
-            zone_list[i] = zone_list[i].rename(columns=NEW_GBFM_LOOKUP)
-        elif "ID" in zone_list[i].columns:
-            # this uses GBFM zone ID column name
-            zone_list[i] = zone_list[i].rename(columns=OLD_GBFM_LOOKUP)
+            # this uses new GBFM zone ID column name
+            zone_list[i] = zone_list[i].rename(columns=GBFM_LOOKUP)
         elif "unique_id" in zone_list[i].columns:
             # this uses NoHAM zone ID column name
             zone_list[i] = zone_list[i].rename(columns=NOHAM_LOOKUP)
         else:
             print("no lookup for this zone system, need to know column names")
+            raise Exception(
+                    "The zone ID column in one of the zone systems"
+                    "is not UniqueID.\n"
+                    " Please rename it to UniqueID."
+                    )
 
         zone_list[i] = zone_list[i].rename(
             columns={"zone_id": f"{zone_names[i]}_zone_id"}
@@ -71,10 +116,13 @@ def read_zone_shapefiles(zone_1_path, zone_2_path, zone_1_name, zone_2_name):
 
         # set gbfm crs data to same as noham crs data (they should be the
         # same but gbfm data is incomplete)
-        # this does not change the CRS, we are assuming it is already 
+        # this does not change the CRS, we are assuming it is already
         # ESPG:27700
         if not zone_list[i].crs:
-            zone_list[i].crs = "EPSG:27700"
+            zone_list[i].crs = ESPG
+
+        # transform the geometry from 3D to 2D if one of the files has Z coords
+        zone_list[i] = convert_3D_2D(zone_list[i])
 
     return zone_list, zone_names
 
@@ -114,7 +162,7 @@ def read_lsoa_data(lsoa_shapefile_path, lsoa_data_path):
 
 def spatial_zone_correspondence(zone_list, zone_names):
     """Finds the spatial zone corrrespondence through calculating adjustment
-    factors with areas only. LSOA data is assumed to be in a column named 
+    factors with areas only. LSOA data is assumed to be in a column named
     "var".
 
     Parameters
@@ -133,7 +181,7 @@ def spatial_zone_correspondence(zone_list, zone_names):
 
     # create geodataframe for intersection of zones
     zone_overlay = gpd.overlay(
-        zone_list[0], zone_list[1], how="intersection"
+        zone_list[0], zone_list[1], how="intersection", keep_geom_type=False
     ).reset_index()
     zone_overlay.loc[:, "intersection_area"] = zone_overlay.area
 
@@ -258,45 +306,45 @@ def point_zone_filter(
     tolerance,
 ):
     """Finds zone system 2 point and associated zones (sharing a zone system 1
-    zone), reads in LSOA data, computes intersection, filters out slithers,
-    makes sure each point zone is the only one associated with that LSOA.
-    Returns var data for zone 2 zones as dataframes with zone ids as indices,
-    var as column.
+     zone), reads in LSOA data, computes intersection, filters out slithers,
+     makes sure each point zone is the only one associated with that LSOA.
+     Returns var data for zone 2 zones as dataframes with zone ids as indices,
+     var as column.
 
-    Parameters
-    ----------
-    spatial_correspondence_no_slithers : GeoDataFrame
-        Spatial zone correspondence between zone systems 1 and 2, produced
-        with spatial_zone_correspondence with the small overlaps filtered out
-        using find_slithers.
-    point_tolerance : float, optional
-        Tolerance level for filtering out point zones, a number between 0 and
-        1, defaults to 0.95
-    point_zones : str, optional
-        Path to csv file with list of point zones with column name zone_id, defaults to ""
-    zone_list : List[GeoDataFrame, GeoDataFrame]
-        List containing zone 1 and zone 2 GeoDataFrames.
-    zone_names : List[str, str]
-        List containing zone 1 and zone 2 names.
-    lsoa_shapefile_path : str
-        Path to LSOA shapefile (or the shapefile associated with the data to
-        be used in point zone handling). Zone ID column must be called
-        LSOA11CD.
-    lsoa_data_path : str
-        Path to csv file containing LSOA ID column as lsoa11cd and desired
-        data in var column.
+     Parameters
+     ----------
+     spatial_correspondence_no_slithers : GeoDataFrame
+         Spatial zone correspondence between zone systems 1 and 2, produced
+         with spatial_zone_correspondence with the small overlaps filtered out
+         using find_slithers.
+     point_tolerance : float, optional
+         Tolerance level for filtering out point zones, a number between 0 and
+         1, defaults to 0.95
+     point_zones : str, optional
+         Path to csv file with list of point zones with column name zone_id, defaults to ""
+     zone_list : List[GeoDataFrame, GeoDataFrame]
+         List containing zone 1 and zone 2 GeoDataFrames.
+     zone_names : List[str, str]
+         List containing zone 1 and zone 2 names.
+     lsoa_shapefile_path : str
+         Path to LSOA shapefile (or the shapefile associated with the data to
+         be used in point zone handling). Zone ID column must be called
+         LSOA11CD.
+     lsoa_data_path : str
+         Path to csv file containing LSOA ID column as lsoa11cd and desired
+         data in var column.
 
-    Returns
-    -------
+     Returns
+     -------
+     gpd.GeoDataFrame
+        LSOA data for zones in zone 2 that map to the same zone 1 zone as point zones.
+     gpd.GeoDataFrame
+        LSOA data for point zones.
+     pd.DataFrame
+        Contains information on these zones, their zone 1 zone ID, zone 2 zone ID, zone
+        type (point or non-point), correspondence type (LSOA or spatial) and any notes.
     gpd.GeoDataFrame
-       LSOA data for zones in zone 2 that map to the same zone 1 zone as point zones.
-    gpd.GeoDataFrame
-       LSOA data for point zones.
-    pd.DataFrame
-       Contains information on these zones, their zone 1 zone ID, zone 2 zone ID, zone
-       type (point or non-point), correspondence type (LSOA or spatial) and any notes.
-   gpd.GeoDataFrame
-       The spatial correspondence initially input, but with point-affected zones filtered out.
+        The spatial correspondence initially input, but with point-affected zones filtered out.
     """
     # if point zone list given, read in and use to find point zone correspondence
     if point_zones_path != "":
@@ -628,7 +676,7 @@ def point_zone_handling(
     return new_zone_corr, point_zones_info
 
 
-def round_zone_correspondence(zone_corr_no_slithers, zone_names):
+def round_zone_correspondence(zone_corr_no_slithers, zone_names, tolerance):
     """Changes zone_1_to_zone_2 adjustment factors such that they sum to 1 for
     every zone in zone 1.
 
@@ -639,6 +687,8 @@ def round_zone_correspondence(zone_corr_no_slithers, zone_names):
         DataFrame, with slithers filtered out
     zone_names : List[str, str]
         List of zone 1 and zone 2 names
+    tolerance: float
+        The tolerance for rounding.
 
     Returns
     -------
@@ -646,6 +696,32 @@ def round_zone_correspondence(zone_corr_no_slithers, zone_names):
         3 column zone correspondence DataFrame with zone_1_to_zone_2 values
         which sum to 1 for each zone 1 id.
     """
+    # if the factor is below the tolerance, remove them
+    factor_below_tol = (
+        zone_corr_no_slithers[f"{zone_names[0]}_to_{zone_names[1]}"] < 1 - tolerance
+    )
+    zones_below_tol = zone_corr_no_slithers.loc[factor_below_tol]
+    zones_above_tol = zone_corr_no_slithers.loc[~factor_below_tol]
+
+    # check if the gbfm zones left are all accounted for, otherwise add back the small tolerances
+    zones_to_add_back = zones_below_tol.loc[
+        (
+            ~zones_below_tol[f"{zone_names[0]}_zone_id"].isin(
+                zones_above_tol[f"{zone_names[0]}_zone_id"]
+            )
+        )
+        | (
+            ~zones_below_tol[f"{zone_names[1]}_zone_id"].isin(
+                zones_above_tol[f"{zone_names[1]}_zone_id"]
+            )
+        )
+    ]
+
+    # set this as new zone correspondence
+    zone_corr_no_slithers = pd.concat([zones_above_tol, zones_to_add_back]).sort_values(
+        f"{zone_names[0]}_zone_id"
+    )
+
     # find number of zone 2 zones that each zone 1 zone divides into
     gbfm_counts = zone_corr_no_slithers.groupby(f"{zone_names[0]}_zone_id").size()
 
@@ -807,25 +883,29 @@ def main_zone_correspondence(
 
     Returns
     -------
-    pd.DataFrame
-        Zone correspondence dataFrame with 3 columns, {zone_1_name}_zone_id,
-        {zone_2_name}_zone_id and {zone_1_name}_to_{zone_2_name} adjustment
-        factor.
+    log_file: str
+        Path to log file with parameters and missing zones sheet.
+    len(missing_zones_1): int
+        Number of zones from first zoning system missing from the final zone
+        correspondence.
+    len(missing_zones_2): int
+        Number of zones from the second zoning system missing from the final
+        zone correspondence.
     """
     # create log
     log_data = {
-            "Zone 1 name": zone_1_name,
-            "Zone 2 name": zone_2_name,
-            "Zone 1 shapefile": zone_1_path,
-            "Zone 2 Shapefile": zone_2_path,
-            "Output directory": out_path,
-            "Tolerance": tolerance,
-            "Point handling": point_handling,
-            "Point list": point_zones_path,
-            "Point tolerance": point_tolerance,
-            "LSOA data": lsoa_data_path,
-            "LSOA shapefile": lsoa_shapefile_path,
-            "Rounding": rounding,
+        "Zone 1 name": zone_1_name,
+        "Zone 2 name": zone_2_name,
+        "Zone 1 shapefile": zone_1_path,
+        "Zone 2 Shapefile": zone_2_path,
+        "Output directory": out_path,
+        "Tolerance": tolerance,
+        "Point handling": point_handling,
+        "Point list": point_zones_path,
+        "Point tolerance": point_tolerance,
+        "LSOA data": lsoa_data_path,
+        "LSOA shapefile": lsoa_shapefile_path,
+        "Rounding": rounding,
     }
 
     log_df = pd.DataFrame({"Parameters": log_data.keys(), "Values": log_data.values()})
@@ -881,7 +961,9 @@ def main_zone_correspondence(
 
         if rounding:
             print("Checking all adjustment factors add to 1")
-            final_zone_corr = round_zone_correspondence(new_zone_corr, zone_names)
+            final_zone_corr = round_zone_correspondence(
+                new_zone_corr, zone_names, tolerance
+            )
         else:
             zone_corr_slithers = spatial_correspondence_slithers[
                 [
@@ -911,14 +993,17 @@ def main_zone_correspondence(
 
     print("Creating log file")
     log_file = f"{out_path}/zone_correspondence_log.xlsx"
-    writer = pd.ExcelWriter(log_file, engine="openpyxl")
-    log_df.to_excel(writer, sheet_name="Parameters", index=False)
-    missing_zones_1.to_excel(writer, sheet_name=f"{zone_names[0]}_missing", index=False)
-    missing_zones_2.to_excel(writer, sheet_name=f"{zone_names[1]}_missing", index=False)
-    if point_handling:
-        point_zones_info.to_excel(writer, sheet_name="point_handling", index=False)
-    writer.save()
+    with pd.ExcelWriter(log_file, engine="openpyxl") as writer:
+        log_df.to_excel(writer, sheet_name="Parameters", index=False)
+        missing_zones_1.to_excel(
+            writer, sheet_name=f"{zone_names[0]}_missing", index=False
+        )
+        missing_zones_2.to_excel(
+            writer, sheet_name=f"{zone_names[1]}_missing", index=False
+        )
+        if point_handling:
+            point_zones_info.to_excel(writer, sheet_name="point_handling", index=False)
 
     print("Zone correspondence finished.")
 
-    return final_zone_corr
+    return log_file, len(missing_zones_1.index), len(missing_zones_2.index)

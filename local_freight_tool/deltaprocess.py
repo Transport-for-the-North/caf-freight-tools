@@ -17,14 +17,13 @@ from PyQt5.QtCore import pyqtSlot
 from PyQt5.QtCore import QThread
 
 # User-defined imports
-from utilities import Utilities, info_window, progress_window
-from text_info import Delta_Process_Text
+from utilities import Utilities, progress_window
+from info_window import InfoWindow
 
 # Other packages
 import os
 import numpy as np
 import pandas as pd
-import textwrap
 
 class DeltaProcess(QtWidgets.QWidget):
     
@@ -35,9 +34,9 @@ class DeltaProcess(QtWidgets.QWidget):
     
         
     def initUI(self):
-        self.setGeometry(600, 600, 500, 400)        
+        self.setGeometry(500, 200, 500, 400)        
         self.setWindowTitle('Delta Process')
-        self.setWindowIcon(QtGui.QIcon('icon.jpg'))        
+        self.setWindowIcon(QtGui.QIcon('icon.png'))        
         
         labelB = QtWidgets.QLabel(self)
         labelB.setText('Delta Process')
@@ -77,7 +76,7 @@ class DeltaProcess(QtWidgets.QWidget):
             alert.show()   
         else:
             # Start a progress window
-            self.progress = progress_window('Delta Process')
+            self.progress = progress_window('Delta Process', self.tier_converter)
             self.hide()
             
             # Call the main rezone process
@@ -89,23 +88,14 @@ class DeltaProcess(QtWidgets.QWidget):
         self.hide()    
         
     def closeEvent(self, event):
-        Utilities.closeEvent(self, event)
+        close = Utilities.closeEvent(self, event)
+        if close:
+            self.tier_converter.show()
     
     @pyqtSlot()
     def on_click_Info(self):
-         self.progress = info_window('Delta Process')  
-         self.progress_label = self.progress.label
-         self.progress_labelA = self.progress.labelA
-         dedented_text = textwrap.dedent(Delta_Process_Text).strip()          
-         line= textwrap.fill(dedented_text, width=140)
-         self.progress_label.setText(line)     
-         self.progress_label.move(10,40)
-         self.progress_labelA.setText('Delta Process Tool')  
-         self.progress_labelA.setFont(QtGui.QFont("Arial", 10, QtGui.QFont.Bold))
-         self.progress.show()
-         
-         def closeEvent(self, event):
-            Utilities.closeEvent(self, event)
+        self.selections_window = InfoWindow(self, 'README.md')
+        self.selections_window.show()
              
 class background_thread(QThread):
     

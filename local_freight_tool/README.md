@@ -328,21 +328,28 @@ these should be fixed by manually updating the input or outputs.
 
 ## 2: Time Profile Builder
 
-This module is used to produce the time profile selection to be used as an input in the [Annual PCU to Model Time Period PCU](#4-annual-pcu-to-model-time-period-pcu) conversion. It enables the user to set up to seven different time profiles, including the name of the profile, days to use, the time period start and end hours, and the months. The months selected are used for all time profiles. The profile builder menu is shown below.
+This module is used to produce the time profile selection to be used as an input in the
+[Annual PCU to Model Time Period PCU](#4-annual-pcu-to-model-time-period-pcu) conversion. It enables
+the user to set up to seven different time profiles, including the name of the profile, days to use,
+the time period start and end hours, and the months. The months selected are used for all time
+profiles. The profile builder menu is shown below.
 
 ![Profile Builder GUI](doc/images/profile_builder_menu.PNG "Profile Builder GUI")
 
-The user is expected to enter a name for the time period selection. The days and time periods have default values which can be changed by selecting the relevant checkboxes and drop down menus. To create the selected profiles, the user must click 'Save Selection'. A warning appears when the time periods selected do not add up to 24 hours. The output is summarised in the table below.
+The user is expected to enter a name for the time period selection. The days and time periods have
+default values which can be changed by selecting the relevant checkboxes and drop down menus. To
+create the selected profiles, the user must click 'Save Selection'. A warning appears when the time
+periods selected do not add up to 24 hours. The output is summarised in the table below.
 
 Table: Time Profile Builder output
 
-| Name              | Type | Columns  | Description                                                                                       |
-|-------------------|------|----------|---------------------------------------------------------------------------------------------------|
-|                   |      | name     | Name of the time profile                                                                          |
-|                   |      | days     | Days of the week in time profile. |
-| Profile_Selection | CSV  | hr_start | Start hour of time profile                                                                        |
-|                   |      | hr_end   | End hour of time profile                                                                          |
-|                   |      | months   | Months for all time profiles (this column is the same in all rows)|
+| Name              | Type | Columns  | Description                                                        |
+| ----------------- | ---- | -------- | ------------------------------------------------------------------ |
+|                   |      | name     | Name of the time profile                                           |
+|                   |      | days     | Days of the week in time profile.                                  |
+| Profile_Selection | CSV  | hr_start | Start hour of time profile                                         |
+|                   |      | hr_end   | End hour of time profile                                           |
+|                   |      | months   | Months for all time profiles (this column is the same in all rows) |
 
 ## 3: HGV Annual Tonne to Annual PCU Conversion
 
@@ -351,7 +358,8 @@ matrices into rigid and articulated annual PCU matrices. The interface is shown 
 
 ![Annual Tonne to Annual PCU GUI](doc/images/tonne_to_pcu_menu.PNG "Annual Tonne to Annual PCU GUI")
 
-The conversion and splitting process is based on the specification proposed by Ian Williams in the technical note 035_Separating_Rigids_Artics. The process is detailed in the flowchart below.
+The conversion and splitting process is based on the specification proposed by Ian Williams in the technical note
+`035_Separating_Rigids_Artics`. The process is detailed in the flowchart below.
 
 ![Annual Tonne to Annual PCU flowchart](doc/images/module_3_flowchart.png "Annual Tonne to Annual PCU flowchart")
 
@@ -359,46 +367,63 @@ The inputs and outputs of the process are outlined in the following tables.
 
 Table: Inputs for HGV annual tonne to annual PCU conversion module
 
-| Input                                          | Type       | Description                                                                                                                                              | Required columns                                                                           | Required rows                                                                         |
-|------------------------------------------------|------------|----------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------|
-| Domestic and bulk port matrix                  | CSV        | Base year domestic and bulk-port traffic                                                                                                                 | Origin, destination, trips, column names are optional but columns must be in correct order | N/A                                                                                   |
-| Unitised EU imports matrix                     | CSV        | Annual imported tonnes from GB ports to inland GBFM zones for unitised (non-bulk) trade to GB from European countries (including the island of Ireland)  | Origin, destination, trips, column names are optional but columns must be in correct order | N/A                                                                                   |
-| Unitised EU exports matrix                     | CSV        | Annual exported tonnes from inland GBFM zones to GB ports for unitised (non-bulk) trade from GB to European countries (including the island of Ireland); | Origin, destination, trips, column names are optional but columns must be in correct order | N/A                                                                                   |
-| Unitised non-EU imports and exports matrix     | CSV        | Annual tonnes between GB ports and inland GBFM zones for unitised (non-bulk) trade between GB and non-European countries                                 | "Imp0Exp1", "GBPortctr", "GBRawZone", "Traffic"                                            | N/A                                                                                   |
-| Ports lookup                                   | CSV        | Shows lookup between GBPortctr and GBFM zones                                                                                                            | "GBPortctr", "GBZone"                                                                      | All ports in the unitised non-EU imports and exports matrix                           |
-| Vehicle trips per 1000 tonnes by distance band | CSV        | Artic/rigid factors to apply for each trip distance per 1000 tonnes                                                                                      | "start", "end", "rigid", "artic"                                                           | N/A                                                                                   |
-| GBFM distance matrix                           | CSV        | GBFM distance skim                                                                                                                                      | Origin, destination, trips, column names are optional but columns must be in correct order | All GBFM zones in domestic and bulk port matrix                                       |
-| Port traffic trips per 1000 tonnes file        | CSV        | Articulated and rigid port traffic trip factors                                                                                                                 | "type", "direction", "accompanied", "artic", "rigid"                                       | Factors for bulk traffic in both directions, and unitised traffic import and exports. |
-| PCU factors                                    | CSV        | Articulated and rigid tonne to PCU factors to apply                                                                                                             | "zone", "direction", "artic", "rigid"                                                      | Row with default artic and rigid values                                               |
+| Input                                          | Type | Description                                                                                                                                              | Required columns                                                                           | Required rows                                                                         |
+| ---------------------------------------------- | ---- | -------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------- |
+| Domestic and bulk port matrix                  | CSV  | Base year domestic and bulk-port traffic                                                                                                                 | Origin, destination, trips, column names are optional but columns must be in correct order | N/A                                                                                   |
+| Unitised EU imports matrix                     | CSV  | Annual imported tonnes from GB ports to inland GBFM zones for unitised (non-bulk) trade to GB from European countries (including the island of Ireland)  | Origin, destination, trips, column names are optional but columns must be in correct order | N/A                                                                                   |
+| Unitised EU exports matrix                     | CSV  | Annual exported tonnes from inland GBFM zones to GB ports for unitised (non-bulk) trade from GB to European countries (including the island of Ireland); | Origin, destination, trips, column names are optional but columns must be in correct order | N/A                                                                                   |
+| Unitised non-EU imports and exports matrix     | CSV  | Annual tonnes between GB ports and inland GBFM zones for unitised (non-bulk) trade between GB and non-European countries                                 | "Imp0Exp1", "GBPortctr", "GBRawZone", "Traffic"                                            | N/A                                                                                   |
+| Ports lookup                                   | CSV  | Shows lookup between GBPortctr and GBFM zones                                                                                                            | "GBPortctr", "GBZone"                                                                      | All ports in the unitised non-EU imports and exports matrix                           |
+| Vehicle trips per 1000 tonnes by distance band | CSV  | Artic/rigid factors to apply for each trip distance per 1000 tonnes                                                                                      | "start", "end", "rigid", "artic"                                                           | N/A                                                                                   |
+| GBFM distance matrix                           | CSV  | GBFM distance skim                                                                                                                                       | Origin, destination, trips, column names are optional but columns must be in correct order | All GBFM zones in domestic and bulk port matrix                                       |
+| Port traffic trips per 1000 tonnes file        | CSV  | Articulated and rigid port traffic trip factors                                                                                                          | "type", "direction", "accompanied", "artic", "rigid"                                       | Factors for bulk traffic in both directions, and unitised traffic import and exports. |
+| PCU factors                                    | CSV  | Articulated and rigid tonne to PCU factors to apply                                                                                                      | "zone", "direction", "artic", "rigid"                                                      | Row with default artic and rigid values                                               |
 
 Table: Outputs for HGV annual tonne to annual PCU conversion module
 
 | Output                  | Type | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
-|-------------------------|------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| ----------------------- | ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | artic_total_annual_pcus | CSV  | Annual articulated PCUs csv with columns "origin", "destination" and "trips"                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
 | rigid_total_annual_pcus | CSV  | Annual rigid PCUs csv with columns "origin", "destination" and "trips"                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
-| tonne_to_pcu_log        | XLSX | Log of the process, containing a list of inputs provided, processes completed, errors if they occurred, and a summary of matrix statistics. Contains the following sheets:<br>- `process`: indicates which processes completed and any errors that occurred;<br>- `inputs`: a list of all the input files<br>- `matrix_summaries`: summaries of the four input HGV matrices, the rigid and articulated total annual trip matrices, and the rigid and articulated total annual PCU matrices<br>- `distance_bands`: the distance bands used<br>- `port_traffic`: the port traffic factors used<br>- `pcu_factors`: the PCU factors used |
+| Tonne_to_pcu_log        | XLSX | Log of the process, containing a list of inputs provided, processes completed, errors if they occurred, and a summary of matrix statistics. Contains the following sheets:<br>- `process`: indicates which processes completed and any errors that occurred;<br>- `inputs`: a list of all the input files<br>- `matrix_summaries`: summaries of the four input HGV matrices, the rigid and articulated total annual trip matrices, and the rigid and articulated total annual PCU matrices<br>- `distance_bands`: the distance bands used<br>- `port_traffic`: the port traffic factors used<br>- `pcu_factors`: the PCU factors used |
+
 
 ## 4: Annual PCU to Model Time Period PCU
 
 ## 5: LGV Processing
 
-This module contains three separate functionalities for LGV matrix processing. These functionalitie are present in a more generalised form in module 6: [Matrix Utilities](#6-matrix-utilities). The interface is shown below.
+This module contains three separate functionalities for LGV matrix processing. These functionalities
+are present in a more generalised form in module 6: [Matrix Utilities](#6-matrix-utilities). The
+interface is shown below.
 
 ![LGV Processing GUI](doc/images/lgv_processing_menu.PNG "LGV Processing GUI")
 
-All O-D freight matrices used as inputs in the functionalities of this module must contain three columns only and the header row must be of the form 'origin', 'destination' and either 'annual_pcus' or 'trips'.
+All O-D freight matrices used as inputs in the functionalities of this module must contain three
+columns only and the header row must be of the form 'origin', 'destination' and either 'annual_pcus'
+or 'trips'.
 
 ### LGV Processing Tool
-This function displays the total size of two selected O-D freight matrices for comparison purposes. The user must input two O-D freight matrices. Once 'Run' is clicked, the total trips/PCUs of both matrices are summed across all O-D zone pairs and the totals are displayed in the interface. This is a less detailed version of the Matrix Utilities summary function.
+This function displays the total size of two selected O-D freight matrices for comparison purposes.
+The user must input two O-D freight matrices. Once 'Run' is clicked, the total trips/PCUs of both
+matrices are summed across all O-D zone pairs and the totals are displayed in the interface. This is
+a less detailed version of the Matrix Utilities summary function.
 
 ### Apply Global Factors
 
-This allows up to two O-D freight matrices to be multiplied by a global factor. The user must input two O-D freight matrices and select the global factors to be applied for both the freight and non-freight matrices respectively in number format. Decimals are permitted. Once 'Run' is clicked, a progress window will update the user on the factoring process. Once complete, two CSVs are output to the Local Freight Tool directory, named 'Output_Freight_Global_Factor_Applied' and 'Output_Non_Freight_Global_Factor_Applied'. This is a less general version of the Matrix Utilities Matrix Factoring function.
+This allows up to two O-D freight matrices to be multiplied by a global factor. The user must input
+two O-D freight matrices and select the global factors to be applied for both the freight and
+non-freight matrices respectively in number format. Decimals are permitted. Once 'Run' is clicked, a
+progress window will update the user on the factoring process. Once complete, two CSVs are output to
+the Local Freight Tool directory, named 'Output_Freight_Global_Factor_Applied' and
+'Output_Non_Freight_Global_Factor_Applied'. This is a less general version of the Matrix Utilities
+Matrix Factoring function.
 
 ### Aggregation
 
-This aggregates two freight O-D matrices. Once 'Run' is clicked, a progress window will update the user on the aggregation process. Once complete, the aggregated matrix is saved to a CSV names 'Output_Aggregated_Matrix' in the Local Freight Tool directory. This is a less general version of the Matrix Utilities Matrix Addition function.
+This aggregates two freight O-D matrices. Once 'Run' is clicked, a progress window will update the
+user on the aggregation process. Once complete, the aggregated matrix is saved to a CSV names
+'Output_Aggregated_Matrix' in the Local Freight Tool directory. This is a less general version of
+the Matrix Utilities Matrix Addition function.
 
 ## 6: Matrix Utilities
 The matrix utilities module provides functionality for a variety of different operations which can
@@ -468,13 +493,19 @@ Table: Outputs from matrix utilities module
 
 ## 7: Delta Process
 
-This module can be used to implement the delta approach to produce a forecasted model O-D trip matrix. The interface is shown below.
+This module can be used to implement the delta approach to produce a forecasted model O-D trip
+matrix. The interface is shown below.
 
 ![Delta Process GUI](doc/images/delta_process_menu.PNG "Delta Process GUI")
 
-The user must select a base model time period O-D trip matrix file from the models output, a base time period O-D trip matrix file produced using modules 3 and 4 from the GBFM annual matrices, and a forecast time period O-D trips matrix prepared from the GBFM annual matrices and converted to the model zoning system and time period. **All input matrices must be in the same zoning system and have the same time period selection.**
+The user must select a base model time period O-D trip matrix file from the models output, a base
+time period O-D trip matrix file produced using modules 3 and 4 from the GBFM annual matrices, and a
+forecast time period O-D trips matrix prepared from the GBFM annual matrices and converted to the
+model zoning system and time period. **All input matrices must be in the same zoning system and have
+the same time period selection.**
 
-Once 'Run' has been clicked, the process produces a forecasted O-D trip matrix CSV named 'Forecasted_Model_O-D_Matrix', saved to the Local Freight Tool directory.
+Once 'Run' has been clicked, the process produces a forecasted O-D trip matrix CSV named
+'Forecasted_Model_O-D_Matrix', saved to the Local Freight Tool directory.
 
 ### Calculations
 The delta approach formula used is:
@@ -491,10 +522,16 @@ NoHAM_{Forecast} = NoHAM_{Base} + (GBFM Freight_{Forecast} - GBFM Freight_{Base}
 $$
 ## 8: Cost Conversion
 
-This module uses a the zone correspondence produced with module 1: [Produce Zone Correspondence](#1-produce-zone-correspondence) to perform a demand-weighted conversion of costs in O-D format to the new zoning system. The interface is shown below.
+This module uses a the zone correspondence produced with module 1: [Produce Zone Correspondence](#1-produce-zone-correspondence)
+to perform a demand-weighted conversion of costs in O-D format to the new zoning system. The
+interface is shown below.
 
 ![Cost Conversion GUI](doc/images/cost_conversion_menu.PNG "Cost Conversion GUI")
 
-All O-D matrices chosen must contain three columns only, with a header row that is of the form 'origin', 'destination' and 'trips' (or a cost attribute where applicable).
+All O-D matrices chosen must contain three columns only, with a header row that is of the form
+'origin', 'destination' and 'trips' (or a cost attribute where applicable).
 
-The user must select an O-D cost matrix file to convert, an O-D trip matrix file for the weighting, the zone correspondence file produced in module 1, and an output directory. Once 'Run' is clicked, a progress window displays the cost conversion process. Once completed, the cost CSV in the new zoning system is saved to the output directory under the name 'Output_Cost_Converted'.
+The user must select an O-D cost matrix file to convert, an O-D trip matrix file for the weighting,
+the zone correspondence file produced in module 1, and an output directory. Once 'Run' is clicked, a
+progress window displays the cost conversion process. Once completed, the cost CSV in the new zoning
+system is saved to the output directory under the name 'Output_Cost_Converted'.

@@ -23,6 +23,8 @@ import json
 import csv
 import pandas as pd
 from itertools import islice
+from pathlib import Path
+
 
  # Function which asks the user if they really want to trigger sys.exit()
 class Utilities(QtWidgets.QWidget):
@@ -36,11 +38,12 @@ class Utilities(QtWidgets.QWidget):
             QtWidgets.QMessageBox.No, QtWidgets.QMessageBox.No)
         if reply == QtWidgets.QMessageBox.Yes:
             event.accept()
+            return True
         else:
             event.ignore()
-            
-    # TODO: check file extension, default filepaths        
-    def add_file_selection(self, y_position, label_txt, multiple_files=False, directory=False, filetype=None):
+            return False
+                
+    def add_file_selection(self, y_position, label_txt, multiple_files=False, directory=False, filetype=None, return_browse=False, box_width=380):
         def browse_file():
             if directory == True:
                 selected_file = QtWidgets.QFileDialog(self).getExistingDirectory(self, label_txt)
@@ -48,30 +51,33 @@ class Utilities(QtWidgets.QWidget):
                 if multiple_files == True: # for multiple files, separate with ' % '
                     file_dialog = QtWidgets.QFileDialog(self)
                     file_dialog.setFileMode(QtWidgets.QFileDialog.ExistingFiles)
-                    selected_file, _ = file_dialog.getOpenFileNames(self, label_txt, "./", filetype)
+                    selected_file, _ = file_dialog.getOpenFileNames(self, label_txt, None, filetype)
                     selected_file = ' % '.join(selected_file)
                 else:
-                    selected_file, _ = QtWidgets.QFileDialog(self).getOpenFileName(self, label_txt, "./", filetype)
+                    selected_file, _ = QtWidgets.QFileDialog(self).getOpenFileName(self, label_txt, None, filetype)
                 
             # Update text box
             file_path.setText(selected_file)
         
         # Box which will contain the file selection
         file_path = QtWidgets.QLineEdit(self)
-        file_path.setGeometry(10, y_position, 235, 30)
+        file_path.setGeometry(10, y_position, box_width, 30)
         
         # Button to browse for the file
         browse_button = QtWidgets.QPushButton(self)
         browse_button.setText('Browse')
-        browse_button.setGeometry(255, y_position, 235, 30)
+        browse_button.setGeometry(box_width+20, y_position, 90, 30)
         browse_button.clicked.connect(browse_file)
         
         # Label with instructions
         label = QtWidgets.QLabel(self)
         label.setText(label_txt)
-        label.setGeometry(10, y_position - 30, 400, 30)
-        
-        return file_path 
+        label.setGeometry(10, y_position - 30, 480, 30)
+        if return_browse:
+            return file_path, browse_button
+        else:
+            return file_path
+ 
     # Some input files are tab and some are comma-separated, so this version of read_csv allows it to accept either
     def read_csv(file_name):
         # Read in the second line of the file
@@ -100,21 +106,24 @@ class Utilities(QtWidgets.QWidget):
 # Window to inform the user what stage the process is at (third interface window)
 class progress_window(QtWidgets.QWidget):
     
-    def __init__(self, title):
+    def __init__(self, title, tier_converter):
         super().__init__()
         self.title = title
+        self.tier_converter = tier_converter
         self.initUI()
         
     def initUI(self):
         self.setGeometry(400, 500, 850, 100)
         self.setWindowTitle(self.title)
-        self.setWindowIcon(QtGui.QIcon('icon.jpg'))
+        self.setWindowIcon(QtGui.QIcon('icon.png'))
         self.label = QtWidgets.QLabel(self)
         self.label.setGeometry(10, 10, 830, 30)
         self.show()
         
     def closeEvent(self, event):
-        Utilities.closeEvent(self, event)
+        close = Utilities.closeEvent(self, event)
+        if close:
+            self.tier_converter.show()
         
         
  # Window to inform the user how to use the current tool selected
@@ -128,17 +137,17 @@ class info_window(QtWidgets.QWidget):
     def initUI(self):
         self.setGeometry(300, 200, 800, 400)
         self.setWindowTitle(self.title)
-        self.setWindowIcon(QtGui.QIcon('icon.jpg'))
+        self.setWindowIcon(QtGui.QIcon('icon.png'))
         self.labelA = QtWidgets.QLabel(self)
         self.labelA.setGeometry(10, 10, 830, 30)
         self.labelA.setText('info text')
         self.label = QtWidgets.QLabel(self)
-        self.label.setGeometry(10, 50, 830, 30)
+        self.label.setGeometry(10, 0, 830, 30)
         self.label.setText('info text')
         self.layout = QVBoxLayout()
         self.setLayout(self.layout)
-        self.label.move(10,10)
-        self.label.resize(750,300)
+        self.label.move(10, 0)
+        self.label.resize(750, 300)
         
         # Create a push button to move back to the menu
         back_button = QtWidgets.QPushButton(self)
@@ -247,7 +256,7 @@ class Parameters:
                             'Trips':'Annual_PCU/Annual_Tonnage'}}
     _LOOKUP = {'FILEPATH':'',
                 'INPUT_FORMAT':'TSV/CSV',
-                'INPUT_COLUMNS':{'Old':'', 'New':'', 'SplittingFactor':''}}
+                'INPUT_COLUMNS':{'old':'', 'new':'', 'splitting_factor':''}}
     _ZONE_LOOKUP = {'_comment':'Parameters for the rezoning process, optional.',
                     **_LOOKUP}
     _SECTOR_LOOKUP = {'_comment':('Parameters for the sector OD tables to be produced,'
@@ -386,3 +395,87 @@ def getSeparator(format, parameter=None):
         # Raise error for wrong format given
         expected = list(forms.keys())
         raise IncorrectParameterError(format, parameter=parameter, expected=expected)
+
+
+def check_file_path(path: Path, name: str, *extensions: str) -> bool:
+    """Check that the given `path` is an existing file.
+
+    Also checks if the file contains the correct file
+    extension, if any are given.
+
+    Parameters
+    ----------
+    path : Path
+        Path to be checked.
+    name : str
+        Name used for error messages.
+    *extensions : str, optional
+        Any number of extension strings to check
+        e.g. ".csv", ".txt"
+
+    Returns
+    -------
+    bool
+        True, if the file exists and has the correct
+        extension.
+
+    Raises
+    ------
+    FileNotFoundError
+        If the file doesn't exist, is a folder or
+        isn't the correct extension.
+    """
+    path = Path(path)
+    if not path.exists():
+        raise FileNotFoundError(f"{name} file does not exist: {path}")
+    if not path.is_file():
+        raise FileNotFoundError(f"{name} is a folder not a file: {path}")
+    if extensions is not None:
+        extensions = [s.lower() for s in extensions]
+        if path.suffix.lower() not in extensions:
+            msg = " or".join(", ".join(extensions).rsplit(",", 1))
+            raise FileNotFoundError(
+                f"{name} should be file of type {msg} not: {path.suffix}"
+            )
+    return True
+
+
+def check_folder(path: Path, name: str, create: bool = False) -> True:
+    """Checks if given `path` is an existing folder.
+
+    Can create a new folder if it doesn't already
+    exist.
+
+    Parameters
+    ----------
+    path : Path
+        Path to check.
+    name : str
+        Name used for error messages.
+    create : bool, optional
+        Whether the folder should be created if it doesn't
+        already exist, by default False
+
+    Returns
+    -------
+    bool
+        True if the folder already exists and
+        False if the folder had to be created.
+
+    Raises
+    ------
+    NotADirectoryError
+        If the given `path` is a file not a folder.
+    FileNotFoundError
+        If the folder doesn't exist and `create` is
+        False.
+    """
+    path = Path(path)
+    if path.is_dir():
+        return True
+    if path.is_file():
+        raise NotADirectoryError(f"{name} is a file when it should be a folder: {path}")
+    if create:
+        path.mkdir(parents=True)
+        return False
+    raise FileNotFoundError(f"{name} folder does not exist: {path}")
