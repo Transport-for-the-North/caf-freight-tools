@@ -98,9 +98,9 @@ class TimeProfiles:
             try:
                 h = int(h)
             except ValueError as e:
-                raise ValueError(err.format(c=c, nm=nm, h=h)) from e
+                raise ValueError(err) from e
             if h < 0 or h > 23:
-                raise ValueError(err.format(c=c, nm=nm, h=h))
+                raise ValueError(err)
             return h
 
         df = pd.read_csv(self.path)
