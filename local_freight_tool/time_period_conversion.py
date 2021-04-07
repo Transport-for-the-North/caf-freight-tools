@@ -241,7 +241,7 @@ def process_matrices(
     Raises
     ------
     errors.BaseLocalFreightError
-        If the is an error reading either of the input matrix CSV files.
+        If there is an error reading either of the input matrix CSV files.
 
     See Also
     --------
