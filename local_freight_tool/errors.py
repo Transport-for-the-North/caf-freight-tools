@@ -3,7 +3,7 @@
 """
 
 ##### IMPORTS #####
-from typing import List
+from typing import List, Union
 
 
 ##### ERRORS #####
@@ -67,7 +67,22 @@ class MissingColumnsError(BaseLocalFreightError):
 class MissingDataError(BaseLocalFreightError):
     """Raised when data is missing from an input file."""
 
-    def __init__(self, name: str, missing: List, *args, **kwargs):
-        miss = " and".join(", ".join(f"'{s}'" for s in missing).rsplit(",", 1))
+    def __init__(self, name: str, missing: Union[List, str], *args, **kwargs):
+        if isinstance(missing, str):
+            miss = missing
+        else:
+            miss = " and".join(", ".join(f"'{s}'" for s in missing).rsplit(",", 1))
         msg = f"Data missing from {name}: {miss}"
+        super().__init__(msg, *args, **kwargs)
+
+
+class NonNumericDataError(BaseLocalFreightError):
+    """Raised when non-numeric data, which should be numeric, is found in an input file."""
+
+    def __init__(self, name: str, non_numeric: Union[List, str], *args, **kwargs):
+        if isinstance(non_numeric, str):
+            nan = non_numeric
+        else:
+            nan = " and".join(", ".join(f"'{s}'" for s in non_numeric).rsplit(",", 1))
+        msg = f"Non-numeric data found in {name}: {nan}"
         super().__init__(msg, *args, **kwargs)

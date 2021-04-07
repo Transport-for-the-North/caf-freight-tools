@@ -20,7 +20,6 @@ from PyQt5.QtCore import pyqtSlot, Qt
 from profile_builder import Profile_Builder
 from annualtonne2pcu import AnnualTonne2PCU
 from matrix_utilities_ui import MatrixUtilities
-from gbfm2modelpcu import GBFM2ModelPCU
 from lgvprocessing import LGVProcessing
 from combine_shapefiles import CombineShapefiles
 from producegbfmcorrespondence import ProduceGBFMCorrespondence
@@ -28,6 +27,7 @@ from deltaprocess import DeltaProcess
 from utilities import Utilities, info_window
 from text_info import Tier_Converter_Text
 from cost_conversion import WeightedRezone
+from time_period_conversion_ui import TimeConversionUI
 from info_window import InfoWindow
 
 # Other packages
@@ -107,7 +107,7 @@ class tier_converter(QtWidgets.QWidget):
         next_button = QtWidgets.QPushButton(self)
         next_button.setText("4: HGV Annual PCU to Model Zoning and Time Periods")
         next_button.setGeometry(10, y, 480, 30)
-        next_button.clicked.connect(self.on_click_GBFM2ModelPCU)
+        next_button.clicked.connect(self.on_click_time_period_conv)
 
         y += sep
         next_button = QtWidgets.QPushButton(self)
@@ -177,8 +177,8 @@ class tier_converter(QtWidgets.QWidget):
         self.selections_window.show()
 
     @pyqtSlot()
-    def on_click_GBFM2ModelPCU(self):
-        self.selections_window = GBFM2ModelPCU(self)
+    def on_click_time_period_conv(self):
+        self.selections_window = TimeConversionUI(self)
         self.hide()
         self.selections_window.show()
 
