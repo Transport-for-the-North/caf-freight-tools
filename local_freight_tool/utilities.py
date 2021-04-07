@@ -435,7 +435,7 @@ def check_file_path(path: Path, name: str, *extensions: str) -> bool:
         if path.suffix.lower() not in extensions:
             msg = " or".join(", ".join(extensions).rsplit(",", 1))
             raise FileNotFoundError(
-                f"{name} should file of type {msg} not: {path.suffix}"
+                f"{name} should be file of type {msg} not: {path.suffix}"
             )
     return True
 
