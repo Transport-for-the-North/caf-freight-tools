@@ -232,8 +232,7 @@ class TonneToPCU:
             & (self.inputs["port_traffic_proportions"].direction == direction)
         ]
         artic_rigid_dict = {}
-        keys = ["artic", "rigid"]
-        for key in keys:
+        for key in self.KEYS:
             artic_rigid_dict[key] = unitised_matrix * (factors[key].mean() / 1000)
             artic_rigid_dict[key].name = f"{key}_{unitised_matrix.name}"
 
