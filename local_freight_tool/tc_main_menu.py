@@ -18,21 +18,19 @@ from PyQt5.QtCore import pyqtSlot, Qt
 
 # User-defined imports
 from profile_builder import Profile_Builder
-from annualtonne2pcu import AnnualTonne2PCU
+from hgv_annual_tonne_to_pcu_ui import TonneToPCUInterface
 from matrix_utilities_ui import MatrixUtilities
 from lgvprocessing import LGVProcessing
 from combine_shapefiles import CombineShapefiles
 from producegbfmcorrespondence import ProduceGBFMCorrespondence
 from deltaprocess import DeltaProcess
-from utilities import Utilities, info_window
-from text_info import Tier_Converter_Text
+from utilities import Utilities
 from cost_conversion import WeightedRezone
 from time_period_conversion_ui import TimeConversionUI
 from info_window import InfoWindow
 
 # Other packages
 import sys
-import textwrap
 
 #########################################################################
 
@@ -74,7 +72,7 @@ class tier_converter(QtWidgets.QWidget):
         y += sep
         # Create a push buttons for menu options
         next_button = QtWidgets.QPushButton(self)
-        next_button.setText("0: Combine Centroid and Polygon Shapefiles")
+        next_button.setText("0: Combine Point and Polygon Shapefiles")
         next_button.setGeometry(10, y, 480, 30)
         next_button.clicked.connect(self.on_click_CombineShapefiles)
 
@@ -166,7 +164,7 @@ class tier_converter(QtWidgets.QWidget):
 
     @pyqtSlot()
     def on_click_AnnualTonne2PCU(self):
-        self.selections_window = AnnualTonne2PCU(self)
+        self.selections_window = TonneToPCUInterface(self)
         self.hide()
         self.selections_window.show()
 

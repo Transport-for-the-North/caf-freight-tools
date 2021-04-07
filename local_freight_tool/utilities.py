@@ -43,7 +43,7 @@ class Utilities(QtWidgets.QWidget):
             event.ignore()
             return False
                 
-    def add_file_selection(self, y_position, label_txt, multiple_files=False, directory=False, filetype=None, return_browse=False):
+    def add_file_selection(self, y_position, label_txt, multiple_files=False, directory=False, filetype=None, return_browse=False, box_width=380):
         def browse_file():
             if directory == True:
                 selected_file = QtWidgets.QFileDialog(self).getExistingDirectory(self, label_txt)
@@ -61,12 +61,12 @@ class Utilities(QtWidgets.QWidget):
         
         # Box which will contain the file selection
         file_path = QtWidgets.QLineEdit(self)
-        file_path.setGeometry(10, y_position, 380, 30)
+        file_path.setGeometry(10, y_position, box_width, 30)
         
         # Button to browse for the file
         browse_button = QtWidgets.QPushButton(self)
         browse_button.setText('Browse')
-        browse_button.setGeometry(400, y_position, 90, 30)
+        browse_button.setGeometry(box_width+20, y_position, 90, 30)
         browse_button.clicked.connect(browse_file)
         
         # Label with instructions
@@ -142,11 +142,11 @@ class info_window(QtWidgets.QWidget):
         self.labelA.setGeometry(10, 10, 830, 30)
         self.labelA.setText('info text')
         self.label = QtWidgets.QLabel(self)
-        self.label.setGeometry(10, 50, 830, 30)
+        self.label.setGeometry(10, 0, 830, 30)
         self.label.setText('info text')
         self.layout = QVBoxLayout()
         self.setLayout(self.layout)
-        self.label.move(10,10)
+        self.label.move(10, 0)
         self.label.resize(750, 300)
         
         # Create a push button to move back to the menu

@@ -92,12 +92,25 @@ class ODMatrix:
         """
         matrix_1_aligned, matrix_2_aligned = self.align(self, other_matrix)
         sum = matrix_1_aligned + matrix_2_aligned
-        name = f"{self.name}_add_{other_matrix.name}"
+        name = f"{self.name}_add"
 
         # make sure there are no negative trips by setting then to 0
         sum[sum < 0] = 0
 
         return ODMatrix(sum, name=name)
+    
+    def __iadd__(self, other_matrix):
+        """Update the current matrix instance by adding another matrix.
+        
+        Parameters
+        ----------
+        other_matrix : ODMatrix.Object
+            Second matrix instance
+        """
+        name = self.name
+        self = self + other_matrix
+        self.name = name
+        return self
 
     def __sub__(self, other_matrix):
         """Subract a matrix from the current matrix instance, element-wise. This first aligns the
@@ -115,7 +128,7 @@ class ODMatrix:
         """
         matrix_1_aligned, matrix_2_aligned = self.align(self, other_matrix)
         subtracted = matrix_1_aligned - matrix_2_aligned
-        name = f"{self.name}_sub_{other_matrix.name}"
+        name = f"{self.name}_sub"
 
         # make sure there are no negative trips by setting then to 0
         subtracted[subtracted < 0] = 0
@@ -144,25 +157,56 @@ class ODMatrix:
             Raised if the factor is neither a number nor an ODMatrix.
         """
         if isinstance(factor, (int, float)):
-            print("Factoring by scalar")
             if factor < 0:
                 raise ValueError("The factor cannot be negative.")
             factored = self.matrix * factor
-            name = f"{self.name}_by_{factor}"
+            name = f"{self.name}_factored"
         elif isinstance(factor, ODMatrix):
-            matrix_1_aligned, matrix_2_aligned = self.align(self, factor)
+            matrix_1_aligned, matrix_2_aligned = self.align(self, factor, fill_value=1)
             if (matrix_2_aligned < 0).sum().sum() > 0:
                 raise ValueError(
                     "There can be no negative values in the factoring matrix"
                 )
             factored = matrix_1_aligned * matrix_2_aligned
-            name = f"{self.name}_by_{factor.name}"
+            name = f"{self.name}_factored"
         else:
             raise TypeError(
                 "Can only multiply an O-D matrix by a scalar or another O-D matrix"
             )
 
         return ODMatrix(factored, name=name)
+    
+    def __truediv__(self, divisor):
+        """Divide the current ODMatrix instance by a positive scalar value.
+
+        Parameters
+        ----------
+        divisor : int or float
+            Number to divide the matrix by
+
+        Returns
+        -------
+        ODMatrix
+            Original ODMatrix divided by divisor.
+
+        Raises
+        ------
+        ValueError
+            If the divisor given is negative.
+        TypeError
+            If the divisor given is not a number.
+        """
+        if isinstance(divisor, (int, float)):
+            if divisor < 0:
+                raise ValueError("The divisor cannot be negative.")
+            divided = self.matrix / divisor
+            name = f"{self.name}_divided"
+        else:
+            raise TypeError(
+                "O-D matrix devision is only defined with a integer or float divisor."
+            )
+        
+        return ODMatrix(divided, name=name)
 
     def summary(self):
         """Calculates total number of trips, the mean, standard deviation,
@@ -188,6 +232,12 @@ class ODMatrix:
         }
 
         return summary
+    
+    def max(self):
+        return self.matrix.max().max()
+    
+    def min(self):
+        return self.matrix.min().min()
 
     def column_matrix(self, include_zeros=True):
         """Transforms the matrix of the ODMatrix instance into a 3 column
@@ -343,7 +393,7 @@ class ODMatrix:
         print("Rezone finished")
         return rezoned_od_matrix
 
-    def export_to_csv(self, outpath, include_zeros=True, include_headers=True, float_format=None):
+    def export_to_csv(self, outpath, include_zeros=True, include_headers=True, float_format='%.12f'):
         """Export column matrix to csv file
 
         Parameters
@@ -355,6 +405,8 @@ class ODMatrix:
         include_headers: bool, optional
             Whether to include the column headers in the sabed file, by
             default True
+        float_format: str, optional
+            Format of floats in output csv, by default, '%.12f'
         """
         column_matrix = self.column_matrix(include_zeros=include_zeros)
         column_matrix.to_csv(outpath, float_format=float_format, header=include_headers, index=False)
@@ -492,22 +544,45 @@ class ODMatrix:
         -------
         ODMatrix
             Instance of the ODMatrix Class
+
+        Raises
+        ------
+        FileNotFoundError
+            If the input file path is incorrect
+        KeyError
+            If the input file does not have the correct number of columns
+        Exception
+            For any other issues with the file
+        ValueError
+            If not all trip values in the matrix are numeric
+        Exception
+            For any other errors.
         """
-        whitespace, header_row = cls.check_file_header(filepath)
-        matrix_dataframe = pd.read_csv(
-            filepath,
-            delim_whitespace=whitespace,
-            header=header_row,
-            names=["origin", "destination", "trips"],
-            usecols=[0, 1, 2],
-        )
         name = os.path.basename(os.path.splitext(filepath)[0])
+        try:
+            whitespace, header_row = cls.check_file_header(filepath)
+            matrix_dataframe = pd.read_csv(
+                filepath,
+                delim_whitespace=whitespace,
+                header=header_row,
+                names=["origin", "destination", "trips"],
+                usecols=[0, 1, 2],
+            )
+        except FileNotFoundError as e:
+            msg = f"Error: {name} not found: {e}"
+            raise FileNotFoundError(msg) from e
+        except KeyError as e:
+            msg = f"Error: problem with {name}: {e}"
+            raise KeyError(msg) from e
+        except Exception as e:
+            msg = f"Error: problem with {name}: {e}"
+            raise Exception(msg) from e
 
         # before turning into a matrix, check that all trips are numbers
         try:
             pd.to_numeric(matrix_dataframe.trips, errors="raise")
         except ValueError as e:
-            msg = f"Error: Problem with input file: {e}"
+            msg = f"Error: Problem with input {name}: {e}"
             raise ValueError(msg) from e
 
         matrix = cls(matrix_dataframe, name, pivoted=False)
@@ -515,7 +590,7 @@ class ODMatrix:
         return matrix
 
     @staticmethod
-    def align(matrix_1, matrix_2):
+    def align(matrix_1, matrix_2, fill_value = 0):
         """Aligns the pivot dataframes of two ODMatrix instances via an outer
         join.
 
@@ -533,7 +608,7 @@ class ODMatrix:
         pd.DataFrame
             Aligned version of matrix_2's pivoted DataFrame
         """
-        return matrix_1.matrix.align(matrix_2.matrix, join="outer", fill_value=0)
+        return matrix_1.matrix.align(matrix_2.matrix, join="outer", fill_value=fill_value)
 
     @staticmethod
     def check_file_header(filepath):
@@ -557,8 +632,12 @@ class ODMatrix:
             Indicates the index of the header row of the file, None if there
             is no header.
         """
-        with open(filepath, "rt") as infile:
-            line = infile.readline()
+        try:
+            with open(filepath, "rt") as infile:
+                line = infile.readline()
+        except FileNotFoundError as e:
+            msg = f"Error: file not found: {e}"
+            raise FileNotFoundError(msg) from e
 
         # check whether comma or tab separated
         if len(line.split(",")) > 1:

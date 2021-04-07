@@ -19,7 +19,7 @@ from PyQt5.QtWidgets import QLineEdit, QDoubleSpinBox
 
 # User-defined imports
 from utilities import Utilities, info_window, progress_window
-from text_info import Combine_Shapefiles_Text
+from info_window import InfoWindow
 
 # Other packages
 import os
@@ -31,18 +31,34 @@ import geopandas as gpd
 
 
 class CombineShapefiles(QtWidgets.QWidget):
+    """Combine Shapefiles user interface.
+
+    Parameters
+    ----------
+    QtWidgets : QWidget
+        Base class for user interface objects.
+    """
     def __init__(self, tier_converter):
+        """Initialises class
+
+        Parameters
+        ----------
+        tier_converter : Class
+            Tier converter class in tc_main_menu
+        """
         super().__init__()
         self.tier_converter = tier_converter
         self.initUI()
 
     def initUI(self):
+        """Initialises UI
+        """
         self.setGeometry(500, 200, 500, 330)
-        self.setWindowTitle("Combine Shapefiles")
+        self.setWindowTitle("Combine Point and Polygon Shapefiles")
         self.setWindowIcon(QtGui.QIcon("icon.png"))
 
         labelD = QtWidgets.QLabel(self)
-        labelD.setText("Combine GBFM Shapefiles")
+        labelD.setText("Combine Point and Polygon Shapefiles")
         labelD.setFont(QtGui.QFont("Arial", 10, QtGui.QFont.Bold))
         labelD.setGeometry(10, 10, 700, 30)
 
@@ -59,7 +75,7 @@ class CombineShapefiles(QtWidgets.QWidget):
         self.gbfm_polygons = Utilities.add_file_selection(
             self,
             y,
-            "Choose GBFM Polygons shapefile:",
+            "Choose polygons shapefile:",
             directory=False,
             filetype="Shapefile (*.shp *.SHP)",
         )
@@ -67,7 +83,7 @@ class CombineShapefiles(QtWidgets.QWidget):
         self.gbfm_centroids = Utilities.add_file_selection(
             self,
             y,
-            "Choose GBFM Centroids shapefile:",
+            "Choose points shapefile:",
             directory=False,
             filetype="Shapefile (*.shp *.SHP)",
         )
@@ -110,6 +126,8 @@ class CombineShapefiles(QtWidgets.QWidget):
         self.show()
 
     def back_button_clicked(self):
+        """Returns to tier converter main menu
+        """
         self.tier_converter.show()
         self.hide()
 
@@ -120,18 +138,18 @@ class CombineShapefiles(QtWidgets.QWidget):
             self.tier_converter.show()
 
     def run_button_clicked(self):
-
+        """Initialises process once run button is clicked."""
         if (
             self.gbfm_polygons.text().strip() == ""
             or self.gbfm_centroids.text().strip() == ""
         ):
             alert = QtWidgets.QMessageBox(self)
-            alert.setWindowTitle("Combine GBFM Shapefiles")
+            alert.setWindowTitle("Combine Point and Polygon Shapefiles")
             alert.setText("Error: you must specify both file paths first")
             alert.show()
         elif self.outpath.text().strip() == "":
             alert = QtWidgets.QMessageBox(self)
-            alert.setWindowTitle("Combine GBFM Shapefiles")
+            alert.setWindowTitle("Combine Point and Polygon Shapefiles")
             alert.setText("Error: you must specify an output folder")
             alert.show()
         else:
@@ -147,23 +165,25 @@ class CombineShapefiles(QtWidgets.QWidget):
 
     @pyqtSlot()
     def on_click_Info(self):
-        self.progress = info_window("Combine GBFM Shapefiles")
-        self.progress_label = self.progress.label
-        self.progress_labelA = self.progress.labelA
-        dedented_text = textwrap.dedent(Combine_Shapefiles_Text).strip()
-        line = textwrap.fill(dedented_text, width=140)
-        self.progress_label.setText(line)
-        self.progress_label.move(10, 40)
-        self.progress_labelA.setText("Combine GBFM Shapefiles")
-        self.progress_labelA.setFont(QtGui.QFont("Arial", 10, QtGui.QFont.Bold))
-        self.progress.show()
-
-        def closeEvent(self, event):
-            Utilities.closeEvent(self, event)
+        self.selections_window = InfoWindow(self, 'README.md')
+        self.selections_window.show()
 
 
 class background_thread(QThread):
+    """Thread which runs the combine shapefiles process
+
+    Parameters
+    ----------
+    QThread
+    """
     def __init__(self, CombineShapefiles):
+        """Initialises class
+
+        Parameters
+        ----------
+        CombineShapefiles : Class
+            GUI Class
+        """
         QThread.__init__(self)
 
         self.progress_label = CombineShapefiles.progress.label
@@ -173,6 +193,8 @@ class background_thread(QThread):
         self.buffer = CombineShapefiles.buffer_box.value()
 
     def run(self):
+        """Runs combine shapefiles process
+        """
         zone_ID = "UniqueID"
 
         try:
@@ -189,7 +211,7 @@ class background_thread(QThread):
             ]
             if gbfm_points.empty:
                 self.progress_label.setText(
-                    "No zones found in centroids file which aren't already in polygon "
+                    "No zones found in points file which aren't already in polygon "
                     "file, so no output file created. You may exit the program"
                 )
 

@@ -20,12 +20,11 @@ from PyQt5.QtWidgets import QLineEdit, QCheckBox, QDoubleSpinBox
 
 
 # User-defined imports
-from utilities import Utilities, info_window, progress_window
-from text_info import ProduceGBFMCorrespondence_Text
+from utilities import Utilities, progress_window
+from info_window import InfoWindow
 import zone_correspondence as zcorr
 
 # Other packages
-import textwrap
 import os
 import traceback
 
@@ -158,7 +157,7 @@ class ProduceGBFMCorrespondence(QtWidgets.QWidget):
             maximum=100,
             minimum=85,
             singleStep=0.5,
-            value=98,
+            value=96.5,
         )
         self.uppertolbox.move(self.x3, 375)
         self.uppertolbox.resize(60, 25)
@@ -382,21 +381,8 @@ class ProduceGBFMCorrespondence(QtWidgets.QWidget):
 
     @pyqtSlot()
     def on_click_Info(self):
-        """Displays info window"""
-        self.progress = info_window("Zone Correspondence Tool")
-        self.progress_label = self.progress.label
-        self.progress_labelA = self.progress.labelA
-        dedented_text = textwrap.dedent(ProduceGBFMCorrespondence_Text).strip()
-        line = textwrap.fill(dedented_text, width=140)
-        self.progress_label.setText(line)
-        self.progress_label.move(10, 40)
-        self.progress_labelA.setText("Produce GBFM Zone Correspondence")
-        self.progress_labelA.setFont(QtGui.QFont("Arial", 10, QtGui.QFont.Bold))
-        self.progress.show()
-
-        def closeEvent(self, event):
-            """Closes info window"""
-            Utilities.closeEvent(self, event)
+        self.selections_window = InfoWindow(self, 'README.md')
+        self.selections_window.show()
 
 
 class background_thread(QThread):
@@ -478,3 +464,4 @@ class background_thread(QThread):
                 f"\nCheck {log_file} for missing zones.\n "
                 "You may now exit the tool."
             )
+        os.startfile(log_file, 'open')

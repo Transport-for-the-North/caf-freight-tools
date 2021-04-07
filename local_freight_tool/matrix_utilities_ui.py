@@ -15,17 +15,15 @@ external-external trips and converting to UFM.
 # PyQt imports
 from PyQt5 import QtWidgets, QtGui
 from PyQt5.QtCore import pyqtSlot, QThread, Qt
-from PyQt5.QtWidgets import QLineEdit, QCheckBox, QDoubleSpinBox
+from PyQt5.QtWidgets import QCheckBox
 
 
 # User-defined imports
-from utilities import Utilities, info_window, progress_window
-from text_info import Matrix_Utilities_Text
+from utilities import Utilities, progress_window
+from info_window import InfoWindow
 from matrix_utilities import ODMatrix
-from rezone import Rezone
 
 # Other packages
-import textwrap
 import os
 import pandas as pd
 
@@ -36,7 +34,7 @@ class MatrixUtilities(QtWidgets.QWidget):
     Parameters
     ----------
     QtWidgets : QWidget
-        Base class for user interfact objects.
+        Base class for user interface objects.
     """
 
     def __init__(self, tier_converter):
@@ -532,21 +530,8 @@ class MatrixUtilities(QtWidgets.QWidget):
 
     @pyqtSlot()
     def on_click_Info(self):
-        """Displays info window"""
-        self.progress = info_window("Matrix Utilities")
-        self.progress_label = self.progress.label
-        self.progress_labelA = self.progress.labelA
-        dedented_text = textwrap.dedent(Matrix_Utilities_Text).strip()
-        line = textwrap.fill(dedented_text, width=140)
-        self.progress_label.setText(line)
-        self.progress_label.move(10, 40)
-        self.progress_labelA.setText("Matrix Utilities")
-        self.progress_labelA.setFont(QtGui.QFont("Arial", 10, QtGui.QFont.Bold))
-        self.progress.show()
-
-        def closeEvent(self, event):
-            """Closes info window"""
-            Utilities.closeEvent(self, event)
+        self.selections_window = InfoWindow(self, 'README.md')
+        self.selections_window.show()
 
 
 class background_thread(QThread):
@@ -957,7 +942,7 @@ class background_thread(QThread):
                                 summary_dict, orient="index"
                             )
                             summary_df.to_excel(
-                                writer, sheet_name="summary", index=True
+                                writer, sheet_name="summary", float_format='%.0f', index=True
                             )
                         except UnboundLocalError as e:
                             msg = f"Error: {e}"
@@ -975,6 +960,8 @@ class background_thread(QThread):
                 progress_text, msg, progress_lines + 2
             )
             self.progress_label.setText(progress_text)
+
+            os.startfile(log_file, 'open')
 
     @staticmethod
     def update_progress_string(progress_text, new_line, line_counter, line_limit=20):
