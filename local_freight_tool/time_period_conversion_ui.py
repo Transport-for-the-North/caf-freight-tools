@@ -79,7 +79,7 @@ class TimeConversionUI(QtWidgets.QWidget):
                 "Rigid Annual PCUs Matrix CSV", filetype="csv"
             ),
             "zone_correspondence_path": ui.FileInput(
-                "Zone Correpondense CSV", filetype="csv"
+                "Zone Correpondence CSV", filetype="csv"
             ),
             "output_folder": ui.FileInput("Output Folder", directory=True),
         }
