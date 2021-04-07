@@ -242,8 +242,17 @@ class HGVProfiles:
         df = rename_columns(df, rename, sheet)
 
         df.dropna(axis=0, how="any", inplace=True)
-        for c in ["rigid", "artic", "all_hgvs"]:
-            df[c] = pd.to_numeric(df[c])
+        missing = []
+        for c in ("rigid", "artic", "all_hgvs"):
+            df[c] = pd.to_numeric(df[c], errors="coerce")
+            nan = df.loc[df[c].isna(), "road_type"]
+            if len(nan) > 0:
+                missing += [f"{c} - {r}" for r in nan]
+        if missing:
+            raise errors.MissingDataError(
+                f"{sheet} sheet in {self.NAME}, non-numeric data found for", missing
+            )
+
         df["road_type"] = df["road_type"].str.lower().str.strip()
         # Check all required road types are given
         expected = list(itertools.chain.from_iterable(self.TRA3105_ROAD_TYPES.values()))
