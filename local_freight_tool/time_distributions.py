@@ -229,6 +229,8 @@ class HGVProfiles:
         errors.MissingDataError
             If any required road types aren't given see
             `HGVProfiles.TRA3105_ROAD_TYPES`.
+        errors.NonNumericDataError
+            If any of the values in the percentage split columns are't numeric.
         """
         sheet = "TRA3105"
         df = read_excel(self.path, sheet, self.NAME)
@@ -249,16 +251,14 @@ class HGVProfiles:
             if len(nan) > 0:
                 missing += [f"{c} - {r}" for r in nan]
         if missing:
-            raise errors.MissingDataError(
-                f"{sheet} sheet in {self.NAME}, non-numeric data found for", missing
-            )
+            raise errors.NonNumericDataError(f"{sheet} sheet in {self.NAME}", missing)
 
         df["road_type"] = df["road_type"].str.lower().str.strip()
         # Check all required road types are given
         expected = list(itertools.chain.from_iterable(self.TRA3105_ROAD_TYPES.values()))
         missing = [i for i in expected if i not in df["road_type"].tolist()]
         if missing:
-            raise errors.MissingDataError(f"{sheet} road types", missing)
+            raise errors.MissingDataError(f"{sheet} sheet in {self.NAME}", missing)
         # Aggregate road types together to get only TRA3105_ROAD_TYPES
         df.set_index("road_type", inplace=True)
         for r, ls in self.TRA3105_ROAD_TYPES.items():
@@ -283,6 +283,8 @@ class HGVProfiles:
         ------
         errors.MissingDataError
             If any required road types or months are missing.
+        errors.NonNumericDataError
+            If any of the values in the HGV columns aren't numeric.
         """
         sheet = "TRA0305"
         df = read_excel(self.path, sheet, self.NAME)
@@ -307,11 +309,14 @@ class HGVProfiles:
         df["month"] = (
             df["month"].str.lower().str.split(pat=" ", n=1, expand=True).iloc[:, 0]
         )
-        df["hgv"] = pd.to_numeric(df["hgv"])
+        # Convert non-numeric data to nan and raise error
+        # when checking for missing data below
+        df["hgv"] = pd.to_numeric(df["hgv"], errors="coerce")
 
         # Check required road type and month combinations are present
         months = [m.lower() for m in calendar.month_name if m != ""]
         missing = []
+        nans = []
         for road in self.TRA0305_EXPECTED_ROADS:
             if road not in df["road_type"].tolist():
                 missing.append(f"{road} - all")
@@ -320,8 +325,15 @@ class HGVProfiles:
             for m in months:
                 if m not in month_data:
                     missing.append(f"{road} - {m}")
+                else:
+                    condition = (df["road_type"] == road) & (df["month"] == m)
+                    index = condition.loc[condition].index[0]
+                    if np.isnan(df.at[index, "hgv"]):
+                        nans.append(f"{road} - {m}")
         if missing:
-            raise errors.MissingDataError(f"{sheet} road type and months", missing)
+            raise errors.MissingDataError(f"{sheet} sheet in {self.NAME}", missing)
+        if nans:
+            raise errors.NonNumericDataError(f"{sheet} sheet in {self.NAME}", nans)
         return df
 
     def read_weekly_profile(self) -> pd.DataFrame:
@@ -342,6 +354,8 @@ class HGVProfiles:
         ------
         errors.MissingDataError
             If any required road types and times aren't given.
+        errors.NonNumericDataError
+            If any of the values in the data columns aren't numeric.
         """
         NAME = "WEEKLY PROFILE"
         df = read_excel(self.path, NAME, NAME, header=[0, 1])
@@ -383,7 +397,17 @@ class HGVProfiles:
                 if t not in time_data:
                     missing.append(f"{road} - {t}")
         if missing:
-            raise errors.MissingDataError(f"{NAME} road type and times", missing)
+            raise errors.MissingDataError(f"{NAME} sheet in {self.NAME}", missing)
+
+        # Check data for each day is numeric
+        nans = []
+        for c in d_cols.values():
+            try:
+                df[c] = pd.to_numeric(df[c])
+            except ValueError:
+                nans.append(c)
+        if nans:
+            raise errors.NonNumericDataError(f"{NAME} sheet in {self.NAME}", nans)
 
         return df
 
