@@ -274,7 +274,10 @@ class HGVProfiles:
         Returns
         -------
         pd.DataFrame
-            TRA0305 data with columns: road_type, month and hgv.
+            TRA0305 data with columns:
+            - road_type: lowercase names of road type
+            - month: lowercase month names
+            - hgv: proportion of vehicles in that month, indexed to 100.
 
         Raises
         ------
@@ -403,7 +406,10 @@ class HGVProfiles:
     def tra0305(self) -> pd.DataFrame:
         """DataFrame with TRA0305 data.
 
-        Contains columns: road_type, month and hgv.
+        Contains columns:
+        - road_type: lowercase names of road type
+        - month: lowercase month names
+        - hgv: proportion of vehicles in that month, indexed to 100.
 
         See Also
         --------
