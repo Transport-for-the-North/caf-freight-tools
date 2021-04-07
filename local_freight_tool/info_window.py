@@ -127,7 +127,6 @@ class InfoWindow(QtWidgets.QWidget):
             calcs_start = 0
             calcs_end = 0
         text = "[TOC]\n"
-        # TODO MAKE IT SO CAN'T ALLOW EXTERNAL LINKS - webbrowser.open()??
         for line in lines[intro_end:calcs_start] + lines[calcs_end:]:
             if not ((line.startswith("![")) | (line.startswith("<!"))):
                 text += line
