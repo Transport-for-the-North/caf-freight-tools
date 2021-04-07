@@ -370,14 +370,8 @@ class TonneToPCU:
 
         # if there are only default factors, then factor the artic and rigid trip
         # matrices by the default factors
-        if (
-            len(
-                self.inputs["pcu_factors"].loc[
-                    ~(self.inputs["pcu_factors"].zone == "default")
-                ]
-            )
-            == 0
-        ):
+        non_default = ~(self.inputs["pcu_factors"].zone == "default")
+        if non_default.sum() == 0:
             self.pcu_factors = default_pcu_factors
         # if there are origin and destination specific factors, need to create a
         # factors matrix

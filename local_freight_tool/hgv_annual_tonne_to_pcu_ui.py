@@ -201,21 +201,21 @@ class background_thread(QThread):
     QThread
     """
 
-    def __init__(self, TonneToPCUInterface):
+    def __init__(self, tonne_to_pcu_ui : TonneToPCUInterface):
         """Initialise class
 
         Parameters
         ----------
-        TonneToPCUInterface : Class
+        tonne_to_pcu_ui : TonneToPCUInterface
             GUI class for tonne to pcu conversion.
         """
         QThread.__init__(self)
-        self.progress_window = TonneToPCUInterface.progress
+        self.progress_window = tonne_to_pcu_ui.progress
         self.progress_window.resize(770, 200)
         self.progress_label = self.progress_window.label
         self.progress_label.resize(770, 185)
-        self.inputs = TonneToPCUInterface.inputs
-        self.outpath = Path(f"{TonneToPCUInterface.outpath}")
+        self.inputs = tonne_to_pcu_ui.inputs
+        self.outpath = Path(f"{tonne_to_pcu_ui.outpath}")
 
     def run(self):
         """Runs hgv tonne to pcu conversion process"""
