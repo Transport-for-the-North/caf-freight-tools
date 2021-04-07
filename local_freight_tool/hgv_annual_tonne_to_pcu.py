@@ -233,7 +233,7 @@ class TonneToPCU:
         ]
         artic_rigid_dict = {}
         for key in self.KEYS:
-            artic_rigid_dict[key] = unitised_matrix * (factors[key].mean() / 1000)
+            artic_rigid_dict[key] = unitised_matrix * (factors[key].iat[0] / 1000)
             artic_rigid_dict[key].name = f"{key}_{unitised_matrix.name}"
 
         return artic_rigid_dict
@@ -270,7 +270,7 @@ class TonneToPCU:
             factor = (
                 self.inputs["port_traffic_proportions"]
                 .loc[self.inputs["port_traffic_proportions"].type == "bulk", key]
-                .mean()
+                .iat[0]
             )
             # apply all-directions factor to O-D trips with port as origin
             self.distance_factors[key].loc[
@@ -365,7 +365,7 @@ class TonneToPCU:
             default_pcu_factors[key] = (
                 self.inputs["pcu_factors"]
                 .loc[self.inputs["pcu_factors"].zone == "default", key]
-                .mean()
+                .iat[0]
             )
 
         # if there are only default factors, then factor the artic and rigid trip
