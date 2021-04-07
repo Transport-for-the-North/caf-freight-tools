@@ -160,20 +160,9 @@ class TonneToPCU:
             new_headers=["Imp0Exp1", "port_id", "zone_id", "trips"],
             numerical_columns=["trips"],
         )
-
-        if (
-            len(
-                non_eu_imports_exports[
-                    ~non_eu_imports_exports.port_id.isin(self.inputs["ports"].port_id)
-                ]
-            )
-            > 0
-        ):
-            missing_from_lookup = non_eu_imports_exports[
-                ~non_eu_imports_exports.port_id.isin(
-                    self.inputs["ports"].port_id.unique()
-                )
-            ].port_id.unique()
+        missing = ~non_eu_imports_exports.port_id.isin(self.inputs["ports"].port_id)
+        if missing.sum() > 0:
+            missing_from_lookup = non_eu_imports_exports[missing].port_id.unique()
             missing_str = ""
             for index, port in enumerate(missing_from_lookup):
                 missing_str += f" {port}"
