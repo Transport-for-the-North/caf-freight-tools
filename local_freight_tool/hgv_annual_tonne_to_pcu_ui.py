@@ -11,15 +11,12 @@ Original author: CaraLynch
 """
 # PyQt imports
 from PyQt5 import QtWidgets, QtGui
-from PyQt5.QtCore import pyqtSlot, QThread, Qt
-from PyQt5.QtWidgets import QCheckBox
-from numpy.core.fromnumeric import trace
+from PyQt5.QtCore import pyqtSlot, QThread
 
 
 # User-defined imports
 from utilities import Utilities, progress_window
 from info_window import InfoWindow
-from matrix_utilities import ODMatrix
 from hgv_annual_tonne_to_pcu import TonneToPCU
 
 # Other packages

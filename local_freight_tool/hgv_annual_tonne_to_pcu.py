@@ -14,18 +14,20 @@ Original author: CaraLynch
 # Standard imports
 from pathlib import Path
 
-# User-defined imports
-from matrix_utilities import ODMatrix
-
 # Third-party imports
 import pandas as pd
 import numpy as np
 
+# User-defined imports
+from matrix_utilities import ODMatrix
 
+##### CLASS #####
 class TonneToPCU:
     """Class for the HGV artic-rigid split and annual tonnage to annual PCU
     conversion.
     """
+
+    KEYS = ["artic", "rigid"]
 
     def __init__(
         self,
@@ -63,7 +65,6 @@ class TonneToPCU:
         self.input_files = inputs
         self.hgv_keys = hgv_keys
         self._read_inputs()
-        self.KEYS = ["artic", "rigid"]
 
     def _read_inputs(self):
         """Reads in all input files required for rigid-artic split and
@@ -134,12 +135,12 @@ class TonneToPCU:
             .any()
             .any()
         ):
-            msg = f"Error: duplicate zone-direction values found in PCU factors file."
+            msg = "Error: duplicate zone-direction values found in PCU factors file."
             raise ValueError(msg)
 
         # check PCU factors contains a default column
         if not (self.inputs["pcu_factors"].zone == "default").any():
-            msg = f"Error: no default value found in PCU factors file."
+            msg = "Error: no default value found in PCU factors file."
             raise ValueError(msg)
 
     def _read_non_eu_imports_exports_file(self):
@@ -175,11 +176,11 @@ class TonneToPCU:
             ].port_id.unique()
             missing_str = ""
             for index, port in enumerate(missing_from_lookup):
-               missing_str += f" {port}"
-               if index != len(missing_from_lookup) - 1:
-                   missing_str += ","
+                missing_str += f" {port}"
+                if index != len(missing_from_lookup) - 1:
+                    missing_str += ","
             msg = (
-               f"Error with unitised non-EU imports and exports file:"
+               "Error with unitised non-EU imports and exports file:"
                f" port(s){missing_str} missing from ports lookup file."
             )
             raise ValueError(msg)
@@ -610,11 +611,11 @@ class TonneToPCU:
             if len(new_headers) != len(columns):
                 msg = f"Error: new column names do not match number of columns in {filename}"
                 raise ValueError(msg)
-            else:
-                new_names = {}
-                for i in range(len(new_headers)):
-                    new_names[columns[i]] = new_headers[i]
-                df = df.rename(columns=new_names)
+            new_names = {}
+            for i in range(len(new_headers)):
+                new_names[columns[i]] = new_headers[i]
+            df = df.rename(columns=new_names)
+
         if numerical_columns:
             try:
                 df[numerical_columns].apply(
