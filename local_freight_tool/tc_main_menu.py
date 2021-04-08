@@ -17,6 +17,7 @@ from PyQt5 import QtWidgets, QtGui
 from PyQt5.QtCore import pyqtSlot, Qt
 
 # User-defined imports
+from package_check import PackageChecker
 from profile_builder import Profile_Builder
 from hgv_annual_tonne_to_pcu_ui import TonneToPCUInterface
 from matrix_utilities_ui import MatrixUtilities
@@ -206,6 +207,10 @@ class tier_converter(QtWidgets.QWidget):
 # =============================================================================
 # Main
 if __name__ == "__main__":
+    # Check package versions before starting application
+    pc = PackageChecker()
+    pc.check_versions()
+
     app = QtWidgets.QApplication(sys.argv)
     app.setStyle("Fusion")
     tc = tier_converter()
