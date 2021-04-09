@@ -1,13 +1,6 @@
 """
-
-File purpose:
 GUI for process to split GBFM HGV annual tonnage matrices into rigid and artic
 matrices, and convert to PCUs, then saves to output files.
-
-Created on: Wed Mar 24 2021
-
-Original author: CaraLynch
-
 """
 # PyQt imports
 from PyQt5 import QtWidgets, QtGui

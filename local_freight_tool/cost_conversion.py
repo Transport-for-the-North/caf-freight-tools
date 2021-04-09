@@ -1,16 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-
-Created on: Wed Mar 25 11:28:50 2020
-Updated on: Wed Dec 23 15:49:14 2020
-
-Original author: racs
-Last update made by: cara
-
-File purpose:
 Performs demand-weighted conversion of costs in O/D format to the new zoning
 system, using a demand-based zone correspondence.
-
 """
 
 # PyQt imports

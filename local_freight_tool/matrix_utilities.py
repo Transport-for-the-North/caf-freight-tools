@@ -1,14 +1,7 @@
 """
-
-Created on: Monday Feb 15 2021
-
-Original author: CaraLynch
-
-File purpose:
 Contains all matrix utility functions required for the tool, including 
 producing a summary, rezoning a matrix, adding and factoring matrices, filling
 missing zones, removing external-external trips, and converting to UFM.
-
 """
 
 ##### IMPORTS #####

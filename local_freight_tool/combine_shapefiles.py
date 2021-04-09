@@ -1,15 +1,8 @@
 # -*- coding: utf-8 -*-
 """
-
-Created on: Wed Feb 24 16:59 2021
-
-Original author: CaraLynch
-
-File purpose:
 GUI to enable user to combine the polygon and centroid GBFM shapefiles, such
 that the point zones in the centroid shapefile are transformed into polygons
 by adding a small buffer radius.
-
 """
 # PyQt imports
 from PyQt5 import QtWidgets, QtGui

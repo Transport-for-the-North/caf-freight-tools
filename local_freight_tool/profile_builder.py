@@ -1,16 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-
-Created on: Fri Feb 28 12:25:27 2020
-Updated on: Tues Mar 16 13:53:15 2021
-
-Original author: racs
-Last update made by: cara
-
-File purpose:
 Produces profile_selection.csv that contains all information required to build
 time period specific O-D trip matrices.
-
 """
 # PyQt imports
 from PyQt5 import QtWidgets, QtGui

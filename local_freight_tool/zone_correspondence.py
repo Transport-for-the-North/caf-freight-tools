@@ -1,12 +1,11 @@
 """
-Created on: Thurs Jan 28 2021
-Updated on: Thurs Feb 25 10:50 2020
+Module which produces a zone correspondence between two shapefiles. 
 
-Original author: CaraLynch
-Last update made by: CaraLynch
-
-File purpose:
-Nest two shapefiles to produce adjustment factors from one zone to another.
+The preliminary lookup is produced spatially, using overlap areas. There is
+additional functionality to introduce lookup factors based on LSOA data for
+point zones, as well as a "rounding" functionality which ensures that all
+lookup factors correspondending to a zone in the original zoning system sum to
+1, such that no demand will be lost.
 """
 
 from shapely.geometry import Polygon, MultiPolygon

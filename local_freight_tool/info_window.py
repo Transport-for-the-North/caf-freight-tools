@@ -1,12 +1,5 @@
 """
-
-File purpose:
 GUI to render README.md when clicking the Info button from main menu.
-
-Created on: Mon Mar 22 2021
-
-Original author: CaraLynch
-
 """
 
 # User-defined imports
