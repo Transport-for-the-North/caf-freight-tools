@@ -5,8 +5,8 @@
 
     See Also
     --------
-    `time_distributions` module which contains classes used for
-    the conversion calculations.
+    time_distributions: module which contains classes used for
+        the conversion calculations.
 """
 
 ##### IMPORTS #####
@@ -245,8 +245,8 @@ def process_matrices(
 
     See Also
     --------
-    `to_time_periods` which converts the rigid and artic matrices to
-    a single time period and performs the aggregation.
+    to_time_period: which converts the rigid and artic matrices to
+        a single time period and performs the aggregation.
     """
     mat_summary = {}
     matrices = {}
