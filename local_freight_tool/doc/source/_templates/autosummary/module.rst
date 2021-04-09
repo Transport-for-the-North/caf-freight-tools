@@ -8,7 +8,7 @@
    -------
    {{ fullname }} module contains the following classes (see `Documentation`_ for more details):
    {% for item in classes %}
-   - {{ item }}
+   - :class:`{{ item }}`
    {%- endfor %}
    {% endif %}
    {% endblock %}
@@ -19,7 +19,7 @@
    ----------
    {{ fullname }} module contains the following exceptions (see `Documentation`_ for more details):
    {% for item in exceptions %}
-   - {{ item }}
+   - :class:`{{ item }}`
    {%- endfor %}
    {% endif %}
    {% endblock %}
@@ -30,7 +30,7 @@
    ---------
    {{ fullname }} module contains the following functions (see `Documentation`_ for more details):
    {% for item in functions %}
-   - {{ item }}
+   - :func:`{{ item }}`
    {%- endfor %}
    {% endif %}
    {% endblock %}
