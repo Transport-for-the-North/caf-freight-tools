@@ -1,7 +1,7 @@
 Python Module Documentation
 ===========================
 
-This section shows the documenation for the Python code used to create this tool,
+This section shows the documentation for the Python code used to create this tool,
 last updated on |today|. This documentation details all the modules (summary table
 below), functions and classes and should be used as a  reference when making any
 changes to the tool.
