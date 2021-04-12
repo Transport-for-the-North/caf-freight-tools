@@ -208,7 +208,7 @@ where:
 
 The GeoPandas overlay function is used to calculate the intersecting area of the zones; see
 [GeoPandas documentation](https://geopandas.org/set_operations.html) for more details. If neither
-rounding or point handling are selected then the spatial correspondence is the final correspondence.
+rounding nor point handling are selected then the spatial correspondence is the final correspondence.
 
 #### Point Handling (optional)
 Point handling affects the point zones in the second zone system and any other zones in that system
