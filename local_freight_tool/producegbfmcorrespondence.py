@@ -3,6 +3,11 @@
 Produces zone_correspondence.csv which can be used within the GBFM Annual PCU
 to Model Time Period PCU tool to convert the GBFM zoning system to a model
 zoning system.
+
+    See Also
+    --------
+    zone_correspondence: module which contains the zone correspondence
+        calculations.
 """
 # PyQt imports
 from PyQt5 import QtWidgets, QtGui

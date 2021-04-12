@@ -1,6 +1,6 @@
 """
 Class to split GBFM HGV annual tonnage matrices into rigid and artic
-matrices, and convert to PCUs.
+matrices, and convert to annual PCUs.
 """
 
 ##### IMPORTS #####

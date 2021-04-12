@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Performs demand-weighted conversion of costs in O/D format to the new zoning
+Performs demand-weighted conversion of costs in O-D format to the new zoning
 system, using a demand-based zone correspondence.
 """
 

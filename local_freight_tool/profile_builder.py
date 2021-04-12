@@ -292,5 +292,7 @@ class Profile_Builder(QtWidgets.QWidget):
 
     @pyqtSlot()
     def on_click_Info(self):
+        """Opens info window
+        """
         self.selections_window = InfoWindow(self, 'README.md')
         self.selections_window.show()

@@ -2,6 +2,11 @@
 Contains all matrix utility functions required for the tool, including 
 producing a summary, rezoning a matrix, adding and factoring matrices, filling
 missing zones, removing external-external trips, and converting to UFM.
+
+    See Also
+    --------
+    rezone: module which contains the necessary functionality to rezone an O-D
+        matrix given a zone correspondence lookup.
 """
 
 ##### IMPORTS #####

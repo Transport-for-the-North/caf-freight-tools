@@ -1,5 +1,7 @@
 """
 GUI to render README.md when clicking the Info button from main menu.
+
+The introduction, images and zone correspondence calculations are removed.
 """
 
 # User-defined imports
@@ -59,7 +61,7 @@ STYLESHEET = (
     r"</head>"
     r"<body>"
 )
-
+"""HTML stylesheet for display in the info window"""
 
 class InfoWindow(QtWidgets.QWidget):
     """Local Freight Tool Information window.

@@ -1,11 +1,18 @@
 # -*- coding: utf-8 -*-
 """
-GUI to enable user to access three separate functionalities. 
-The LGV Processing Tool displays the total size of two selected O-D freight
+GUI to enable user to access three separate functionalities to use on LGV
+matrices:
+
+- LGV Processing Tool displays the total size of two selected O-D freight
 matrices.
-Applying Global Factors allows up to two O-D freight matrices to be multiplied
+- Applying Global Factors allows up to two O-D freight matrices to be multiplied
 by a global factor.
-Aggregation agggregates together two O-D freight matrices.
+- Aggregation agggregates together two O-D freight matrices.
+
+    See Also
+    --------
+    matrix_utilities: module which contains an ODMatrix class for more general
+        O-D matrix manipulation.
 """
 # PyQt imports
 from PyQt5 import QtWidgets, QtGui

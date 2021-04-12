@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-GUI to enable user to combine the polygon and centroid GBFM shapefiles, such
+GUI to enable user to combine polygon and point shapefiles, such
 that the point zones in the centroid shapefile are transformed into polygons
 by adding a small buffer radius.
 """
