@@ -1,16 +1,11 @@
 """
-
-Created on: Tue Feb 16 2021
-Last update: Thurs Feb 25 2021
-
-Original author: CaraLynch
-Last updated by: CaraLynch
-
-File purpose:
 Gui to enable user to access utility functions relevant to O-D matrices,
 including rezoning, addition, factoring, filling in missing zones, removing
 external-external trips and converting to UFM.
 
+    See Also
+    --------
+    matrix_utilities: module which contains the ODMatrix class.
 """
 # PyQt imports
 from PyQt5 import QtWidgets, QtGui

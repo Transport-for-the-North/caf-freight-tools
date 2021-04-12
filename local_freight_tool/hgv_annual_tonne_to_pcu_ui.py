@@ -1,13 +1,6 @@
 """
-
-File purpose:
 GUI for process to split GBFM HGV annual tonnage matrices into rigid and artic
-matrices, and convert to PCUs, then saves to output files.
-
-Created on: Wed Mar 24 2021
-
-Original author: CaraLynch
-
+matrices, convert to annual PCUs, and save to output files.
 """
 # PyQt imports
 from PyQt5 import QtWidgets, QtGui
@@ -29,7 +22,7 @@ import os
 
 
 class TonneToPCUInterface(QtWidgets.QWidget):
-    """Annual tonnes to PCU user interface.
+    """Annual tonnes to annual PCUs user interface.
 
     Parameters
     ----------
@@ -402,6 +395,21 @@ class background_thread(QThread):
     
     @staticmethod
     def flag_error_row(row):
+        """Highlights whether the processes in the process dataframe were
+        completed (text is set to green), whether an error occurred
+        (background colour set to red, text set to white), or the process was
+        not completed (text remains black).
+
+        Parameters
+        ----------
+        row : pd.Series
+            Row of dataframe corresponding to a process.
+
+        Returns
+        -------
+        List[str]
+            Formatting required for row
+        """
         if row['Completed'] == 'yes':
             return ['color: green']*len(row)
         elif not row['Error']:

@@ -1,12 +1,11 @@
 """
-Created on: Thurs Jan 28 2021
-Updated on: Thurs Feb 25 10:50 2020
+Module which produces a zone correspondence between two shapefiles. 
 
-Original author: CaraLynch
-Last update made by: CaraLynch
-
-File purpose:
-Nest two shapefiles to produce adjustment factors from one zone to another.
+The preliminary lookup is produced spatially, using overlap areas. There is
+additional functionality to introduce lookup factors based on LSOA data for
+point zones, as well as a "rounding" functionality which ensures that all
+lookup factors correspondending to a zone in the original zoning system sum to
+1, such that no demand will be lost.
 """
 
 from shapely.geometry import Polygon, MultiPolygon
@@ -306,41 +305,41 @@ def point_zone_filter(
     tolerance,
 ):
     """Finds zone system 2 point and associated zones (sharing a zone system 1
-     zone), reads in LSOA data, computes intersection, filters out slithers,
-     makes sure each point zone is the only one associated with that LSOA.
-     Returns var data for zone 2 zones as dataframes with zone ids as indices,
-     var as column.
+    zone), reads in LSOA data, computes intersection, filters out slithers,
+    makes sure each point zone is the only one associated with that LSOA.
+    Returns var data for zone 2 zones as dataframes with zone ids as indices,
+    var as column.
 
-     Parameters
-     ----------
-     spatial_correspondence_no_slithers : GeoDataFrame
-         Spatial zone correspondence between zone systems 1 and 2, produced
-         with spatial_zone_correspondence with the small overlaps filtered out
-         using find_slithers.
-     point_tolerance : float, optional
-         Tolerance level for filtering out point zones, a number between 0 and
-         1, defaults to 0.95
-     point_zones : str, optional
-         Path to csv file with list of point zones with column name zone_id, defaults to ""
-     zone_list : List[GeoDataFrame, GeoDataFrame]
-         List containing zone 1 and zone 2 GeoDataFrames.
-     zone_names : List[str, str]
-         List containing zone 1 and zone 2 names.
-     lsoa_shapefile_path : str
-         Path to LSOA shapefile (or the shapefile associated with the data to
-         be used in point zone handling). Zone ID column must be called
-         LSOA11CD.
-     lsoa_data_path : str
-         Path to csv file containing LSOA ID column as lsoa11cd and desired
-         data in var column.
+    Parameters
+    ----------
+    spatial_correspondence_no_slithers : GeoDataFrame
+        Spatial zone correspondence between zone systems 1 and 2, produced
+        with spatial_zone_correspondence with the small overlaps filtered out
+        using find_slithers.
+    point_tolerance : float, optional
+        Tolerance level for filtering out point zones, a number between 0 and
+        1, defaults to 0.95
+    point_zones : str, optional
+        Path to csv file with list of point zones with column name zone_id, defaults to ""
+    zone_list : List[GeoDataFrame, GeoDataFrame]
+        List containing zone 1 and zone 2 GeoDataFrames.
+    zone_names : List[str, str]
+        List containing zone 1 and zone 2 names.
+    lsoa_shapefile_path : str
+        Path to LSOA shapefile (or the shapefile associated with the data to
+        be used in point zone handling). Zone ID column must be called
+        LSOA11CD.
+    lsoa_data_path : str
+        Path to csv file containing LSOA ID column as lsoa11cd and desired
+        data in var column.
 
-     Returns
-     -------
-     gpd.GeoDataFrame
+    Returns
+    -------
+    gpd.GeoDataFrame
         LSOA data for zones in zone 2 that map to the same zone 1 zone as point zones.
-     gpd.GeoDataFrame
+    gpd.GeoDataFrame
         LSOA data for point zones.
-     pd.DataFrame
+    pd.DataFrame
         Contains information on these zones, their zone 1 zone ID, zone 2 zone ID, zone
         type (point or non-point), correspondence type (LSOA or spatial) and any notes.
     gpd.GeoDataFrame

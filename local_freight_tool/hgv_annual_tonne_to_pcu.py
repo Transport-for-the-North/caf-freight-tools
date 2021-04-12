@@ -1,13 +1,6 @@
 """
-
-File purpose:
 Class to split GBFM HGV annual tonnage matrices into rigid and artic
-matrices, and convert to PCUs.
-
-Created on: Fri Mar 19 2021
-
-Original author: CaraLynch
-
+matrices, and convert to annual PCUs.
 """
 
 ##### IMPORTS #####

@@ -1,8 +1,5 @@
 """
-    
-    File purpose:
-    Rezones a matrix when given a lookup with splitting factors.
-
+Rezones a matrix when given a lookup with splitting factors.
 """
 
 ##### IMPORTS #####

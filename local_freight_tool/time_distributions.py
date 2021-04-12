@@ -1,9 +1,12 @@
 # -*- coding: utf-8 -*-
 """
     Module contains the classes for reading and processing
-    the time profile and HGV distributions data. The classes
-    in this module are used by the `time_period_conversion`
-    module.
+    the time profile and HGV distributions data.
+
+    See Also
+    --------
+    time_period_conversion: contains functions for performing the
+        annual PCU to time period PCU conversion calculations.
 """
 
 ##### IMPORTS #####
@@ -48,11 +51,11 @@ class TimeProfiles:
 
     See Also
     --------
-    - `HGVProfiles.time_period_factor` for using the information
-      within this class to create factors for converting annual
-      PCUs into time period PCUs.
-    - `profile_builder.ProfileBuilder` which creates a UI to allow
-      the user to create the time profiles input file.
+    HGVProfiles.time_period_factors: for using the information
+        within this class to create factors for converting annual
+        PCUs into time period PCUs.
+    profile_builder.Profile_Builder: which creates a UI to allow
+        the user to create the time profiles input file.
     """
 
     NAME = "Time Period Profiles"
@@ -144,8 +147,8 @@ class TimeProfiles:
 
         See Also
         --------
-        `TimeProfiles.read_input` which gets this information from
-        the input file.
+        TimeProfiles.read_input: which reads this information from
+            the input file.
         """
         if self._time_periods is None:
             self._time_periods = self.read_input()
@@ -420,7 +423,7 @@ class HGVProfiles:
 
         See Also
         --------
-        `HGVProfile.read_tra3105` which reads the data.
+        HGVProfiles.read_tra3105: which reads the data.
         """
         if self._tra3105 is None:
             self._tra3105 = self.read_tra3105()
@@ -437,7 +440,7 @@ class HGVProfiles:
 
         See Also
         --------
-        `HGVProfile.read_tra0305` which reads the data.
+        HGVProfiles.read_tra0305: which reads the data.
         """
         if self._tra0305 is None:
             self._tra0305 = self.read_tra0305()
@@ -453,7 +456,7 @@ class HGVProfiles:
 
         See Also
         --------
-        `HGVProfile.read_weekly_profile` which reads the data.
+        HGVProfiles.read_weekly_profile: which reads the data.
         """
         if self._weekly is None:
             self._weekly = self.read_weekly_profile()
@@ -529,8 +532,8 @@ class HGVProfiles:
 
         See Also
         --------
-        `HGVProfiles.calc_monthly_average` which is used to calculate
-        the weighted average.
+        HGVProfiles.calc_monthly_average: which is used to calculate
+            the weighted average.
         """
         if self._monthly_avg is None:
             self._monthly_avg = self.calc_monthly_average()
@@ -546,8 +549,8 @@ class HGVProfiles:
 
         See Also
         --------
-        `HGVProfiles.calc_weekly_average` which is used to calculate
-        the weighted average.
+        HGVProfiles.calc_weekly_average: which is used to calculate
+            the weighted average.
         """
         if self._weekly_avg is None:
             self._weekly_avg = self.calc_weekly_average()
@@ -631,8 +634,8 @@ class HGVProfiles:
 
         See Also
         --------
-        `HGVProfiles.calc_tp_factor` which will calculate the
-        factors for a single time period.
+        HGVProfiles.calc_tp_factor: which will calculate the
+            factors for a single time period.
         """
         factors = {}
         for nm, data in profiles.time_periods.items():

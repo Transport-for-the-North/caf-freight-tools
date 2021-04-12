@@ -1,16 +1,7 @@
 """
-
-Created on: Wed Feb 26 09:32:01 2020
-Updated on: Wed Dec 23 14:12:46 2020
-
-Original author: racs
-Last update made by: cara
-
-File purpose:
 Freight model tier converter tool. Translates Great Britain Freight Model
 (GBFM) output matrices to matrices with model-specific time period and zoning
 system.
-
 """
 # PyQt imports
 from PyQt5 import QtWidgets, QtGui
