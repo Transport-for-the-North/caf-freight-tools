@@ -603,7 +603,7 @@ class HGVProfiles:
             veh_days = [f"{veh}-{d}" for d in days]
             avg_day = self.weekly_avg.loc[hours, veh_days].mean(axis=1)
             avg_hours = avg_day.mean()
-            f = (avg_month / 1200) * (1 / avg_weeks) * (avg_hours / 700)
+            f = (avg_month / 1200) * (1 / avg_weeks) * (avg_hours / (700 * 24))
             factors[veh] = f
         return factors
 
