@@ -14,7 +14,7 @@ from hgv_annual_tonne_to_pcu_ui import TonneToPCUInterface
 from matrix_utilities_ui import MatrixUtilities
 from lgvprocessing import LGVProcessing
 from combine_shapefiles import CombineShapefiles
-from producegbfmcorrespondence import ProduceGBFMCorrespondence
+from zone_correspondence_ui import ZoneCorrespondenceUi
 from deltaprocess import DeltaProcess
 from utilities import Utilities
 from cost_conversion import WeightedRezone
@@ -72,7 +72,7 @@ class tier_converter(QtWidgets.QWidget):
         next_button = QtWidgets.QPushButton(self)
         next_button.setText("1: Produce Zone Correspondence")
         next_button.setGeometry(10, y, 480, 30)
-        next_button.clicked.connect(self.on_click_ProduceGBFMCorrespondence)
+        next_button.clicked.connect(self.on_click_ZoneCorrespondence)
 
         y += sep
         #  Create a push button for Profile Builder
@@ -149,8 +149,8 @@ class tier_converter(QtWidgets.QWidget):
         self.selections_window.show()
 
     @pyqtSlot()
-    def on_click_ProduceGBFMCorrespondence(self):
-        self.selections_window = ProduceGBFMCorrespondence(self)
+    def on_click_ZoneCorrespondence(self):
+        self.selections_window = ZoneCorrespondenceUi(self)
         self.hide()
         self.selections_window.show()
 

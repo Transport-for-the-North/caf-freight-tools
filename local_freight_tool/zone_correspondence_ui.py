@@ -25,8 +25,8 @@ import os
 import traceback
 
 
-class ProduceGBFMCorrespondence(QtWidgets.QWidget):
-    """Produce GBFM correspodence user interface.
+class ZoneCorrespondenceUi(QtWidgets.QWidget):
+    """Zone correspondence user interface.
 
     Parameters
     ----------
@@ -390,33 +390,33 @@ class background_thread(QThread):
     QThread
     """
 
-    def __init__(self, ProduceGBFMCorrespondence):
+    def __init__(self, ZoneCorrespondenceUi):
         """Initialise class
 
         Parameters
         ----------
-        ProduceGBFMCorrespondence : Class
+        ZoneCorrespondenceUi : Class
             GUI class for zone correspondence
         """
         QThread.__init__(self)
 
-        self.progress_window = ProduceGBFMCorrespondence.progress
+        self.progress_window = ZoneCorrespondenceUi.progress
         self.progress_label = self.progress_window.label
         self.progress_label.move(10,10)
         self.progress_label.resize(750, 100)
-        #self.progress_label = ProduceGBFMCorrespondence.progress.label
-        self.first_zones_path = ProduceGBFMCorrespondence.first_zones_path.text()
-        self.second_zones_path = ProduceGBFMCorrespondence.second_zones_path.text()
-        self.textbox_zone1 = ProduceGBFMCorrespondence.textbox_zone1.text()
-        self.textbox_zone2 = ProduceGBFMCorrespondence.textbox_zone2.text()
-        self.lsoa_shapefile_path = ProduceGBFMCorrespondence.lsoa_shapefile_path.text()
-        self.lsoa_data_path = ProduceGBFMCorrespondence.lsoa_data_path.text()
-        self.outpath = ProduceGBFMCorrespondence.outpath.text()
-        self.point_zones = ProduceGBFMCorrespondence.point_zones.text()
-        self.tolerance = (ProduceGBFMCorrespondence.uppertolbox.value()) / 100.0
-        self.point_tolerance = (ProduceGBFMCorrespondence.pointtolbox.value()) / 100.0
-        self.point_handling = ProduceGBFMCorrespondence.point_handling
-        self.rounding = ProduceGBFMCorrespondence.rounding
+        #self.progress_label = ZoneCorrespondenceUi.progress.label
+        self.first_zones_path = ZoneCorrespondenceUi.first_zones_path.text()
+        self.second_zones_path = ZoneCorrespondenceUi.second_zones_path.text()
+        self.textbox_zone1 = ZoneCorrespondenceUi.textbox_zone1.text()
+        self.textbox_zone2 = ZoneCorrespondenceUi.textbox_zone2.text()
+        self.lsoa_shapefile_path = ZoneCorrespondenceUi.lsoa_shapefile_path.text()
+        self.lsoa_data_path = ZoneCorrespondenceUi.lsoa_data_path.text()
+        self.outpath = ZoneCorrespondenceUi.outpath.text()
+        self.point_zones = ZoneCorrespondenceUi.point_zones.text()
+        self.tolerance = (ZoneCorrespondenceUi.uppertolbox.value()) / 100.0
+        self.point_tolerance = (ZoneCorrespondenceUi.pointtolbox.value()) / 100.0
+        self.point_handling = ZoneCorrespondenceUi.point_handling
+        self.rounding = ZoneCorrespondenceUi.rounding
 
     def run(self):
         """Runs zone correspondence"""
