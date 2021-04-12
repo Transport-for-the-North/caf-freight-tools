@@ -317,7 +317,7 @@ $$
 
 #### Missing Zones
 At the end of the process the zone IDs present in the zone correspondence lookup are compared to
-those in the input shapefiles and any missing ones are added to the log file. Missing zones are
+those in the input shapefiles and any missing zones are added to the log file. Missing zones are
 due to no overlap being found between zones in the two zone systems. The missing zones sheet of
 the zone correspondence log spreadsheet should be checked to find out where this has occurred and
 these should be fixed by manually updating the input or outputs.
