@@ -20,7 +20,6 @@ changes to the tool.
     matrix_utilities
     matrix_utilities_ui
     package_check
-    producegbfmcorrespondence
     profile_builder
     rezone
     tc_main_menu
@@ -29,3 +28,4 @@ changes to the tool.
     time_period_conversion_ui
     utilities
     zone_correspondence
+    zone_correspondence_ui
