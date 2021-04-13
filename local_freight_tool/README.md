@@ -7,8 +7,7 @@ The document is split into the following sections:
 
 - [Tool Location](#tool-location): describes where the Local Freight tool can be obtained from;
 - [Installation](#installation): covers the requirements for the tool and how to install them;
-- [Running Local Freight Tool](#running-local-freight-tool): covers information on how the tool
-  is ran; and
+- [Running Local Freight Tool](#running-local-freight-tool): covers information on how to run the tool; and
 - [Tool Functionality](#tool-functionality): outlines all the functionality provided by the tool
   and provides information on how to run each module, including any required inputs and the
   expected outputs.
@@ -23,16 +22,15 @@ repository should be cloned, see [GitHub guide about remote repositories](
 
 Once the zip file has been downloaded it should be unzipped to the local machine then the
 requirements should be installed using the instructions in the [Installation section](#installation).
-When all the requirements are installed the Local Freight tool can be ran following the steps
+When all the requirements are installed the Local Freight tool can be run following the steps
 outlined in the [Running section](#running-local-freight-tool).
 
 # Installation
 Installation of the Local Freight Tool requires Anaconda (or Miniconda) to be installed, which
 can be downloaded from [Anaconda.org](https://www.anaconda.com/products/individual#Downloads)
 (or [Miniconda's website](https://docs.conda.io/en/latest/miniconda.html)). Once Anaconda has
-been installed it can be used to install are the Python requirements (listed in
-[Packages Required](#packages-required) section) for running the tool, details in the following
-section.
+been installed it can be used to install the Python requirements (listed in
+[Packages Required](#packages-required) section) for running the tool.
 
 ## Creating conda Environment
 A batch file has been supplied with the tool which will automatically install all the
@@ -54,6 +52,8 @@ Python files):
 - Pandas;
 - GeoPandas; and
 - Openpyxl.
+- markdown
+- jinja2
 
 # Running Local Freight Tool
 Another batch file has been created to simplify the steps for running the tool, this file is
@@ -390,9 +390,9 @@ Table: Outputs for HGV annual tonne to annual PCU conversion module
 
 
 ## 4: HGV Annual PCU to Model Time Period PCU
-This module converts the articulated and rigid matrices (created by model 3: HGV Annual Tonne to
-Annual PCU Conversion) from annual PCUs to model time period PCUs, based on the time periods defined
-by module 2: Time Profile Builder.
+This module converts the articulated and rigid matrices (created by module 3: [HGV Annual Tonne to
+Annual PCU Conversion](#3-hgv-annual-tonne-to-annual-pcu-conversion) from annual PCUs to model time period PCUs, based on the time periods defined
+by module 2: [Time Profile Builder](#2-time-profile-builder).
 
 ![Annual PCU to Model Time Period PCU Menu](doc/images/annual_to_time_period_menu.png "Annual PCU to Model Time Period PCU Menu")
 
