@@ -54,6 +54,8 @@ Python files):
 - Openpyxl.
 - markdown
 - jinja2
+- packaging
+- pyyaml
 
 # Running Local Freight Tool
 Another batch file has been created to simplify the steps for running the tool, this file is
