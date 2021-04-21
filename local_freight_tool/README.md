@@ -216,7 +216,7 @@ rounding nor point handling are selected then the spatial correspondence is the 
 Point handling affects the point zones in the second zone system and any other zones in that system
 which share a correspondence with the same zone for the first zone system. A list of point zones
 can be provided to the tool (recommended) but if not given then the tool will define them as any
-zones which satisfy the following:
+zones which satisfy both of the following:
 
 $$
 F_{spatial}(Z_{1i} \rightarrow Z_{2j}) < 1 - T_{pt}
@@ -230,10 +230,13 @@ where $T_{pt}$ is the point tolerance. This method might miss some point zones, 
 non-point zones, so it is recommended to **check the point handling sheet of the output log
 spreadsheet.**
 
-Point handling has been designed to use LSOA data for calculating the adjustment factor, however
-the flexibility of the tool permits any data which satisfies the conditions outlined in the inputs
-table. For point zone $Z_{2pt}$ and $\{Z_{2j}\}$, the set of zones which overlap with the same zone
-$Z_{1k}$ from the first zone system, the non-spatial adjustment factors are given by:
+Point handling has been designed to use LSOA data for calculating the adjustment factor, with the
+$F_{non-spatial}$ formulae below, to ensure a more appropriate proportion of the demand is given
+to the point zones when converting to the second zone system. However the flexibility of the tool
+permits any data which satisfies the conditions outlined in the inputs table to be used for the
+non-spatial calculations. For point zone $Z_{2pt}$ and $\{Z_{2j}\}$, the set of zones which overlap
+with the same zone $Z_{1k}$ from the first zone system, the non-spatial adjustment factors for the
+point zones are given by:
 
 $$
 F_{non-spatial}(Z_{1k} \rightarrow Z_{2pt})
@@ -242,8 +245,23 @@ F_{non-spatial}(Z_{1k} \rightarrow Z_{2pt})
 $$
 
 $$
+F_{non-spatial}(Z_{1k} \rightarrow Z_{2pt})
+  = \left( \frac{A(Z_{1k} \cap Z_{2pt})}{A(Z_{1k})} + \sum_{j} \frac{A(Z_{1k} \cap Z_{2j})}{A(Z_{1k})} \right)
+    \cdot \frac{V(L_{pt})}{\sum_n V(L_{n})}
+$$
+
+The non-spatial adjustment factors for the non-point zones, which interact with the same zone in the
+first zone system, are given by:
+
+$$
 F_{non-spatial}(Z_{1k} \rightarrow Z_{2m})
   = \left( F_{spatial}(Z_{1k} \rightarrow Z_{2pt}) + \sum_{j} F_{spatial}(Z_{1k} \rightarrow Z_{2j}) \right)
+    \cdot \frac{\sum_l V(L_{l})}{\sum_n V(L_{n})}
+$$
+
+$$
+F_{non-spatial}(Z_{1k} \rightarrow Z_{2m})
+  = \left( \frac{A(Z_{1k} \cap Z_{2pt})}{A(Z_{1k})} + \sum_{j} \frac{A(Z_{1k} \cap Z_{2j})}{A(Z_{1k})} \right)
     \cdot \frac{\sum_l V(L_{l})}{\sum_n V(L_{n})}
 $$
 
@@ -251,7 +269,7 @@ where:
 
 - $Z_{2m} \in \{Z_{2j}\}$;
 - $L_{pt}$ is the LSOA which contains $Z_{2pt}$;
-- $V(L_{pt})$ is the LSOA data (in var column) for $L_{pt}$;
+- $V(L_{pt})$ is the LSOA data (in var column of the inputted employment CSV) for $L_{pt}$;
 - $\{L_n\}$ is the set of LSOAs which overlap with $Z_{1k}$; and
 - $\{L_l\}$ is the set of LSOAs which overlap with $Z_{2m}$, excluding $L_{pt}$.
 
