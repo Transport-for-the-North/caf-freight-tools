@@ -24,7 +24,7 @@ class ForecastDemand:
 
     def __init__(
         self,
-        matrix_paths: Dict[Path, Path, Path],
+        matrix_paths: Dict[str, Path],
         output_folder: Path,
         growth_mode: str = "standard",
         k1: float = 1,
