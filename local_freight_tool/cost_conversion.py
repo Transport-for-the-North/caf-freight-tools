@@ -111,42 +111,42 @@ class background_thread(QThread):
         # Read in the input files
         self.progress_label.setText('Reading in the cost matrix...')
         cost = Utilities.read_csv(self.cost)
-        cost.columns = ['Origin', 'Destination', 'Cost']   
+        cost.columns = ['origin', 'destination', 'cost']
         
         self.progress_label.setText('Reading in the trips matrix...')
         demand = Utilities.read_csv(self.demand)
-        demand.columns = ['Origin', 'Destination', 'Trips']  
+        demand.columns = ['origin', 'destination', 'trips']  
         
         self.progress_label.setText('Reading in the zone correspondence...')
         correspondence = Utilities.read_csv(self.correspondence)
-        correspondence.columns = ['Old', 'New', 'SplittingFactor']  
+        correspondence.columns = ['old', 'new', 'splitting_factor']
 
         # Merge the reference demand onto the cost (note inner merge drops cost rows where there is no demand)
-        df = cost.merge(demand, how='inner', on=['Origin', 'Destination'])
+        df = cost.merge(demand, how='inner', on=['origin', 'destination'])
         
         # Compute cost*trips
-        df['costXtrips'] = df['Cost'] * df['Trips']
+        df['costXtrips'] = df['cost'] * df['trips']
         
         # Apply the rezone process
         self.progress_label.setText('Applying the weighted rezone process...')
-        df_trips = rz.rezoneOD(df[['Origin', 'Destination', 'Trips']], correspondence)
+        df_trips = rz.rezoneOD(df[['origin', 'destination', 'trips']], correspondence)
         
-        df_costXtrips = df[['Origin', 'Destination', 'costXtrips']]
-        df_costXtrips.columns = ['Origin', 'Destination', 'Trips'] #hacky fix to give rezoneOD the columns it's expecting
+        df_costXtrips = df[['origin', 'destination', 'costXtrips']]
+        df_costXtrips.columns = ['origin', 'destination', 'trips'] #hacky fix to give rezoneOD the columns it's expecting
         df_costXtrips = rz.rezoneOD(df_costXtrips, correspondence)
-        df_costXtrips.columns = ['Origin', 'Destination', 'costXtrips']
+        df_costXtrips.columns = ['origin', 'destination', 'costXtrips']
         
         # Merge back together
-        df_final = df_costXtrips.merge(df_trips, on=['Origin', 'Destination'])
+        df_final = df_costXtrips.merge(df_trips, on=['origin', 'destination'])
         
         # Compute weighted-average cost
-        df_final['weighted_cost'] = np.where(df_final['Trips']==0,
+        df_final['weighted_cost'] = np.where(df_final['trips']==0,
                 0,
-                df_final['costXtrips'] / df_final['Trips']
+                df_final['costXtrips'] / df_final['trips']
                 )
         
         # Cut back to the columns of interest and save to file
         self.progress_label.setText('Saving the rezoned cost matrix to {}'.format(self.path))
-        df_final[['Origin', 'Destination', 'weighted_cost']].to_csv(self.path + '/Output_Cost_Converted.csv', index=None)
+        df_final[['origin', 'destination', 'weighted_cost']].to_csv(self.path + '/Output_Cost_Converted.csv', index=None)
         self.progress_label.setText('Cost Conversion process complete. You may exit the program.')
         
