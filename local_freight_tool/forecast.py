@@ -82,9 +82,10 @@ class ForecastDemand:
             inputs["k1"] = k1
             inputs["k2"] = k2
 
-        self.inputs = pd.DataFrame.from_dict(inputs, orient="index", columns="value")
+        self.inputs = pd.DataFrame.from_dict(inputs, orient="index")
         self.inputs.index.name = "parameter"
         self.progress.loc[self.progress.Process == "Initialise", "Completed"] = "yes"
+        print("initialisation complete")
 
     def _check_inputs(self):
         """If the growth mode is not standard, check that the weighting inputs
@@ -152,17 +153,17 @@ class ForecastDemand:
         # align_matrices
         model_base, processed_base, processed_forecast = self._align_matrices(
             [
-                self.matrices["model_base"],
-                self.matrices["processed_base"],
-                self.matrices["processed_forecast"],
+                self.matrices["model_base"].matrix,
+                self.matrices["processed_base"].matrix,
+                self.matrices["processed_forecast"].matrix,
             ]
         )
 
         # calculate required processed_forecast/processed_base values
         processed_forecast_div_base = (
             (processed_forecast / processed_base)
-            .where((processed_forecast != 0), other=0)
-            .where((processed_base != 0), other=0)
+            .where(~((processed_forecast == 0) & (processed_base != 0)), other=0)
+            .where(~(processed_base == 0), other=1)
         )
 
         # perform generalised calculation
@@ -173,11 +174,12 @@ class ForecastDemand:
         )
 
         # assign the values which depend on the growth mode - cases 4 and 8
-        growth_condition = [(processed_forecast > 0) & (processed_base > 0)]
+        mode_condition = (processed_forecast > 0) & (processed_base > 0)
 
         # case 4 and 8 values are identical in standard mode
         if self.growth_mode == "standard":
             growth_mode_cases = [model_base * processed_forecast_div_base]
+            growth_mode_conditions = [mode_condition]
         # case 4 and 8 differ in standard mode
         else:
             growth_mode_cases = [
@@ -186,13 +188,13 @@ class ForecastDemand:
                 + processed_forecast
                 - self.k2 * processed_base,
             ]
-            growth_condition = [
-                (model_base == 0) & growth_condition,
-                (model_base > 0) & growth_condition,
+            growth_mode_conditions = [
+                (model_base == 0) & mode_condition,
+                (model_base > 0) & mode_condition,
             ]
 
         # reassign the values for cases 4 and 8
-        for i, condition in enumerate(growth_condition):
+        for i, condition in enumerate(growth_mode_conditions):
             model_forecast = model_forecast.where(
                 ~condition, other=growth_mode_cases[i]
             )
@@ -207,7 +209,7 @@ class ForecastDemand:
             self.progress.Process == "Create forecast", "Completed"
         ] = "yes"
 
-    def export_forecast_demand(self) -> Path:
+    def export_forecast_demand(self):
         """Saves the forecast demand matrix as model_forecast_demand.csv in
         the specified output folder. If the forecasting process has not been
         run, it will run the process before saving the forecast matrix.
@@ -233,9 +235,8 @@ class ForecastDemand:
             self.progress.loc[
                 self.progress.Process == "Save forecast matrix", "Completed"
             ] = "yes"
-            return outpath
 
-    def export_summary(self, writer):
+    def export_summary(self, writer: pd.ExcelWriter):
         """Exports input and output matrix summaries to an excel sheet.
 
         Parameters
@@ -299,11 +300,7 @@ class ForecastDemand:
         demand matrix.
         """
         log_file = self.output_folder / Path("forecast_log.xlsx")
-        with open(
-            pd.ExcelWriter(
-               log_file, engine="openpyxl"
-            )
-        ) as writer:
+        with pd.ExcelWriter(str(log_file), engine="openpyxl") as writer:
             try:
                 self.export_inputs(writer)
                 self._check_inputs()

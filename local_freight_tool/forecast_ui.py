@@ -4,7 +4,6 @@ GUI functionality for forecasting module
 
 ##### IMPORTS #####
 # Standard imports
-import pprint
 import traceback
 from pathlib import Path
 from typing import Union, Dict
@@ -37,6 +36,7 @@ class ForecastUI(QtWidgets.QWidget):
         self.progress = None
         self.worker = None
         self.info_window = None
+        self.KEYS = ["k1", "k2"]
         self.init_ui()
 
     def init_ui(self):
@@ -55,7 +55,7 @@ class ForecastUI(QtWidgets.QWidget):
         self.error_dialog.setStandardButtons(QtWidgets.QMessageBox.Ok)
 
         label = QtWidgets.QLabel(self.name)
-        label.setFont(QtGui.QFont(FONT, FONT_SIZE+2, QtGui.QFont.Bold))
+        label.setFont(QtGui.QFont(FONT, FONT_SIZE + 2, QtGui.QFont.Bold))
         info_button = QtWidgets.QPushButton("Info")
         info_button.setMaximumWidth(50)
         info_button.setFixedHeight(30)
@@ -71,16 +71,57 @@ class ForecastUI(QtWidgets.QWidget):
         run_button.clicked.connect(self.on_click_run)
         run_button.setFont(font_format)
 
-        button_format = QtGui.QFont(FONT, FONT_SIZE-1)
+        button_format = QtGui.QFont(FONT, FONT_SIZE - 1)
         self.input_widgets = {
-            "model_base": ui.FileInput("Model Base Year Demand Matrix CSV", filetype="csv", label_format=font_format),
-            "processed_base": ui.FileInput("Processed Base Year Demand Matrix CSV", filetype="csv", label_format=font_format),
-            "processed_forecast": ui.FileInput("Processed Forecast Year Demand Matrix CSV", filetype="csv", label_format=font_format),
-            "growth_mode": ui.RadioButtons("Growth Mode:", ["Standard", "Exceptional"], label_format=font_format, button_format=button_format),
-            "k1": ui.NumberInput("K<sub>1</sub> Weighting", value=1.0, min_=0.0, max_=10.0, decimals=1, step=0.5, label_format=font_format),
-            "k2": ui.NumberInput("K<sub>2</sub> Weighting", value=1.0, min_=0.0, max_=10.0, decimals=1, step=0.5, label_format=font_format),
-            "output_folder": ui.FileInput("Output Folder", directory=True, label_format=font_format),
+            "model_base": ui.FileInput(
+                "Model Base Year Demand Matrix CSV",
+                filetype="csv",
+                label_format=font_format,
+            ),
+            "processed_base": ui.FileInput(
+                "Processed Base Year Demand Matrix CSV",
+                filetype="csv",
+                label_format=font_format,
+            ),
+            "processed_forecast": ui.FileInput(
+                "Processed Forecast Year Demand Matrix CSV",
+                filetype="csv",
+                label_format=font_format,
+            ),
+            "growth_mode": ui.RadioButtons(
+                "Growth Mode:",
+                ["Standard", "Exceptional"],
+                label_format=font_format,
+                button_format=button_format,
+            ),
+            "k1": ui.NumberInput(
+                "K<sub>1</sub> Weighting",
+                value=1.0,
+                min_=0.0,
+                max_=10.0,
+                decimals=1,
+                step=0.5,
+                label_format=font_format,
+            ),
+            "k2": ui.NumberInput(
+                "K<sub>2</sub> Weighting",
+                value=1.0,
+                min_=0.0,
+                max_=10.0,
+                decimals=1,
+                step=0.5,
+                label_format=font_format,
+            ),
+            "output_folder": ui.FileInput(
+                "Output Folder", directory=True, label_format=font_format
+            ),
         }
+
+        for key in self.KEYS:
+            self.input_widgets[key].disable()
+        self.input_widgets["growth_mode"].reset()
+        for button in self.input_widgets["growth_mode"].buttons:
+            button.toggled.connect(lambda: self.toggle_radio_buttons(button))
 
         grid = QtWidgets.QGridLayout()
         grid.addWidget(label, 0, 0, 1, 1, Qt.AlignLeft)
@@ -91,6 +132,24 @@ class ForecastUI(QtWidgets.QWidget):
         grid.addWidget(back_button, row, 0, 1, 1, Qt.AlignLeft)
         grid.addWidget(run_button, row, 1, 1, 1, Qt.AlignRight)
         self.setLayout(grid)
+
+    def toggle_radio_buttons(self, button: QtWidgets.QRadioButton):
+        """Disables and enables k value inputs as growth mode radio buttons
+        are toggled.
+
+        Parameters
+        ----------
+        button : QtWidgets.QRadioButton
+            Radio button widget
+        """
+        if ((button.text() == "Standard") & (button.isChecked())) | (
+            (button.text() != "Standard") & (not button.isChecked())
+        ):
+            for k in self.KEYS:
+                self.input_widgets[k].disable()
+        else:
+            for k in self.KEYS:
+                self.input_widgets[k].enable()
 
     def get(self) -> Dict[str, Union[Path, int]]:
         """Get all the parameters provided in the UI.
@@ -126,7 +185,6 @@ class ForecastUI(QtWidgets.QWidget):
         """
         try:
             params = self.get()
-            pprint.pp(params)
             self.progress = progress_window(self.name, self.tier_converter)
             self.hide()
             self.worker = Worker(self, params)
@@ -171,65 +229,81 @@ class ForecastUI(QtWidgets.QWidget):
         self.error_dialog.show()
 
 
-# class Worker(QThread):
-#     """Worker thread for running the `main` function from `time_period_conversion`.
+class Worker(QThread):
+    """Worker thread for running the forecasting process.
 
-#     Parameters
-#     ----------
-#     time_conv_ui : TimeConversionUI
-#         Instance of the parent `TimeConversionUI` class, to
-#         get progress window information from.
-#     parameters : Dict[str, Union[Path, int]]
-#         Input parameters from the GUI passed direction to the
-#         `main` function.
-#     """
+    Parameters
+    ----------
+    forecast_ui: ForecastUI
+        Instance of the parent `ForecastUI` class, to
+        get progress window information from.
+    parameters : Dict[str, Union[Path, int]]
+        Input parameters from the GUI.
+    """
 
-#     LINE_LIMIT = 20
-#     PROGRESS_WIDTH = 800
-#     error = pyqtSignal(str, str)
+    LINE_LIMIT = 20
+    PROGRESS_WIDTH = 800
+    error = pyqtSignal(str, str)
 
-#     def __init__(
-#         self, time_conv_ui: TimeConversionUI, parameters: Dict[str, Union[Path, int]]
-#     ):
-#         super().__init__()
-#         self.ui_window = time_conv_ui
-#         self.parameters = parameters
-#         self.progress_window = self.ui_window.progress
-#         height = self.LINE_LIMIT * 15
-#         self.progress_window.resize(self.PROGRESS_WIDTH, height)
-#         self.progress_window.label.resize(self.PROGRESS_WIDTH, height)
-#         self.progress_lines = 0
-#         self.progress_text = ""
+    def __init__(
+        self, forecast_ui: ForecastUI, parameters: Dict[str, Union[Path, int]]
+    ):
+        super().__init__()
+        self.ui_window = forecast_ui
+        self.matrix_paths = {}
+        for key in ["model_base", "processed_base", "processed_forecast"]:
+            self.matrix_paths[key] = parameters[key]
+        if parameters["growth_mode"][0]:
+            self.growth_mode = "standard"
+            self.k1 = None
+            self.k2 = None
+        else:
+            self.growth_mode = "exceptional"
+            self.k1 = parameters["k1"]
+            self.k2 = parameters["k2"]
+        self.output_folder = parameters["output_folder"]
+        self.progress_window = self.ui_window.progress
+        height = self.LINE_LIMIT * 15
+        self.progress_window.resize(self.PROGRESS_WIDTH, height)
+        self.progress_window.label.resize(self.PROGRESS_WIDTH, height)
+        self.progress_lines = 0
+        self.progress_text = ""
 
-#     def run(self):
-#         """Runs the `tp_conv.main` function with the parameters from the UI.
+    def run(self):
+        """Initialises the ForecastDemand class with the parameters from the
+        UI and runs the `main` function.
+        """
+        try:
+            forecaster = ForecastDemand(
+                self.matrix_paths,
+                self.output_folder,
+                growth_mode=self.growth_mode,
+                k1=self.k1,
+                k2=self.k2,
+                message_hook=self.update_progress,
+            )
+            forecaster.main()
+        except Exception as e:
+            tb = traceback.format_exc()
+            msg = f"Critical error - {e.__class__.__name__}: {e}"
+            self.update_progress(msg)
+            self.error.emit(msg, tb)
 
-#         Catches any exceptions produced by the function and displays them
-#         in the progress window and emits them to the `error` signal.
-#         """
-#         try:
-#             tp_conv.main(**self.parameters, message_hook=self.update_progress)
-#         except Exception as e:
-#             tb = traceback.format_exc()
-#             msg = f"Critical error - {e.__class__.__name__}: {e}"
-#             self.update_progress(msg)
-#             self.error.emit(msg, tb)
+    def update_progress(self, text: str):
+        """Update progress window label with given `text`.
 
-#     def update_progress(self, text: str):
-#         """Update progress window label with given `text`.
+        Adds `text` as a new line to the window, resets the
+        window if the number of lines exceeds `LINE_LIMIT`.
 
-#         Adds `text` as a new line to the window, resets the
-#         window if the number of lines exceeds `LINE_LIMIT`.
-
-#         Parameters
-#         ----------
-#         text : str
-#             Text to be added to progress window.
-#         """
-#         print(text)
-#         if self.progress_lines >= self.LINE_LIMIT:
-#             self.progress_lines = 0
-#             self.progress_text = ""
-#         self.progress_lines += 1
-#         self.progress_text += text.strip() + "\n"
-#         self.progress_window.label.setText(self.progress_text)
+        Parameters
+        ----------
+        text : str
+            Text to be added to progress window.
+        """
+        print(text)
+        if self.progress_lines >= self.LINE_LIMIT:
+            self.progress_lines = 0
+            self.progress_text = ""
+        self.progress_lines += 1
+        self.progress_text += text.strip() + "\n"
+        self.progress_window.label.setText(self.progress_text)

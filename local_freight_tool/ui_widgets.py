@@ -157,16 +157,16 @@ class NumberInput(QtWidgets.QWidget):
         self.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Fixed)
 
         self.decimals = int(decimals)
-        label = QtWidgets.QLabel(label_text)
+        self.label = QtWidgets.QLabel(label_text)
         if label_format:
-            label.setFont(label_format)
+            self.label.setFont(label_format)
         self.spin_box = QtWidgets.QDoubleSpinBox(
             minimum=min_, maximum=max_, decimals=decimals, singleStep=step, value=value
         )
         self.spin_box.setFixedHeight(30)
 
         grid = QtWidgets.QGridLayout()
-        grid.addWidget(label, 0, 0, 1, 1)
+        grid.addWidget(self.label, 0, 0, 1, 1)
         grid.addWidget(self.spin_box, 0, 1, 1, 1)
         self.setLayout(grid)
 
@@ -183,8 +183,39 @@ class NumberInput(QtWidgets.QWidget):
             return int(self.spin_box.value())
         return float(self.spin_box.value())
 
+    def disable(self):
+        """Disable widget"""
+        self.label.setDisabled(True)
+        self.spin_box.setDisabled(True)
+
+    def enable(self):
+        """Enable widget"""
+        self.label.setDisabled(False)
+        self.spin_box.setDisabled(False)
+
+
 class RadioButtons(QtWidgets.QWidget):
-    def __init__(self, label_text: str, button_names: List[str], label_format: QtGui.QFont=None, button_format: QtGui.QFont=None):
+    """Labelled radio buttons widget.
+
+    Parameters
+    ----------
+    label_text : str
+        Text to be displayed in the widget label.
+    button_names : List[str]
+        Names of radio buttons.
+    label_format : QtGui.QFont, optional
+        The font of the label, by default None
+    button_format : QtGui.QFont, optional
+        The font of the button labels, by default None
+    """
+
+    def __init__(
+        self,
+        label_text: str,
+        button_names: List[str],
+        label_format: QtGui.QFont = None,
+        button_format: QtGui.QFont = None,
+    ):
         super().__init__()
         self.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Fixed)
         self.buttons_names = button_names
@@ -194,7 +225,7 @@ class RadioButtons(QtWidgets.QWidget):
         self.buttons = []
         for button_name in button_names:
             self.buttons.append(QtWidgets.QRadioButton(button_name))
-        
+
         grid = QtWidgets.QGridLayout()
         i = 0
         grid.addWidget(self.label, 0, i, 1, 1)
@@ -205,29 +236,45 @@ class RadioButtons(QtWidgets.QWidget):
             grid.addWidget(button, 0, i, 1, 1)
         self.setLayout(grid)
 
-    def save(self):
+    def get(self) -> List[bool]:
+        """Get the state of the radio buttons.
+        Returns
+        -------
+        save_state: List[bool]
+            State if radio buttons
+        """
         save_state = []
         for button in self.buttons:
             save_state.append(button.isChecked())
         return save_state
 
-    def load(self, values):
+    def load(self, values: List[bool]):
+        """Load state.
+
+        Parameters
+        ----------
+        values : List[bool]
+            State to load.
+        """
         for index in range(len(self.buttons)):
             self.buttons[index].setChecked(values[index])
 
     def reset(self):
+        """Resets the radio buttons so only the first button is checked."""
         for index in range(len(self.buttons)):
             if index == 0:
                 self.buttons[index].setChecked(True)
             else:
                 self.buttons[index].setChecked(False)
-    
+
     def disable(self):
+        """Disable widget"""
         self.label.setDisabled(True)
         for button in self.buttons:
             button.setDisabled.setDisabled(True)
-    
+
     def enable(self):
+        """Enable widget"""
         self.label.setDisabled(False)
         for button in self.buttons:
             button.setDisabled.setDisabled(False)
