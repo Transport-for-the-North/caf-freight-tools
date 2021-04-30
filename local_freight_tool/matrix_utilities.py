@@ -53,15 +53,20 @@ class ODMatrix:
             if (od_trip_count > 1).any().any():
                 duplicate_pairs = od_trip_count[od_trip_count > 1].index
                 if len(duplicate_pairs) < 20:
-                    end_msg = ":"
-                    for od_pair in duplicate_pairs:
-                        end_msg += f" {od_pair}"
-                        if od_pair != duplicate_pairs[-1]:
-                            end_msg += ","
+                    index_end = len(duplicate_pairs)
+                else:
+                    index_end = 20
+                end_msg = ""
+                for od_pair in duplicate_pairs[:index_end]:
+                    end_msg += f" {od_pair}"
+                    if od_pair != duplicate_pairs[-1]:
+                        end_msg += ","
+                    if len(duplicate_pairs) > 20:
+                        end_msg += ".."
                 end_msg += "."
                 if name == None:
                     name = "matrix"
-                msg = f"Duplicate O-D pairs found in {name}{end_msg}"
+                msg = f"{len(duplicate_pairs)} duplicate O-D pairs found in {name}:{end_msg}"
                 raise ValueError(msg)
 
             # create pivoted version of dataframe
