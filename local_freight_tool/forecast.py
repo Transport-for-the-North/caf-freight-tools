@@ -55,10 +55,11 @@ class ForecastDemand:
         self.message_hook = message_hook
         self.message_hook("Initialising class")
         self.matrix_paths = matrix_paths
-        if growth_mode != "standard":
-            self.growth_mode = "exceptional"
-        else:
-            self.growth_mode = growth_mode
+        if growth_mode.lower().strip() not in ("standard", "exceptional"):
+            raise ValueError(
+                f"growth_mode should be 'standard' or 'exceptional' not '{growth_mode}'"
+            )
+        self.growth_mode = growth_mode.lower().strip()
         inputs = {**matrix_paths, "growth_mode": growth_mode}
         self.output_folder = output_folder
         self.progress = pd.DataFrame(
