@@ -46,6 +46,24 @@ class ODMatrix:
         """
         self.name = name
         if not pivoted:
+            od_trip_count = dataframe.groupby(["origin", "destination"]).count().trips
+
+            # ODMatrix class is not designed for stacked matrices, so raise an
+            # error if duplicate O-D pairs are found
+            if (od_trip_count > 1).any().any():
+                duplicate_pairs = od_trip_count[od_trip_count > 1].index
+                if len(duplicate_pairs) < 20:
+                    end_msg = ":"
+                    for od_pair in duplicate_pairs:
+                        end_msg += f" {od_pair}"
+                        if od_pair != duplicate_pairs[-1]:
+                            end_msg += ","
+                end_msg += "."
+                if name == None:
+                    name = "matrix"
+                msg = f"Duplicate O-D pairs found in {name}{end_msg}"
+                raise ValueError(msg)
+
             # create pivoted version of dataframe
             self.matrix = dataframe.pivot_table(
                 index="origin", columns="destination", values="trips", fill_value=0
@@ -96,10 +114,10 @@ class ODMatrix:
         sum[sum < 0] = 0
 
         return ODMatrix(sum, name=name)
-    
+
     def __iadd__(self, other_matrix):
         """Update the current matrix instance by adding another matrix.
-        
+
         Parameters
         ----------
         other_matrix : ODMatrix.Object
@@ -173,7 +191,7 @@ class ODMatrix:
             )
 
         return ODMatrix(factored, name=name)
-    
+
     def __truediv__(self, divisor):
         """Divide the current ODMatrix instance by a positive scalar value.
 
@@ -203,7 +221,7 @@ class ODMatrix:
             raise TypeError(
                 "O-D matrix devision is only defined with a integer or float divisor."
             )
-        
+
         return ODMatrix(divided, name=name)
 
     def summary(self):
@@ -230,10 +248,10 @@ class ODMatrix:
         }
 
         return summary
-    
+
     def max(self):
         return self.matrix.max().max()
-    
+
     def min(self):
         return self.matrix.min().min()
 
@@ -287,18 +305,20 @@ class ODMatrix:
                 missing_zones = list(missing_zones.zone_id)
             except TypeError:
                 raise TypeError("Missing zones are not a list or pandas dataframe")
-        
+
         # Create OD-Matrix full of 0 values of missing zones
-        missing_zones_square_matrix = pd.DataFrame(0, index=missing_zones, columns=missing_zones)
-        missing_zones_square_matrix.index.name = 'origin'
-        missing_zones_square_matrix.columns.name = 'destination'
-        missing_zones_od = ODMatrix(missing_zones_square_matrix, name='missing_zones')
-        
+        missing_zones_square_matrix = pd.DataFrame(
+            0, index=missing_zones, columns=missing_zones
+        )
+        missing_zones_square_matrix.index.name = "origin"
+        missing_zones_square_matrix.columns.name = "destination"
+        missing_zones_od = ODMatrix(missing_zones_square_matrix, name="missing_zones")
+
         # align matrices
         aligned_matrix, missing_zones_aligned = self.align(self, missing_zones_od)
 
         self.matrix = aligned_matrix
-        
+
         return self
 
     def remove_external_trips(self, external_zones):
@@ -391,7 +411,9 @@ class ODMatrix:
         print("Rezone finished")
         return rezoned_od_matrix
 
-    def export_to_csv(self, outpath, include_zeros=True, include_headers=True, float_format='%.12f'):
+    def export_to_csv(
+        self, outpath, include_zeros=True, include_headers=True, float_format="%.12f"
+    ):
         """Export column matrix to csv file
 
         Parameters
@@ -407,7 +429,9 @@ class ODMatrix:
             Format of floats in output csv, by default, '%.12f'
         """
         column_matrix = self.column_matrix(include_zeros=include_zeros)
-        column_matrix.to_csv(outpath, float_format=float_format, header=include_headers, index=False)
+        column_matrix.to_csv(
+            outpath, float_format=float_format, header=include_headers, index=False
+        )
 
     def export_to_ufm(self, saturn_exes_path, outpath):
         """Export ODMatrix as UFM using TBA22UFM.
@@ -473,7 +497,7 @@ class ODMatrix:
         # export matrix as csv in TUBA2 format
         temp_filepath = outpath / "temp_matrix.csv"
         print(f"temp csv: {temp_filepath}")
-        self.export_to_csv(temp_filepath, include_headers=False, float_format='%.12f')
+        self.export_to_csv(temp_filepath, include_headers=False, float_format="%.12f")
 
         # if the matrix has no name, assign a name
         if not self.name:
@@ -588,7 +612,7 @@ class ODMatrix:
         return matrix
 
     @staticmethod
-    def align(matrix_1, matrix_2, fill_value = 0):
+    def align(matrix_1, matrix_2, fill_value=0):
         """Aligns the pivot dataframes of two ODMatrix instances via an outer
         join.
 
@@ -606,7 +630,9 @@ class ODMatrix:
         pd.DataFrame
             Aligned version of matrix_2's pivoted DataFrame
         """
-        return matrix_1.matrix.align(matrix_2.matrix, join="outer", fill_value=fill_value)
+        return matrix_1.matrix.align(
+            matrix_2.matrix, join="outer", fill_value=fill_value
+        )
 
     @staticmethod
     def check_file_header(filepath):
