@@ -287,7 +287,7 @@ class ForecastDemand:
         if len(matrices) == 1:
             return matrices
         if len(matrices) == 2:
-            return matrices[0].align(matrices[1], join="outer", fill_value=0)
+            return matrices[0].align(matrices[1], join="outer", fill_value=fill_value)
         for i in range(len(matrices)):
             matrices[i], matrices[(i + 1) % len(matrices)] = matrices[i].align(
                 matrices[(i + 1) % len(matrices)], join="outer", fill_value=fill_value
