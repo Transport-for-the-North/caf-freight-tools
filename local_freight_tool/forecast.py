@@ -82,7 +82,7 @@ class ForecastDemand:
             inputs["k1"] = k1
             inputs["k2"] = k2
 
-        self.inputs = pd.DataFrame.from_dict(inputs, orient="index")
+        self.inputs = pd.DataFrame.from_dict(inputs, orient="index", columns=["value"])
         self.inputs.index.name = "parameter"
         self.progress.loc[self.progress.Process == "Initialise", "Completed"] = "yes"
         print("initialisation complete")
@@ -230,7 +230,7 @@ class ForecastDemand:
         except AttributeError:
             self.forecast()
         finally:
-            outpath = self.output_folder / Path(self.model_forecast.name + ".csv")
+            outpath = self.output_folder / Path(f"{self.model_forecast.name}_{self.growth_mode}.csv")
             self.model_forecast.export_to_csv(outpath)
             self.progress.loc[
                 self.progress.Process == "Save forecast matrix", "Completed"
