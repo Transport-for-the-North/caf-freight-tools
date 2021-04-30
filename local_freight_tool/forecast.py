@@ -211,7 +211,7 @@ class ForecastDemand:
         ] = "yes"
 
     def export_forecast_demand(self):
-        """Saves the forecast demand matrix as model_forecast_demand.csv in
+        """Saves the forecast demand matrix as model_forecast_demand_{growth_mode}.csv in
         the specified output folder. If the forecasting process has not been
         run, it will run the process before saving the forecast matrix.
 
