@@ -6,10 +6,10 @@
 ##### IMPORTS #####
 # Standard imports
 from pathlib import Path
-from typing import Union
+from typing import Union, List
 
 # Third party imports
-from PyQt5 import QtWidgets
+from PyQt5 import QtWidgets, QtGui
 
 
 ##### CLASSES #####
@@ -29,6 +29,8 @@ class FileInput(QtWidgets.QWidget):
         `directory` is True), by default None. If string provided isn't a
         key for `FILETYPES` then it will be passed directly to
         `QtWidgets.QFileDialog`.
+    label_format: QtGui.QFont, optional
+        The font of the label, by default None
     """
 
     FILETYPES = {
@@ -42,6 +44,7 @@ class FileInput(QtWidgets.QWidget):
         multiple_files: bool = False,
         directory: bool = False,
         filetype: str = None,
+        label_format: QtGui.QFont = None,
     ):
         super().__init__()
         self.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Fixed)
@@ -54,6 +57,8 @@ class FileInput(QtWidgets.QWidget):
             self.filetype = None
 
         label = QtWidgets.QLabel(self.label_text)
+        if label_format:
+            label.setFont(label_format)
         self.file_path = QtWidgets.QLineEdit()
         self.file_path.setFixedHeight(30)
         self.browse_button = QtWidgets.QPushButton("Browse")
@@ -134,6 +139,8 @@ class NumberInput(QtWidgets.QWidget):
     step : int, optional
         The increment size when the up or down buttons
         are clicked, by default 1
+    label_format: QtGui.QFont, optional
+        The font of the label, by default None
     """
 
     def __init__(
@@ -144,19 +151,22 @@ class NumberInput(QtWidgets.QWidget):
         max_: Union[int, float],
         decimals: int = 0,
         step: int = 1,
+        label_format: QtGui.QFont = None,
     ):
         super().__init__()
         self.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Fixed)
 
         self.decimals = int(decimals)
-        label = QtWidgets.QLabel(label_text)
+        self.label = QtWidgets.QLabel(label_text)
+        if label_format:
+            self.label.setFont(label_format)
         self.spin_box = QtWidgets.QDoubleSpinBox(
             minimum=min_, maximum=max_, decimals=decimals, singleStep=step, value=value
         )
         self.spin_box.setFixedHeight(30)
 
         grid = QtWidgets.QGridLayout()
-        grid.addWidget(label, 0, 0, 1, 1)
+        grid.addWidget(self.label, 0, 0, 1, 1)
         grid.addWidget(self.spin_box, 0, 1, 1, 1)
         self.setLayout(grid)
 
@@ -172,3 +182,99 @@ class NumberInput(QtWidgets.QWidget):
         if self.decimals == 0:
             return int(self.spin_box.value())
         return float(self.spin_box.value())
+
+    def disable(self):
+        """Disable widget"""
+        self.label.setDisabled(True)
+        self.spin_box.setDisabled(True)
+
+    def enable(self):
+        """Enable widget"""
+        self.label.setDisabled(False)
+        self.spin_box.setDisabled(False)
+
+
+class RadioButtons(QtWidgets.QWidget):
+    """Labelled radio buttons widget.
+
+    Parameters
+    ----------
+    label_text : str
+        Text to be displayed in the widget label.
+    button_names : List[str]
+        Names of radio buttons.
+    label_format : QtGui.QFont, optional
+        The font of the label, by default None
+    button_format : QtGui.QFont, optional
+        The font of the button labels, by default None
+    """
+
+    def __init__(
+        self,
+        label_text: str,
+        button_names: List[str],
+        label_format: QtGui.QFont = None,
+        button_format: QtGui.QFont = None,
+    ):
+        super().__init__()
+        self.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Fixed)
+        self.buttons_names = button_names
+        self.label = QtWidgets.QLabel(label_text)
+        if label_format:
+            self.label.setFont(label_format)
+        self.buttons = []
+        for button_name in button_names:
+            self.buttons.append(QtWidgets.QRadioButton(button_name))
+
+        grid = QtWidgets.QGridLayout()
+        i = 0
+        grid.addWidget(self.label, 0, i, 1, 1)
+        for button in self.buttons:
+            i += 1
+            if button_format:
+                button.setFont(button_format)
+            grid.addWidget(button, 0, i, 1, 1)
+        self.setLayout(grid)
+
+    def get(self) -> List[bool]:
+        """Get the state of the radio buttons.
+        Returns
+        -------
+        save_state: List[bool]
+            State if radio buttons
+        """
+        save_state = []
+        for button in self.buttons:
+            save_state.append(button.isChecked())
+        return save_state
+
+    def load(self, values: List[bool]):
+        """Load state.
+
+        Parameters
+        ----------
+        values : List[bool]
+            State to load.
+        """
+        for index in range(len(self.buttons)):
+            self.buttons[index].setChecked(values[index])
+
+    def reset(self):
+        """Resets the radio buttons so only the first button is checked."""
+        for index in range(len(self.buttons)):
+            if index == 0:
+                self.buttons[index].setChecked(True)
+            else:
+                self.buttons[index].setChecked(False)
+
+    def disable(self):
+        """Disable widget"""
+        self.label.setDisabled(True)
+        for button in self.buttons:
+            button.setDisabled.setDisabled(True)
+
+    def enable(self):
+        """Enable widget"""
+        self.label.setDisabled(False)
+        for button in self.buttons:
+            button.setDisabled.setDisabled(False)

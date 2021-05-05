@@ -15,7 +15,7 @@ from matrix_utilities_ui import MatrixUtilities
 from lgvprocessing import LGVProcessing
 from combine_shapefiles import CombineShapefiles
 from zone_correspondence_ui import ZoneCorrespondenceUi
-from deltaprocess import DeltaProcess
+from forecast_ui import ForecastUI
 from utilities import Utilities
 from cost_conversion import WeightedRezone
 from time_period_conversion_ui import TimeConversionUI
@@ -180,7 +180,7 @@ class tier_converter(QtWidgets.QWidget):
 
     @pyqtSlot()
     def on_click_DeltaProcess(self):
-        self.selections_window = DeltaProcess(self)
+        self.selections_window = ForecastUI(self)
         self.hide()
         self.selections_window.show()
 

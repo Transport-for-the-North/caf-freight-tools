@@ -504,11 +504,13 @@ follows:
   set any negative values in the output matrix to 0.
 - Matrix factoring: this will multiply the matrix (from the previous step) with another matrix
   (element wise) or with a global factor; only positive factors can be applied to stop the output
-  becoming negative.
+  becoming negative. The factor matrix does not need to include all O-D pairs present in the input
+  matrix, any which aren't given will be factored by 1 i.e. not changed from the input.
 - Fill missing zones: this will add any missing zones, which are provided as input, to the matrix
   and set their value to 0.
 - Remove EE trips: this will set all external-external trips to 0 when given a list of external
-  zones.
+  zones. If a more specific subset of EE trips is needed to be removed then matrix factoring can
+  be used with a CSV containing all OD pairs for removal with factors of 0.
 - Convert to UFM: this will convert the matrix to a UFM file, **requires SATURN to be installed**.
 
 ***Note:** All the above operations are applied one after another in the order above, so the output
@@ -529,17 +531,17 @@ possible outputs is outlined in the table below.
 
 Table: Inputs for matrix utilities module
 
-| Input              |         Type         | Optional | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
-| ------------------ | :------------------: | :------: | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Input matrix       |         CSV          |    No    | O-D matrix CSV with the following 3 columns: origin, destination and trips. Column names are optional but they must be in the correct order.                                                                                                                                                                                                                                                                                                                                           |
-| Summary            |       Boolean        |   Yes    | When checked produces spreadsheet which provides summary statistics about the matrix at each stage of the process. Recommend to leave turned on as the summary is useful when checking the outputs.                                                                                                                                                                                                                                                                                    |
-| Rezoning           |         CSV          |   Yes    | Zone correspondence lookup file to be used to rezone the input matrix to a new zone system, can be produced with the zone correspondence module, expected columns: zone_1_id, zone_2_id, factor (names are optional but must be in the correct order). If rezoning is turned on then the input matrix will be rezoned before any other processing stages are ran, therefore **any other inputs used further down should be in the zone system that the matrix is being converted to.** |
-| Matrix addition    |         CSV          |   Yes    | Another O-D matrix CSV, expected columns: origin, destination and value (names are optional but columns must be in the correct order). This matrix will be added to the matrix from the previous step, negative values in this matrix are allowed but any negative values in the output are set to 0.                                                                                                                                                                                  |
-| Matrix factoring   |     CSV or Real      |   Yes    | Another O-D matrix CSV (or global factor), expected columns: origin, destination and value (names are optional but columns must be in the correct order). This matrix (or global factor) will be multiplied with the matrix from the previous step. Only positive factors can be applied, if a matrix is given then all cells must be positive or the process will stop.                                                                                                               |
-| Fill missing zones | CSV or list of zones |   Yes    | CSV containing single column (or comma-separated list) of missing zones which will be added to the matrix from the previous step with a value of 0.                                                                                                                                                                                                                                                                                                                                    |
-| Remove EE trips    | CSV or list of zones |   Yes    | CSV containing single column (or comma-separated list) of all zones, in the matrix from the previous step, which will have trips set to 0.                                                                                                                                                                                                                                                                                                                                             |
-| Convert to UFM     |        Folder        |   Yes    | Path to the SATURN exes folder, if selected will convert the matrix (from the previous step) to a UFM file.                                                                                                                                                                                                                                                                                                                                                                            |
-| Output folder      |        Folder        |    No    | Directory where all the output matrices and the summary will be saved.                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| Input              |         Type         | Optional | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| ------------------ | :------------------: | :------: | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Input matrix       |         CSV          |    No    | O-D matrix CSV with the following 3 columns: origin, destination and trips. Column names are optional but they must be in the correct order.                                                                                                                                                                                                                                                                                                                                              |
+| Summary            |       Boolean        |   Yes    | When checked produces spreadsheet which provides summary statistics about the matrix at each stage of the process. Recommend to leave turned on as the summary is useful when checking the outputs.                                                                                                                                                                                                                                                                                       |
+| Rezoning           |         CSV          |   Yes    | Zone correspondence lookup file to be used to rezone the input matrix to a new zone system, can be produced with the zone correspondence module, expected columns: zone_1_id, zone_2_id, factor (names are optional but must be in the correct order). If rezoning is turned on then the input matrix will be rezoned before any other processing stages are ran, therefore **any other inputs used further down should be in the zone system that the matrix is being converted to.**    |
+| Matrix addition    |         CSV          |   Yes    | Another O-D matrix CSV, expected columns: origin, destination and value (names are optional but columns must be in the correct order). This matrix will be added to the matrix from the previous step, negative values in this matrix are allowed but any negative values in the output are set to 0.                                                                                                                                                                                     |
+| Matrix factoring   |     CSV or Real      |   Yes    | Another O-D matrix CSV (or global factor), expected columns: origin, destination and value (names are optional but columns must be in the correct order). This matrix (or global factor) will be multiplied with the matrix from the previous step. Only positive factors can be applied, if a matrix is given then all cells must be positive or the process will stop. **Any O-D pairs present in the input matrix but not in the factor matrix will be factored by 1 i.e. no change.** |
+| Fill missing zones | CSV or list of zones |   Yes    | CSV containing single column (or comma-separated list) of missing zones which will be added to the matrix from the previous step with a value of 0.                                                                                                                                                                                                                                                                                                                                       |
+| Remove EE trips    | CSV or list of zones |   Yes    | CSV containing single column (or comma-separated list) of all zones, in the matrix from the previous step, which will have trips set to 0. If a more specific subset of EE trips is needed to be removed then matrix factoring can be used.                                                                                                                                                                                                                                               |
+| Convert to UFM     |        Folder        |   Yes    | Path to the SATURN exes folder, if selected will convert the matrix (from the previous step) to a UFM file.                                                                                                                                                                                                                                                                                                                                                                               |
+| Output folder      |        Folder        |    No    | Directory where all the output matrices and the summary will be saved.                                                                                                                                                                                                                                                                                                                                                                                                                    |
 
 Table: Outputs from matrix utilities module
 
@@ -554,33 +556,47 @@ Table: Outputs from matrix utilities module
 
 ## 7: Delta Process
 
-This module can be used to implement the delta approach to produce a forecasted model O-D trip
-matrix. The interface is shown below.
+The Delta Process module provides the functionality for performing forecasting to calculate future
+year model demand. The calculations implemented within this module follow the delta approach to
+forecasting which calculates the growth in demand within the freight data and applies this growth
+to the base model demand. The methodology used for this process, and the underlying formulae, is
+described in the Delta Process methodology flowchart.
+
+![Flowchart showing the Delta Process forecasting methodology](doc/images/delta_process_methodology.png "Flowchart showing the Delta Process forecasting methodology")
+
+The user must provide the O-D matrices for the base year model assignment demand, the base year
+freight demand and the forecast year freight demand; **all input matrices must be in the same zone
+system and for the same time period.** In addition to the matrices the user must select from one of
+two growth modes, standard or exceptional (see flowchart for information on the different modes),
+and provide the weighting factors. The inputs table below provides more detailed information on
+each input for this module.
+
+The module will produce two outputs for the user, saved in the output folder, the first is a log
+spreadsheet which outlines the inputs used and summarises the input and output matrices. The
+second output is the forecast year demand matrix for the model, as a CSV file; the outputs table
+below provides more information on all the files produced by the Delta Process.
 
 ![Delta Process GUI](doc/images/delta_process_menu.PNG "Delta Process GUI")
 
-The user must select a base model time period O-D trip matrix file from the models output, a base
-time period O-D trip matrix file produced using modules 3 and 4 from the GBFM annual matrices, and a
-forecast time period O-D trips matrix prepared from the GBFM annual matrices and converted to the
-model zoning system and time period. **All input matrices must be in the same zoning system and have
-the same time period selection.**
+Table: Inputs for the Delta Process module
 
-Once 'Run' has been clicked, the process produces a forecasted O-D trip matrix CSV named
-'Forecasted_Model_O-D_Matrix', saved to the Local Freight Tool directory.
+| Input                                    |            Type             |  Default   | Description                                                                                                                                                                                                                                                        |
+| :--------------------------------------- | :-------------------------: | :--------: | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Model Assignment Demand - Base Year      |             CSV             |     -      | O-D matrix for the assignment model base year demand. Should contain the following 3 columns: origin, destination and trips; column names are optional but they must be in the correct order.                                                                      |
+| Processed Freight Demand - Base Year     |             CSV             |     -      | O-D matrix for the processed freight base year demand, **must be in the same zone system as model assignment demand**. Should contain the following 3 columns: origin, destination and trips; column names are optional but they must be in the correct order.     |
+| Processed Freight Demand - Forecast Year |             CSV             |     -      | O-D matrix for the processed freight forecast year demand, **must be in the same zone system as model assignment demand**. Should contain the following 3 columns: origin, destination and trips; column names are optional but they must be in the correct order. |
+| Growth Mode                              | 'Standard' or 'Exceptional' | 'Standard' | Choice between two growth modes which can be undertaken with the Delta Process, see the methodology flowchart for more information about each calculation. **'Standard' mode is recommended.**                                                                     |
+| Weighting Factor - $K_1$                 |         Real (> 0)          |    1.0     | Constant used in the 'Exceptional' growth calculations, not used for the 'Standard' growth mode, see the methodology flowchart for the formulae that use this constant. **Default value of 1.0 is recommended.**                                                   |
+| Weighting Factor - $K_2$                 |         Real (> 0)          |    1.0     | Constant used in the 'Exceptional' growth calculations, not used for the 'Standard' growth mode, see the methodology flowchart for the formulae that use this constant. **Default value of 1.0 is recommended.**                                                   |
+| Output Folder                            |       Path to Folder        |     -      | Path to the folder where the output files will be saved.                                                                                                                                                                                                           |
 
-### Calculations
-The delta approach formula used is:
+Table: Outputs from the Delta Process module
 
-$$
-Model_{Forecast} = Model_{Base} + (GBFM Freight_{Forecast} - GBFM Freight_{Base})
-$$
+| File                                  |      Type      | Description                                                                                                                                                                                                                                                                                                                         |
+| :------------------------------------ | :------------: | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `forecast_log`                        | Excel Workbook | Lists all the inputs provided, summarises the outputs and provides a log of the process, contains the following sheets:<br>- `inputs`: list of all the input parameters;<br>- `matrix_summaries`: provides summary statistics for the input and output matrices; and<br>- `process`: logs any errors that occur during the process. |
+| `model_forecast_demand_[growth_mode]` |      CSV       | O-D matrix for the assignment model forecast year demand, contains the following columns:<br>- `origin`: origin zone number;<br>- `destination`: destination zone number; and<br>- `trips`: forecasted trips for the OD pair.                                                                                                       |
 
-where negative O-D trips in the formulated matrices produced are converted to zero trips.
-For example, when considering the NoHAM model the delta approach formula is applied as follows:
-
-$$
-NoHAM_{Forecast} = NoHAM_{Base} + (GBFM Freight_{Forecast} - GBFM Freight_{Base})
-$$
 ## 8: Cost Conversion
 
 This module uses a the zone correspondence produced with module 1: [Produce Zone Correspondence](#1-produce-zone-correspondence)
