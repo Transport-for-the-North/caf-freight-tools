@@ -90,7 +90,7 @@ class ForecastUI(QtWidgets.QWidget):
             ),
             "growth_mode": ui.RadioButtons(
                 "Growth Mode:",
-                ["Standard", "Exceptional"],
+                ["Standard (recommended)", "Exceptional"],
                 label_format=font_format,
                 button_format=button_format,
             ),
