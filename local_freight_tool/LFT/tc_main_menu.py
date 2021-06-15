@@ -8,7 +8,6 @@ from PyQt5 import QtWidgets, QtGui
 from PyQt5.QtCore import pyqtSlot, Qt
 
 # User-defined imports
-from package_check import PackageChecker
 from profile_builder import Profile_Builder
 from hgv_annual_tonne_to_pcu_ui import TonneToPCUInterface
 from matrix_utilities_ui import MatrixUtilities
@@ -22,7 +21,6 @@ from time_period_conversion_ui import TimeConversionUI
 from info_window import InfoWindow
 
 # Other packages
-import sys
 
 #########################################################################
 
@@ -193,16 +191,3 @@ class tier_converter(QtWidgets.QWidget):
     # Function which asks the user if they really want to trigger sys.exit()
     def closeEvent(self, event):
         Utilities.closeEvent(self, event)
-
-
-# =============================================================================
-# Main
-if __name__ == "__main__":
-    # Check package versions before starting application
-    pc = PackageChecker()
-    pc.check_versions()
-
-    app = QtWidgets.QApplication(sys.argv)
-    app.setStyle("Fusion")
-    tc = tier_converter()
-    sys.exit(app.exec_())

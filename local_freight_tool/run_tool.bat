@@ -5,7 +5,7 @@ set miniconda_path=%USERPROFILE%\Miniconda3
 set anaconda_activate=%anaconda_path%\Scripts\activate.bat
 set miniconda_activate=%miniconda_path%\Scripts\activate.bat
 set env_name=freighttool
-set python_script=tc_main_menu.py
+set python_script=LFT
 
 IF EXIST %anaconda_activate% (
     set activate=%anaconda_activate%
