@@ -12,7 +12,7 @@ import pandas as pd
 import numpy as np
 
 # User-defined imports
-from matrix_utilities import ODMatrix
+from .matrix_utilities import ODMatrix
 
 ##### CLASS #####
 class TonneToPCU:

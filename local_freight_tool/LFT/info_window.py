@@ -5,7 +5,7 @@ The introduction, images and zone correspondence calculations are removed.
 """
 
 # User-defined imports
-from utilities import Utilities
+from .utilities import Utilities
 
 # PyQt imports
 from PyQt5 import QtWidgets, QtGui

@@ -10,9 +10,9 @@ from PyQt5.QtCore import pyqtSlot
 from PyQt5.QtCore import QThread
 
 # User-defined imports
-from utilities import Utilities, progress_window
-from info_window import InfoWindow
-from rezone import Rezone as rz
+from .utilities import Utilities, progress_window
+from .info_window import InfoWindow
+from .rezone import Rezone as rz
 
 # Other packages
 import numpy as np

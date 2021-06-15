@@ -3,15 +3,19 @@
 Produces profile_selection.csv that contains all information required to build
 time period specific O-D trip matrices.
 """
-# PyQt imports
+# Standard imports
+from pathlib import Path
+
+# Third-party imports
 from PyQt5 import QtWidgets, QtGui
 from PyQt5.QtCore import pyqtSlot
 from PyQt5.QtWidgets import QCheckBox
 import numpy as np
 import pandas as pd
-from utilities import Utilities
-from info_window import InfoWindow
-from pathlib import Path
+
+# Local imports
+from .utilities import Utilities
+from .info_window import InfoWindow
 
 
 class Profile_Builder(QtWidgets.QWidget):

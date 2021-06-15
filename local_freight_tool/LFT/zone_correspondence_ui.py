@@ -16,9 +16,9 @@ from PyQt5.QtWidgets import QLineEdit, QCheckBox, QDoubleSpinBox
 
 
 # User-defined imports
-from utilities import Utilities, progress_window
-from info_window import InfoWindow
-import zone_correspondence as zcorr
+from .utilities import Utilities, progress_window
+from .info_window import InfoWindow
+from . import zone_correspondence as zcorr
 
 # Other packages
 import os

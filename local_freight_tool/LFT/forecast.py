@@ -13,7 +13,7 @@ from typing import List, Dict, Callable
 import pandas as pd
 
 # User-defined imports
-from matrix_utilities import ODMatrix
+from .matrix_utilities import ODMatrix
 
 ##### CLASS #####
 class ForecastDemand:

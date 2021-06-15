@@ -11,8 +11,8 @@ import sys
 from PyQt5 import QtWidgets
 
 # Local imports
-from package_check import PackageChecker
-from tc_main_menu import tier_converter
+from .package_check import PackageChecker
+from .tc_main_menu import tier_converter
 
 
 ##### MAIN #####

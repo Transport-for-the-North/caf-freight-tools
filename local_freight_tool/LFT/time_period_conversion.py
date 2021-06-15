@@ -23,10 +23,10 @@ import pandas as pd
 import numpy as np
 
 # Local imports
-import errors
-import utilities as utils
-import matrix_utilities as mu
-from time_distributions import TimeProfiles, HGVProfiles
+from . import errors
+from . import utilities as utils
+from . import matrix_utilities as mu
+from .time_distributions import TimeProfiles, HGVProfiles
 
 
 ##### FUNCTIONS #####

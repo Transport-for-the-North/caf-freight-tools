@@ -22,8 +22,8 @@ import pandas as pd
 import numpy as np
 
 # Local imports
-import errors
-import utilities as utils
+from . import errors
+from . import utilities as utils
 
 
 ##### CLASSES #####

@@ -25,5 +25,5 @@ IF EXIST %anaconda_activate% (
 )
 
 call %activate% %env_name%
-python %python_script%
+python -m %python_script%
 pause

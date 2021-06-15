@@ -7,18 +7,18 @@ system.
 from PyQt5 import QtWidgets, QtGui
 from PyQt5.QtCore import pyqtSlot, Qt
 
-# User-defined imports
-from profile_builder import Profile_Builder
-from hgv_annual_tonne_to_pcu_ui import TonneToPCUInterface
-from matrix_utilities_ui import MatrixUtilities
-from lgvprocessing import LGVProcessing
-from combine_shapefiles import CombineShapefiles
-from zone_correspondence_ui import ZoneCorrespondenceUi
-from forecast_ui import ForecastUI
-from utilities import Utilities
-from cost_conversion import WeightedRezone
-from time_period_conversion_ui import TimeConversionUI
-from info_window import InfoWindow
+# Local imports
+from .profile_builder import Profile_Builder
+from .hgv_annual_tonne_to_pcu_ui import TonneToPCUInterface
+from .matrix_utilities_ui import MatrixUtilities
+from .lgvprocessing import LGVProcessing
+from .combine_shapefiles import CombineShapefiles
+from .zone_correspondence_ui import ZoneCorrespondenceUi
+from .forecast_ui import ForecastUI
+from .utilities import Utilities
+from .cost_conversion import WeightedRezone
+from .time_period_conversion_ui import TimeConversionUI
+from .info_window import InfoWindow
 
 # Other packages
 

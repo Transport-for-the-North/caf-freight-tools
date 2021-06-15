@@ -13,11 +13,11 @@ from PyQt5 import QtWidgets, QtGui
 from PyQt5.QtCore import pyqtSignal, Qt, QThread
 
 # Local imports
-import ui_widgets as ui
-from forecast import ForecastDemand
-import errors
-from utilities import Utilities, progress_window
-from info_window import InfoWindow
+from . import ui_widgets as ui
+from .forecast import ForecastDemand
+from . import errors
+from .utilities import Utilities, progress_window
+from .info_window import InfoWindow
 
 ##### CLASSES #####
 class ForecastUI(QtWidgets.QWidget):

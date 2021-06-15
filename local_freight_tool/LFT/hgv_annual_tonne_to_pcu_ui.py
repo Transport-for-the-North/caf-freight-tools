@@ -8,9 +8,9 @@ from PyQt5.QtCore import pyqtSlot, QThread
 
 
 # User-defined imports
-from utilities import Utilities, progress_window
-from info_window import InfoWindow
-from hgv_annual_tonne_to_pcu import TonneToPCU
+from .utilities import Utilities, progress_window
+from .info_window import InfoWindow
+from .hgv_annual_tonne_to_pcu import TonneToPCU
 
 # Other packages
 from pathlib import Path

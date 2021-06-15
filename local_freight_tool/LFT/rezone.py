@@ -6,9 +6,9 @@ Rezones a matrix when given a lookup with splitting factors.
 import pandas as pd
 import sys
 
-# Script modules
-from utilities import Loggers, getSeparator, Parameters
-from errors import IncorrectParameterError, MissingLookupValuesError
+# Local imports
+from .utilities import Loggers, getSeparator, Parameters
+from .errors import IncorrectParameterError, MissingLookupValuesError
 
 ##### CLASS #####
 class Rezone:

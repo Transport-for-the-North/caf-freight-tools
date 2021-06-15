@@ -16,7 +16,7 @@ import subprocess as sp
 from pathlib import Path
 
 # User-defined imports
-from rezone import Rezone
+from .rezone import Rezone
 
 # Third party imports
 import pandas as pd

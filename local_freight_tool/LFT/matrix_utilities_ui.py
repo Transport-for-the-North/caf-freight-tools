@@ -14,9 +14,9 @@ from PyQt5.QtWidgets import QCheckBox
 
 
 # User-defined imports
-from utilities import Utilities, progress_window
-from info_window import InfoWindow
-from matrix_utilities import ODMatrix
+from .utilities import Utilities, progress_window
+from .info_window import InfoWindow
+from .matrix_utilities import ODMatrix
 
 # Other packages
 import os

@@ -15,11 +15,11 @@ from PyQt5 import QtWidgets, QtGui
 from PyQt5.QtCore import pyqtSignal, Qt, QThread
 
 # Local imports
-import ui_widgets as ui
-import time_period_conversion as tp_conv
-import errors
-from utilities import Utilities, progress_window
-from info_window import InfoWindow
+from . import ui_widgets as ui
+from . import time_period_conversion as tp_conv
+from . import errors
+from .utilities import Utilities, progress_window
+from .info_window import InfoWindow
 
 
 ##### CLASSES #####

@@ -65,7 +65,7 @@ can be launched with the following steps:
 
 - Use Anaconda Prompt to navigate to the local_freight_tool directory;
 - Activate the conda environment using `conda activate freighttool`; and
-- Launch the menu using `python LFT`.
+- Launch the menu using `python -m LFT`.
 
 *Tip: start writing the file name and press tab, the command prompt will autocomplete it for you.
 For more information on the command prompt see [Command Prompt cheat sheet](

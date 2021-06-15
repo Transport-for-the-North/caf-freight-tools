@@ -7,7 +7,7 @@ from PyQt5 import QtWidgets, QtGui
 from PyQt5.QtWidgets import QVBoxLayout
 
 # Script modules
-from errors import MissingParameterError, IncorrectParameterError
+from .errors import MissingParameterError, IncorrectParameterError
 
 # Other packages
 import logging
