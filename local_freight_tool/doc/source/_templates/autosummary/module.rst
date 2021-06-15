@@ -42,7 +42,7 @@
    {{ fullname }} module contains the following constants (see `Documentation`_ for more details):
    {% for item in attributes %}
    {%- if item not in inherited_members %}
-   .. autoattribute:: {{ name}}.{{ item }}
+   - {{ item }}
    {%- endif %}
    {%- endfor %}
    {% endif %}
@@ -56,3 +56,15 @@
    {% endif %}
    {% endblock %}
 
+{% block modules %}
+{% if modules %}
+.. rubric:: Modules
+
+.. autosummary::
+   :toctree:
+   :recursive:
+{% for item in modules %}
+   {{ item }}
+{%- endfor %}
+{% endif %}
+{% endblock %}

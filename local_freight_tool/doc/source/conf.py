@@ -33,7 +33,7 @@ extensions = [
 ]
 
 # Add any paths that contain templates here, relative to this directory.
-templates_path = ['_templates']
+templates_path = ['_templates', '_templates/autosummary']
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
@@ -41,8 +41,6 @@ templates_path = ['_templates']
 exclude_patterns = []
 
 # -- Extension Options -------------------------------------------------------
-# Don't add package name infront of modules
-add_module_names = False
 
 # Change autodoc settings
 autodoc_member_order = 'groupwise'
