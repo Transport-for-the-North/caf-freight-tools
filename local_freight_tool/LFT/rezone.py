@@ -152,6 +152,7 @@ class Rezone:
             The original dataframe with the columns rezoned.
         """
         # Loop through the dfCols
+        dfCols = list(dfCols)
         for c in dfCols:
             df, missing = cls.rezone(df, lookup, c, **kwargs)
             # Check if there are any missing lookup values
