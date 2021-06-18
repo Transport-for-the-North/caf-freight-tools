@@ -7,7 +7,7 @@ Local Freight Tool's Python Coding Documentation
 ================================================
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 3
    :caption: Contents:
 
    introduction

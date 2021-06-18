@@ -11,7 +11,7 @@ import json
 import csv
 from itertools import islice
 from pathlib import Path
-from typing import Dict
+from typing import Dict, Union
 
 # Third-party imports
 import pandas as pd
@@ -444,7 +444,9 @@ def getSeparator(format, parameter=None):
         raise IncorrectParameterError(format, parameter=parameter, expected=expected)
 
 
-def check_file_path(path: Path, name: str, *extensions: str) -> bool:
+def check_file_path(
+    path: Path, name: str, *extensions: str, return_path: bool = False
+) -> Union[bool, Path]:
     """Check that the given `path` is an existing file.
 
     Also checks if the file contains the correct file
@@ -459,12 +461,16 @@ def check_file_path(path: Path, name: str, *extensions: str) -> bool:
     *extensions : str, optional
         Any number of extension strings to check
         e.g. ".csv", ".txt"
+    return_path : bool, default False
+        If True returns the Path, otherwise returns boolean
+        for if the file exists and has the correct extension.
 
     Returns
     -------
-    bool
-        True, if the file exists and has the correct
-        extension.
+    bool or Path
+        If `return_path` then returns the `path` (as a Path
+        object), otherwise returns True if the file exists
+        and has the correct extension.
 
     Raises
     ------
@@ -484,6 +490,8 @@ def check_file_path(path: Path, name: str, *extensions: str) -> bool:
             raise FileNotFoundError(
                 f"{name} should be file of type {msg} not: {path.suffix}"
             )
+    if return_path:
+        return path
     return True
 
 
