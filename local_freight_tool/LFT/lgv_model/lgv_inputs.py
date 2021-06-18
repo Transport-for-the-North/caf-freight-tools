@@ -121,14 +121,15 @@ def filtered_bres(
             return match.group(1)
         return name
 
-    bres = utilities.read_csv(path, "BRES", columns=BRES_HEADER, skiprows=9)
+    bres = utilities.read_csv(path, "BRES", columns=BRES_HEADER, skiprows=8)
     # Drop any completely empty columns and any rows with missing values
     bres.dropna(axis=1, how="all", inplace=True)
     bres.dropna(axis=0, how="any", inplace=True)
     bres.rename(columns=extract_letters, inplace=True)
-    bres.rename(columns={"mnemonic": "Zone"})
+    ZONE_COL = "Zone"
+    bres.rename(columns={"mnemonic": ZONE_COL}, inplace=True)
     # Aggregate and rename industry columns
-    include = ["Zone"]
+    include = [ZONE_COL]
     for agg, columns in aggregation.items():
         missing = [c for c in columns if c not in bres.columns]
         if missing:
@@ -138,6 +139,7 @@ def filtered_bres(
     bres = bres[include].copy()
 
     # Convert to model zone system
+    include.remove(ZONE_COL)
     lookup = Rezone.read(zone_lookup, None)
     rezoned = Rezone.rezoneOD(bres, lookup, dfCols=("Zone",), rezoneCols=include)
     return rezoned
@@ -176,9 +178,11 @@ if __name__ == "__main__":
     hh_proj = household_projections(hh_path, zc_path)
     print(hh_proj.head())
     bres_path = Path(
-        r"C:\WSP_Projects\TfN Local Freight Model\01 - Delivery\LGV Method\BRES Data\GB_BRES_LSOA.csv"
+        r"C:\WSP_Projects\TfN Local Freight Model\01 - Delivery\LGV Method\BRES Data\BRES_2018_sections_GB_LSOA.csv"
     )
-    bres_zc_path = Path()
+    bres_zc_path = Path(
+        r"C:\WSP_Projects\TfN Local Freight Model\01 - Delivery\LGV Method\lsoa_datazone_to_noham_zone_correspondence_missing_zones_added.csv"
+    )
     bres_aggregation = {
         "office": list(letters_range("I", "P")),
         "other": list(letters_range(end="H")) + list(letters_range("Q", "U")),

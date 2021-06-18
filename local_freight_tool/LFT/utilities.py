@@ -592,10 +592,13 @@ def read_csv(
         df = pd.read_csv(path, **kwargs)
     except ValueError as err:
         match = re.match(
-            r".*columns expected but not found: .*(?:'([\w\s]+)',?\s?)+.*", str(err)
+            r".*columns expected but not found:\s+\[((?:'[^']+',?\s?)+)\]",
+            str(err),
+            re.IGNORECASE,
         )
         if match:
-            raise MissingColumnsError(name, match.groups()) from err
+            missing = re.findall(r"'([^']+)'", match.group(1))
+            raise MissingColumnsError(name, missing) from err
         if isinstance(columns, dict):
             # Check what column can't be converted to dtypes
             kwargs.pop("dtype")
