@@ -103,9 +103,9 @@ def read_zone_shapefiles(zone_1_path, zone_2_path, zone_1_name, zone_2_name):
         else:
             print("no lookup for this zone system, need to know column names")
             raise Exception(
-                    "The zone ID column in one of the zone systems"
-                    "is not UniqueID.\n"
-                    " Please rename it to UniqueID."
+                    f"The zone ID column in the {zone_names[i]} zone system"
+                    " is not UniqueID.\n"
+                    "Please rename it to UniqueID"
                     )
 
         zone_list[i] = zone_list[i].rename(
