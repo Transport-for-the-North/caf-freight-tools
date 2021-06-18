@@ -104,6 +104,22 @@ class ServiceTripEnds:
             service_trips, "Service trips", ".csv", ".txt", return_path=True
         )
 
+    @property
+    def inputs_summary(self) -> pd.DataFrame:
+        """pd.DataFrame : Summary table of class input parameters."""
+        return pd.DataFrame.from_dict(
+            {
+                "Household Data Path": str(self._household_path),
+                "Household Zone Correspondence Path": str(self._household_zc),
+                "BRES Data Path": str(self._bres_path),
+                "BRES Zone Correpondence Path": str(self._bres_zc),
+                "Annual Service Trips Path": str(self._trips_path),
+                "Scale Factor": self._scale_factor,
+            },
+            orient="index",
+            columns=["Value"],
+        )
+
     def read(self):
         """Read the input data and perform any necessary conversions.
 
@@ -186,8 +202,8 @@ class ServiceTripEnds:
 
     @property
     def trip_ends(self) -> pd.DataFrame:
-        """pd.DataFrame : Productions and Attractions (columns)
-        trip ends for all zones (index).
+        """pd.DataFrame : Productions and Attractions trip
+        ends (columns) for all zones (index).
         """
         if self._trip_ends is None:
             # Aggregate trips together
@@ -221,6 +237,7 @@ if __name__ == "__main__":
     )
     service_te.read()
     print(
+        service_te.inputs_summary,
         service_te.households,
         service_te.bres,
         service_te.total_trips,
