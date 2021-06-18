@@ -7,7 +7,6 @@
 ##### IMPORTS #####
 # Standard imports
 import re
-import pprint
 import string
 from pathlib import Path
 
@@ -165,30 +164,3 @@ def letters_range(start: str = "A", end: str = "Z") -> str:
     e = letters.find(end.upper().strip())
     for l in letters[s : e + 1]:
         yield l
-
-
-# TODO Remove test code
-if __name__ == "__main__":
-    hh_path = Path(
-        r"C:\WSP_Projects\TfN Local Freight Model\01 - Delivery\LGV Method\Household Projections\UK_HH_projections_2018-MSOA.csv"
-    )
-    zc_path = Path(
-        r"C:\WSP_Projects\TfN Local Freight Model\01 - Delivery\LGV Method\NTEM to NoHAM Lookup\NTEM_to_NoHAM_zone_correspondence-updated-20210617.csv"
-    )
-    hh_proj = household_projections(hh_path, zc_path)
-    print(hh_proj.head())
-    bres_path = Path(
-        r"C:\WSP_Projects\TfN Local Freight Model\01 - Delivery\LGV Method\BRES Data\BRES_2018_sections_GB_LSOA.csv"
-    )
-    bres_zc_path = Path(
-        r"C:\WSP_Projects\TfN Local Freight Model\01 - Delivery\LGV Method\lsoa_datazone_to_noham_zone_correspondence_missing_zones_added.csv"
-    )
-    bres_aggregation = {
-        "office": list(letters_range("I", "P")),
-        "other": list(letters_range(end="H")) + list(letters_range("Q", "U")),
-        "non-construction": list(letters_range(end="E"))
-        + list(letters_range("G", "U")),
-    }
-    pprint.pp(bres_aggregation)
-    bres_data = filtered_bres(bres_path, bres_zc_path, bres_aggregation)
-    print(bres_data.head())

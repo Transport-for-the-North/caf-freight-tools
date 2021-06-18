@@ -51,7 +51,7 @@ class ServiceTripEnds:
         "other": list(lgv_inputs.letters_range(end="H"))
         + list(lgv_inputs.letters_range("Q", "U")),
     }
-    SERVICE_TRIPS_HEADER = {"Segment": str, "Service Trips": int}
+    SERVICE_TRIPS_HEADER = {"Segment": str, "Annual Service Trips": int}
     SERVICE_TRIPS_SEGMENTS = ("Residential", "Office", "All Other")
 
     def __init__(
@@ -123,6 +123,30 @@ class ServiceTripEnds:
         ]
         if missing:
             raise errors.MissingDataError("Service trips", missing)
-        self.total_trips = self.total_trips[self.SERVICE_TRIPS_SEGMENTS].copy()
+        self.total_trips = self.total_trips.loc[self.SERVICE_TRIPS_SEGMENTS, :].copy()
         # Factor service trips to model year
         self.total_trips *= self._scale_factor
+
+
+# TODO Remove test code
+if __name__ == "__main__":
+    hh_path = Path(
+        r"C:\WSP_Projects\TfN Local Freight Model\01 - Delivery\LGV Method\Household Projections\UK_HH_projections_2018-MSOA.csv"
+    )
+    zc_path = Path(
+        r"C:\WSP_Projects\TfN Local Freight Model\01 - Delivery\LGV Method\NTEM to NoHAM Lookup\NTEM_to_NoHAM_zone_correspondence-updated-20210617.csv"
+    )
+    bres_path = Path(
+        r"C:\WSP_Projects\TfN Local Freight Model\01 - Delivery\LGV Method\BRES Data\BRES_2018_sections_GB_LSOA.csv"
+    )
+    bres_zc_path = Path(
+        r"C:\WSP_Projects\TfN Local Freight Model\01 - Delivery\LGV Method\lsoa_datazone_to_noham_zone_correspondence_missing_zones_added.csv"
+    )
+    service_path = Path(
+        r"C:\WSP_Projects\TfN Local Freight Model\01 - Delivery\LGV Method\LGV_service_trips-van_survey_2003.csv"
+    )
+    service_te = ServiceTripEnds(
+        (hh_path, zc_path), (bres_path, bres_zc_path), service_path, 1.51
+    )
+    service_te.read()
+    print(service_te.households, service_te.bres, service_te.total_trips, sep="\n")
