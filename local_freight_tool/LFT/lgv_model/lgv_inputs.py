@@ -9,6 +9,7 @@
 import re
 import string
 from pathlib import Path
+from typing import Sequence
 
 # Third party imports
 import pandas as pd
@@ -50,7 +51,49 @@ BRES_HEADER = {
     "U : Activities of extraterritorial organisations and bodies": float,
 }
 """Column names (and data types) for input CSV to `filtered_bres` function."""
-
+VOA_RATINGS_LIST_COLUMNS = {
+    "entry_number": int,
+    "billing_authority_code": str,
+    "NDR_code": str,
+    "BA_ref": str,
+    "description_code": str,
+    "description": str,
+    "UARN": str,
+    "property_identifier": str,
+    "firms_name": str,
+    "num_or_name": str,
+    "street": str,
+    "town": str,
+    "post_district": str,
+    "county": str,
+    "postcode": str,
+    "eff_date": str,
+    "composite_indicator": str,
+    "rateable_value": float,
+    "settlement_code": str,
+    "assessment_ref": str,
+    "alteration_date": str,
+    "scat_code": str,
+    "sub_street_3": str,
+    "sub_street_2": str,
+    "sub_street_1": str,
+    "case_num": str,
+    "from_date": str,
+    "to_date": str,
+    "unknown": str,
+}
+"""Column names and types for the VOA ratings list data."""
+VOA_RATINGS_LIST_INCLUDE = [
+    "entry_number",
+    "description_code",
+    "description",
+    "UARN",
+    "property_identifier",
+    "postcode",
+    "rateable_value",
+    "scat_code",
+]
+"""Column names to read from the VOA ratings list file."""
 
 ##### FUNCTIONS #####
 def household_projections(path: Path, zone_lookup: Path) -> pd.DataFrame:
@@ -164,3 +207,89 @@ def letters_range(start: str = "A", end: str = "Z") -> str:
     e = letters.find(end.upper().strip())
     for l in letters[s : e + 1]:
         yield l
+
+
+def voa_ratings_list(
+    path: Path, scat_codes: Sequence[int], zone_lookup: Path
+) -> pd.DataFrame:
+    """Reads VOA NDR ratings list entries file and filters based on `scat_codes`.
+
+    The input file should be a text file (.csv or .txt) with no header
+    row and uses '*' to separate columns.
+
+    Parameters
+    ----------
+    path : Path
+        Path to the VOA ratings list file.
+    scat_codes : Sequence[int]
+        List of SCAT code numbers to include in returned DataFrame.
+    zone_lookup : Path
+        Path to the lookup between the VOA postcodes and the model
+        zone system, expects 3 columns containing postcode, model
+        zone number and splitting factor information in that order.
+
+    Returns
+    -------
+    pd.DataFrame
+        Rateable value for each model zone contains columns:
+        'zone' and 'rateable_value'.
+
+    See Also
+    --------
+    VOA_RATINGS_LIST_COLUMNS : Column names and data types for all
+        columns in the VOA input file.
+    VOA_RATINGS_LIST_INCLUDE : List of column names to read from
+        the file.
+    LFT.utilities.read_csv : Function used for reading the input file.
+    """
+    inc_columns = {
+        k: v
+        for k, v in VOA_RATINGS_LIST_COLUMNS.items()
+        if k in VOA_RATINGS_LIST_INCLUDE
+    }
+    # File has some carriage-return characters in the middle of some
+    # lines so need to make sure the lineterminator is just line feed
+    voa_data = utilities.read_csv(
+        path,
+        name="VOA ratings list",
+        columns=inc_columns,
+        delimiter="*",
+        header=None,
+        names=VOA_RATINGS_LIST_COLUMNS.keys(),
+        lineterminator="\n",
+    )
+    # Extract number from SCAT code and use for filtering
+    voa_data.insert(
+        voa_data.columns.get_loc("scat_code") + 1,
+        "scat_num",
+        pd.to_numeric(
+            voa_data["scat_code"].str.extract(r"(\d+)\w", expand=False),
+            downcast="integer",
+        ),
+    )
+    voa_data = voa_data.loc[voa_data["scat_num"].isin(scat_codes)].copy()
+    # Use postcode lookup to aggregate rateable_value to model zones
+    lookup = Rezone.read(zone_lookup, None)
+    # Convert post code columns to uppercase and remove all whitespace
+    lookup.iloc[:, 0] = lookup.iloc[:, 0].str.upper().str.replace(r"\s+", "", regex=True)
+    voa_data["postcode"] = voa_data["postcode"].str.upper().str.replace(r"\s+", "", regex=True)
+    rezoned = Rezone.rezoneOD(
+        voa_data[["postcode", "rateable_value"]],
+        lookup,
+        ("postcode",),
+        rezoneCols=["rateable_value"],
+    )
+    rezoned.rename(columns={"postcode": "zone"}, inplace=True)
+    return rezoned
+
+
+# TODO Remove test code
+if __name__ == "__main__":
+    voa_path = Path(
+        r"C:\WSP_Projects\TfN Local Freight Model\01 - Delivery\LGV Method\VOA Data\uk-englandwales-ndr-2017-listentries-compiled-epoch-0024-baseline-csv\uk-englandwales-ndr-2017-listentries-compiled-epoch-0024-baseline-csv.csv"
+    )
+    zc_path = Path(
+        r"C:\WSP_Projects\TfN Local Freight Model\01 - Delivery\LGV Method\Postcode to NoHAM Lookup\postcode_to_noham_zone_correspondence.csv"
+    )
+    ratings_data = voa_ratings_list(voa_path, {267, 217}, zc_path)
+    print(ratings_data)
