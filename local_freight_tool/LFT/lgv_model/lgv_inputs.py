@@ -133,7 +133,7 @@ def filtered_bres(
         missing = [c for c in columns if c not in bres.columns]
         if missing:
             raise errors.MissingColumnsError("BRES", missing)
-        bres[agg] = bres[columns].sum(axis=1)
+        bres[agg] = bres[list(columns)].sum(axis=1)
         include.append(agg)
     bres = bres[include].copy()
 
