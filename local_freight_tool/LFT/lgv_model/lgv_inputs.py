@@ -8,6 +8,7 @@
 # Standard imports
 import re
 import string
+import warnings
 from pathlib import Path
 from typing import Sequence
 
@@ -268,19 +269,46 @@ def voa_ratings_list(
         ),
     )
     voa_data = voa_data.loc[voa_data["scat_num"].isin(scat_codes)].copy()
-    # Use postcode lookup to aggregate rateable_value to model zones
+
     lookup = Rezone.read(zone_lookup, None)
     # Convert post code columns to uppercase and remove all whitespace
-    lookup.iloc[:, 0] = lookup.iloc[:, 0].str.upper().str.replace(r"\s+", "", regex=True)
-    voa_data["postcode"] = voa_data["postcode"].str.upper().str.replace(r"\s+", "", regex=True)
-    rezoned = Rezone.rezoneOD(
+    lookup.iloc[:, 0] = (
+        lookup.iloc[:, 0].str.upper().str.replace(r"\s+", "", regex=True)
+    )
+    voa_data["postcode"] = (
+        voa_data["postcode"].str.upper().str.replace(r"\s+", "", regex=True)
+    )
+    # Infill any NaN rateable_values with the average
+    nan_value = voa_data["rateable_value"].isna()
+    if nan_value.sum() > 0:
+        median = voa_data["rateable_value"].median()
+        warnings.warn(
+            f"{nan_value.sum()} rows in VOA input have no information for "
+            f"'rateable_value' so infilling with the median ({median:.1f})",
+            RuntimeWarning,
+        )
+        voa_data.loc[nan_value, "rateable_value"] = median
+
+    # Use postcode lookup to aggregate rateable_value to model zones
+    # and warn user of any missing postcodes
+    rezoned, missing = Rezone.rezone(
         voa_data[["postcode", "rateable_value"]],
         lookup,
-        ("postcode",),
-        rezoneCols=["rateable_value"],
+        "postcode",
+        rezoneCols="rateable_value",
     )
+    if not missing.empty:
+        nan_pc = missing.postcode.isna()
+        warnings.warn(
+            f"{nan_pc.sum()} rows in VOA input don't have a postcode and "
+            f"{len(missing) - nan_pc.sum()} rows in VOA input have postcodes "
+            "which can't be found in the lookup: "
+            + ", ".join(missing.loc[~nan_pc, "postcode"].tolist())
+            + " These rows are ignored."
+        )
+        rezoned.dropna(subset=["postcode"], inplace=True)
     rezoned.rename(columns={"postcode": "zone"}, inplace=True)
-    return rezoned
+    return rezoned.groupby("zone", as_index=False).sum()
 
 
 # TODO Remove test code
@@ -289,7 +317,7 @@ if __name__ == "__main__":
         r"C:\WSP_Projects\TfN Local Freight Model\01 - Delivery\LGV Method\VOA Data\uk-englandwales-ndr-2017-listentries-compiled-epoch-0024-baseline-csv\uk-englandwales-ndr-2017-listentries-compiled-epoch-0024-baseline-csv.csv"
     )
     zc_path = Path(
-        r"C:\WSP_Projects\TfN Local Freight Model\01 - Delivery\LGV Method\Postcode to NoHAM Lookup\postcode_to_noham_zone_correspondence.csv"
+        r"C:\WSP_Projects\TfN Local Freight Model\01 - Delivery\LGV Method\Postcode to NoHAM Lookup\postcode_to_noham_zone_correspondence-with_additions.csv"
     )
     ratings_data = voa_ratings_list(voa_path, {267, 217}, zc_path)
     print(ratings_data)
