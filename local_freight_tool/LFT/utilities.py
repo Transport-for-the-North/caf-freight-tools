@@ -19,7 +19,12 @@ from PyQt5 import QtWidgets, QtGui
 from PyQt5.QtWidgets import QVBoxLayout
 
 # Local imports
-from .errors import MissingParameterError, IncorrectParameterError, MissingColumnsError
+from .errors import (
+    MissingParameterError,
+    IncorrectParameterError,
+    MissingColumnsError,
+    MissingWorksheetError,
+)
 
 
 # Function which asks the user if they really want to trigger sys.exit()
@@ -613,3 +618,122 @@ def read_csv(
                     ) from err
         raise
     return df
+
+
+def read_excel(
+    path: Path, name: str = None, columns: Dict = None, **kwargs
+) -> pd.DataFrame:
+    """Wrapper function for `pandas.read_excel` to perform additional checks.
+
+    Reads file and provides more detailed error messages about missing
+    columns.
+
+    Parameters
+    ----------
+    path : Path
+        Path to the XLSX file.
+    name : str, optional
+        Human readable name of the file being read (used for error
+        messages), by default None and uses the filename.
+    columns : Dict, list or tuple, default None
+        - List or tuple - used for usecols parameter of `pandas.read_excel`.
+        - Dict - used for the dtype and usecols parameter of
+          `pandas.read_excel`, where keys are column name and values are
+          data type.
+        - None - reads in all columns from the XLSX.
+    kwargs : all other keyword arguments
+        Passed to `pandas.read_excel`.
+
+    Returns
+    -------
+    pd.DataFrame
+        DataFrame containing the information from the XLSX.
+
+    Raises
+    ------
+    MissingColumnsError
+        If any columns given don't exist in the XLSX.
+    ValueError
+        If any of the columns cannot be converted to the
+        given data type.
+    """
+
+    path = Path(path)
+    if name is None:
+        name = path.stem
+    check_file_path(path, name, ".xlsx")
+    if isinstance(columns, (tuple, list)):
+        kwargs["usecols"] = columns
+    elif isinstance(columns, dict):
+        kwargs["usecols"] = columns.keys()
+        kwargs["dtype"] = columns
+
+    try:
+        df = pd.read_excel(path, **kwargs)
+    except ValueError as err:
+        match = re.match(
+            r".*columns expected but not found:\s+\[((?:'[^']+',?\s?)+)\]",
+            str(err),
+            re.IGNORECASE,
+        )
+        if match:
+            missing = re.findall(r"'([^']+)'", match.group(1))
+            raise MissingColumnsError(name, missing) from err
+        if isinstance(columns, dict):
+            # Check what column can't be converted to dtypes
+            kwargs.pop("dtype")
+            df = pd.read_excel(path, **kwargs)
+            for c, t in columns.items():
+                try:
+                    df[c].astype(t)
+                except ValueError:
+                    raise ValueError(
+                        f"Column '{c}' in {name} has values "
+                        f"which cannot be converted to {t}"
+                    ) from err
+        raise
+    return df
+
+
+def read_multi_sheets(path: Path, sheets: Dict, **kwargs):
+    """Function to read in multiple excel sheets.
+
+    Reads all sheets into a dictonary and provides detailed error messages
+    about missing columns.
+
+    Parameters
+    ----------
+    path : Path
+        Path to the XLSX file.
+    sheets : Dict[Dict, list or tuple]
+        Dictionary of the sheets to be read, where the keys are sheet names
+        and the values are used for the columns parameter of read_excel.
+    kwargs : all other keyword arguments
+        Passed to `pandas.read_excel` for every sheet.
+
+    Returns
+    -------
+    Dict[pd.DataFrame]
+        Dictionary where the keys are sheet names and values are the
+        DataFrames containing the information from each sheet.
+
+    Raises
+    ------
+    MissingWorksheetError
+        If any sheets given don't exist in the XLSX.
+    """
+    path = Path(path)
+    check_file_path(path, path.stem, ".xlsx")
+    dfs = {}
+    for sheet in sheets:
+        try:
+            dfs[sheet] = read_excel(
+                path, name=sheet, columns=sheets[sheet], sheet_name=sheet, **kwargs
+            )
+        except KeyError as err:
+            match = re.match(r".*Worksheet\s.*does not exist.", str(err), re.IGNORECASE)
+            if match:
+                raise MissingWorksheetError(path.stem, sheet) from err
+            raise
+
+    return dfs
