@@ -735,5 +735,8 @@ def read_multi_sheets(path: Path, sheets: Dict, **kwargs):
             if match:
                 raise MissingWorksheetError(path.stem, sheet) from err
             raise
-
+        except ValueError as err:
+            if str(err).lower().startswith("worksheet"):
+                raise MissingWorksheetError(path.stem, sheet) from err
+            raise
     return dfs

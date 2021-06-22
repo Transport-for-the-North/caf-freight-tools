@@ -31,9 +31,10 @@ class ServiceTripEnds:
         - Path to the zone correspondence CSV for converting the
           BRES data to the model zone system.
     service_trips : Path
-        Path to CSV containing service trips data should contain
-        column names as defined in `SERVICE_TRIPS_HEADER` and
-        segments contained in `SERVICE_TRIPS_SEGMENTS`.
+        Path to Excel workbook containing 'Annual Service Trips'
+        sheet which should contain column names as defined in
+        `SERVICE_TRIPS_HEADER` and segments contained in
+        `SERVICE_TRIPS_SEGMENTS`.
     scale_factor : float
         Factor for scaling the service trips to the model year.
 
@@ -54,6 +55,7 @@ class ServiceTripEnds:
     }
     SERVICE_TRIPS_HEADER = {"Segment": str, "Annual Service Trips": int}
     SERVICE_TRIPS_SEGMENTS = ("Residential", "Office", "All Other")
+    SERVICE_TRIPS_SHEET = "Annual Service Trips"
 
     def __init__(
         self,
@@ -101,7 +103,7 @@ class ServiceTripEnds:
             bres_paths[1], "BRES lookup", ".csv", ".txt", return_path=True
         )
         self._trips_path = utilities.check_file_path(
-            service_trips, "Service trips", ".csv", ".txt", return_path=True
+            service_trips, "Service trips", ".xlsx", return_path=True
         )
 
     @property
@@ -144,12 +146,11 @@ class ServiceTripEnds:
         )
         self.bres.set_index("Zone", inplace=True)
         # Read and check service trips data
-        self.total_trips = utilities.read_csv(
+        self.total_trips = utilities.read_multi_sheets(
             self._trips_path,
-            "Service trips",
-            columns=self.SERVICE_TRIPS_HEADER,
+            {self.SERVICE_TRIPS_SHEET: self.SERVICE_TRIPS_HEADER},
             index_col=0,
-        )
+        )[self.SERVICE_TRIPS_SHEET]
         self.total_trips.index = self.total_trips.index.str.title().str.strip()
         missing = [
             s for s in self.SERVICE_TRIPS_SEGMENTS if s not in self.total_trips.index
@@ -230,7 +231,7 @@ if __name__ == "__main__":
         r"C:\WSP_Projects\TfN Local Freight Model\01 - Delivery\LGV Method\lsoa_datazone_to_noham_zone_correspondence_missing_zones_added.csv"
     )
     service_path = Path(
-        r"C:\WSP_Projects\TfN Local Freight Model\01 - Delivery\LGV Method\LGV_service_trips-van_survey_2003.csv"
+        r"C:\WSP_Projects\TfN Local Freight Model\01 - Delivery\LGV Method\LGV_input_tables.xlsx"
     )
     service_te = ServiceTripEnds(
         (hh_path, zc_path), (bres_path, bres_zc_path), service_path, 1.51
