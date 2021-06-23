@@ -309,15 +309,3 @@ def voa_ratings_list(
         rezoned.dropna(subset=["postcode"], inplace=True)
     rezoned.rename(columns={"postcode": "zone"}, inplace=True)
     return rezoned.groupby("zone", as_index=False).sum()
-
-
-# TODO Remove test code
-if __name__ == "__main__":
-    voa_path = Path(
-        r"C:\WSP_Projects\TfN Local Freight Model\01 - Delivery\LGV Method\VOA Data\uk-englandwales-ndr-2017-listentries-compiled-epoch-0024-baseline-csv\uk-englandwales-ndr-2017-listentries-compiled-epoch-0024-baseline-csv.csv"
-    )
-    zc_path = Path(
-        r"C:\WSP_Projects\TfN Local Freight Model\01 - Delivery\LGV Method\Postcode to NoHAM Lookup\postcode_to_noham_zone_correspondence-with_additions.csv"
-    )
-    ratings_data = voa_ratings_list(voa_path, {267, 217}, zc_path)
-    print(ratings_data)

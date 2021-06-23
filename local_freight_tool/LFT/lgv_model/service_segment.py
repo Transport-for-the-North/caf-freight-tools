@@ -42,10 +42,6 @@ class ServiceTripEnds:
     ------
     ValueError
         If `scale_factor` isn't a positive numeric value.
-
-    See Also
-    --------
-    .lgv_inputs: Module with functions for reading some inputs.
     """
 
     BRES_AGGREGATION = {
@@ -64,7 +60,7 @@ class ServiceTripEnds:
         service_trips: Path,
         scale_factor: float,
     ):
-        """Initilise class by checking input files exist and are expected type."""
+        """Initialise class by checking input files exist and are expected type."""
         # Check all given parameters
         self._check_paths(household_paths, bres_paths, service_trips)
         try:
