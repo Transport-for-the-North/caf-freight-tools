@@ -42,18 +42,18 @@ class DeliveryTripEnds:
     VOA_SCAT_CODES = (217, 267)
     PARAMETERS_SHEET = "Delivery Segment Parameters"
     PARAMETERS_HEADER = {"Parameter": str, "Value": float}
-    PARAMETERS = [
-        "Annual Trip Productions - Parcel Stem",
-        "Annual Trips - Parcel Bush",
-        "Annual Trips - Grocery Bush",
-        "B2C vs B2B Weighting",
-        "Annual Trip Length - Parcel Stem (kms)",
-        "Annual Trip Length - Parcel Bush (kms)",
-        "Annual Trip Length - Grocery (kms)",
-        "Intra-Zonal Proportions - Parcel",
-        "Intra-Zonal Proportions - Grocery",
-        "Bush Cut-off (kms)",
-    ]
+    PARAMETERS = {
+        "trips_parcel_stem": "Annual Trip Productions - Parcel Stem",
+        "trips_parcel_bush": "Annual Trips - Parcel Bush",
+        "trips_grocery": "Annual Trips - Grocery Bush",
+        "b2c": "B2C vs B2B Weighting",
+        "length_parcel_stem": "Annual Trip Length - Parcel Stem (kms)",
+        "length_parcel_bush": "Annual Trip Length - Parcel Bush (kms)",
+        "length_grocery": "Annual Trip Length - Grocery (kms)",
+        "intra_parcel": "Intra-Zonal Proportions - Parcel",
+        "intra_grocery": "Intra-Zonal Proportions - Grocery",
+        "bush_cut_off": "Bush Cut-off (kms)",
+    }
 
     def __init__(
         self,
@@ -70,6 +70,7 @@ class DeliveryTripEnds:
         self.households = None
         self.parameters = None
         self._trip_proportions = None
+        self._parcel_proportions = None
 
     def _check_paths(
         self,
@@ -170,7 +171,8 @@ class DeliveryTripEnds:
 
         See Also
         --------
-        PARAMETERS: Lists all required parameter names.
+        PARAMETERS: Lists all required parameter names (values)
+            and internal names (keys).
         PARAMETERS_SHEET: Expected name of the sheet in the workbook.
         PARAMETERS_HEADER: Expected column names and types in the sheet.
         """
@@ -181,9 +183,9 @@ class DeliveryTripEnds:
         df.set_index("Parameter", inplace=True)
         params = {}
         missing = []
-        for p in cls.PARAMETERS:
+        for nm, p in cls.PARAMETERS.items():
             try:
-                params[p] = df.at[p.lower().strip(), "Value"]
+                params[nm] = df.at[p.lower().strip(), "Value"]
             except KeyError:
                 missing.append(p)
         if missing:
@@ -206,6 +208,23 @@ class DeliveryTripEnds:
             self._trip_proportions = trip_data / trip_data.sum(axis=0)
             self._trip_proportions.fillna(0, inplace=True)
         return self._trip_proportions
+
+    @property
+    def parcel_proportions(self) -> pd.DataFrame:
+        """pd.DataFrame : Proportion of delivery trips to be attracted
+        to each zone, calculated as the weighted sum of the Households
+        and Employees proportions. The business-to-customer parameter
+        is used as the weighting and the final proportions are
+        normalised.
+        """
+        if self._parcel_proportions is None:
+            # Use the business-to-customer weighting when adding the proportions
+            customer = self.trip_proportions["Households"] * self.parameters["b2c"]
+            business = self.trip_proportions["Employees"] * (1 - self.parameters["b2c"])
+            total = customer + business
+            # Normalise the total
+            self._parcel_proportions = total / total.sum()
+        return self._parcel_proportions
 
 
 # TODO Remove test code
@@ -245,5 +264,6 @@ if __name__ == "__main__":
         delivery_te.households,
         delivery_te.parameters,
         delivery_te.trip_proportions,
+        delivery_te.parcel_proportions,
         sep="\n",
     )
