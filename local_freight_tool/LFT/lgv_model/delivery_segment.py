@@ -38,7 +38,7 @@ class DeliveryTripEnds:
         segment parameters.
     """
 
-    BRES_AGGREGATION = {"All": lgv_inputs.letters_range(end="U")}
+    BRES_AGGREGATION = {"Employees": list(lgv_inputs.letters_range(end="U"))}
     VOA_SCAT_CODES = (217, 267)
     PARAMETERS_SHEET = "Delivery Segment Parameters"
     PARAMETERS_HEADER = {"Parameter": str, "Value": float}
@@ -69,6 +69,7 @@ class DeliveryTripEnds:
         self.bres = None
         self.households = None
         self.parameters = None
+        self._trip_proportions = None
 
     def _check_paths(
         self,
@@ -131,6 +132,10 @@ class DeliveryTripEnds:
         self.depots = lgv_inputs.voa_ratings_list(
             self._voa_path, self.VOA_SCAT_CODES, self._voa_zc
         )
+        self.depots.rename(
+            columns={"rateable_value": "Depots", "zone": "Zone"}, inplace=True
+        )
+        self.depots.set_index("Zone", inplace=True)
         self.households = lgv_inputs.household_projections(
             self._household_path, self._household_zc
         )
@@ -185,6 +190,23 @@ class DeliveryTripEnds:
             raise errors.MissingDataError("Delivery Parameters", missing)
         return params
 
+    @property
+    def trip_proportions(self) -> pd.DataFrame:
+        """pd.DataFrame : Proportion of input data for each zone, with
+        zone number as index (Zone) and columns Depots, Households and
+        Employees. Each column sums to 1.
+        """
+        if self._trip_proportions is None:
+            if self.depots is None or self.households is None or self.bres is None:
+                raise ValueError(
+                    "cannot calculate trip proportions until input data "
+                    "has been read, call `DeliveryTripEnds.read` first"
+                )
+            trip_data = pd.concat([self.depots, self.households, self.bres], axis=1)
+            self._trip_proportions = trip_data / trip_data.sum(axis=0)
+            self._trip_proportions.fillna(0, inplace=True)
+        return self._trip_proportions
+
 
 # TODO Remove test code
 if __name__ == "__main__":
@@ -222,5 +244,6 @@ if __name__ == "__main__":
         delivery_te.bres,
         delivery_te.households,
         delivery_te.parameters,
+        delivery_te.trip_proportions,
         sep="\n",
     )
