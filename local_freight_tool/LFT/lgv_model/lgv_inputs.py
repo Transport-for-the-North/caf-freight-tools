@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Sequence
 
 # Third party imports
+import numpy as np
 import pandas as pd
 
 # Local imports
@@ -93,8 +94,18 @@ VOA_RATINGS_LIST_INCLUDE = [
     "postcode",
     "rateable_value",
     "scat_code",
+    "eff_date",
+    "from_date",
+    "to_date",
 ]
 """Column names to read from the VOA ratings list file."""
+VOA_FILL_FUNCTIONS = {
+    "minimum": np.nanmin,
+    "mean": np.nanmean,
+    "median": np.nanmedian,
+    "non-zero minimum": lambda a: np.amin(a, where=a > 0, initial=np.inf),
+}
+"""Options for filling in NaN values in VOA data."""
 
 ##### FUNCTIONS #####
 def household_projections(path: Path, zone_lookup: Path) -> pd.DataFrame:
@@ -211,7 +222,11 @@ def letters_range(start: str = "A", end: str = "Z") -> str:
 
 
 def voa_ratings_list(
-    path: Path, scat_codes: Sequence[int], zone_lookup: Path
+    path: Path,
+    scat_codes: Sequence[int],
+    zone_lookup: Path,
+    year: int = None,
+    fill_func: str = "min",
 ) -> pd.DataFrame:
     """Reads VOA NDR ratings list entries file and filters based on `scat_codes`.
 
@@ -228,6 +243,13 @@ def voa_ratings_list(
         Path to the lookup between the VOA postcodes and the model
         zone system, expects 3 columns containing postcode, model
         zone number and splitting factor information in that order.
+    year : int, optional
+        The model year, used for filtering the VOA data. Data isn't
+        filtered by date if `year` isn't given.
+    fill_func : str, default = 'min'
+        The function to use for filling in any NaN values in the
+        `rateable_value` column. Can be any function defined in
+        `VOA_FILL_FUNCTIONS`.
 
     Returns
     -------
@@ -269,6 +291,19 @@ def voa_ratings_list(
         ),
     )
     voa_data = voa_data.loc[voa_data["scat_num"].isin(scat_codes)].copy()
+    # Use from_date for any missing eff_date and convert to date objects
+    nan_date = voa_data["eff_date"].isna()
+    voa_data.loc[nan_date, "eff_date"] = voa_data.loc[nan_date, "from_date"].copy()
+    voa_data.drop(columns=["from_date"], inplace=True)
+    for c in ("eff_date", "to_date"):
+        voa_data[c] = pd.to_datetime(voa_data[c])
+    # Make sure depot is active from before model year to after model
+    # year (inclusive), include NaT values for both
+    if year:
+        date_mask = (
+            (voa_data["eff_date"].dt.year <= year) | voa_data["eff_date"].isna()
+        ) & ((voa_data["to_date"].dt.year >= year) | voa_data["to_date"].isna())
+        voa_data = voa_data.loc[date_mask].copy()
 
     lookup = Rezone.read(zone_lookup, None)
     # Convert post code columns to uppercase and remove all whitespace
@@ -281,13 +316,20 @@ def voa_ratings_list(
     # Infill any NaN rateable_values with the average
     nan_value = voa_data["rateable_value"].isna()
     if nan_value.sum() > 0:
-        median = voa_data["rateable_value"].median()
+        try:
+            func = VOA_FILL_FUNCTIONS[fill_func.strip().lower()]
+            fill = func(voa_data["rateable_value"].values)
+        except KeyError as e:
+            raise ValueError(
+                "`fill_func` should be one of "
+                f"{list(VOA_FILL_FUNCTIONS.keys())} not {fill_func!r}"
+            ) from e
         warnings.warn(
             f"{nan_value.sum()} rows in VOA input have no information for "
-            f"'rateable_value' so infilling with the median ({median:.1f})",
+            f"'rateable_value' so infilling with the {fill_func} ({fill:.1f})",
             RuntimeWarning,
         )
-        voa_data.loc[nan_value, "rateable_value"] = median
+        voa_data.loc[nan_value, "rateable_value"] = fill
 
     # Use postcode lookup to aggregate rateable_value to model zones
     # and warn user of any missing postcodes

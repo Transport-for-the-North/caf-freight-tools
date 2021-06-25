@@ -6,6 +6,7 @@
 ##### IMPORTS #####
 # Standard imports
 from pathlib import Path
+from typing import Callable
 
 # Third party imports
 import pandas as pd
@@ -36,23 +37,26 @@ class DeliveryTripEnds:
     parameters_path : Path
         Path to Excel Workbook containing sheet with the delivery
         segment parameters.
+    year : int
+        Model year, should be between 2000 and 2100.
     """
 
     BRES_AGGREGATION = {"Employees": list(lgv_inputs.letters_range(end="U"))}
     VOA_SCAT_CODES = (217, 267)
     PARAMETERS_SHEET = "Delivery Segment Parameters"
-    PARAMETERS_HEADER = {"Parameter": str, "Value": float}
-    PARAMETERS = {
-        "trips_parcel_stem": "Annual Trip Productions - Parcel Stem",
-        "trips_parcel_bush": "Annual Trips - Parcel Bush",
-        "trips_grocery": "Annual Trips - Grocery Bush",
-        "b2c": "B2C vs B2B Weighting",
-        "length_parcel_stem": "Annual Trip Length - Parcel Stem (kms)",
-        "length_parcel_bush": "Annual Trip Length - Parcel Bush (kms)",
-        "length_grocery": "Annual Trip Length - Grocery (kms)",
-        "intra_parcel": "Intra-Zonal Proportions - Parcel",
-        "intra_grocery": "Intra-Zonal Proportions - Grocery",
-        "bush_cut_off": "Bush Cut-off (kms)",
+    PARAMETERS_HEADER = {"Parameter": str, "Value": str}
+    PARAMETERS: dict[str, tuple[str, Callable]] = {
+        "trips_parcel_stem": ("Annual Trip Productions - Parcel Stem", float),
+        "trips_parcel_bush": ("Annual Trips - Parcel Bush", float),
+        "trips_grocery": ("Annual Trips - Grocery Bush", float),
+        "b2c": ("B2C vs B2B Weighting", float),
+        "length_parcel_stem": ("Annual Trip Length - Parcel Stem (kms)", float),
+        "length_parcel_bush": ("Annual Trip Length - Parcel Bush (kms)", float),
+        "length_grocery": ("Annual Trip Length - Grocery (kms)", float),
+        "intra_parcel": ("Intra-Zonal Proportions - Parcel", float),
+        "intra_grocery": ("Intra-Zonal Proportions - Grocery", float),
+        "bush_cut_off": ("Bush Cut-off (kms)", float),
+        "voa_fill_func": ("VOA Infill Function", str),
     }
 
     def __init__(
@@ -61,9 +65,20 @@ class DeliveryTripEnds:
         bres_paths: tuple[Path, Path],
         household_paths: tuple[Path, Path],
         parameters_path: Path,
+        year: int,
     ):
         """Initialise class by checking inputs files exist and are expected type."""
         self._check_paths(voa_paths, bres_paths, household_paths, parameters_path)
+        try:
+            self._year = int(year)
+        except ValueError as e:
+            raise ValueError(f"year should be an integer not '{type(year)}'") from e
+        yr_range = (2000, 2100)
+        if self._year < min(yr_range) or self._year > max(yr_range):
+            raise ValueError(
+                f"`year` should be between {min(yr_range)} "
+                f"and {max(yr_range)} not {year}"
+            )
         # Initialise instance variables
         self.depots = None
         self.bres = None
@@ -114,6 +129,7 @@ class DeliveryTripEnds:
                 "Household Data Path": str(self._household_path),
                 "Household Zone Correspondence Path": str(self._household_zc),
                 "Delivery Parameters Path": str(self._parameters_path),
+                "Model Year": self._year,
             },
             orient="index",
             columns=["Value"],
@@ -130,8 +146,13 @@ class DeliveryTripEnds:
         .lgv_inputs.filtered_bres
             Reads, filters and converts the BRES input CSV.
         """
+        self.parameters = self.read_parameters(self._parameters_path)
         self.depots = lgv_inputs.voa_ratings_list(
-            self._voa_path, self.VOA_SCAT_CODES, self._voa_zc
+            self._voa_path,
+            self.VOA_SCAT_CODES,
+            self._voa_zc,
+            year=self._year,
+            fill_func=self.parameters["voa_fill_func"],
         )
         self.depots.rename(
             columns={"rateable_value": "Depots", "zone": "Zone"}, inplace=True
@@ -145,7 +166,6 @@ class DeliveryTripEnds:
             self._bres_path, self._bres_zc, self.BRES_AGGREGATION
         )
         self.bres.set_index("Zone", inplace=True)
-        self.parameters = self.read_parameters(self._parameters_path)
 
     @classmethod
     def read_parameters(cls, path: Path) -> dict[str, float]:
@@ -183,11 +203,20 @@ class DeliveryTripEnds:
         df.set_index("Parameter", inplace=True)
         params = {}
         missing = []
-        for nm, p in cls.PARAMETERS.items():
+        for nm, (p, type_func) in cls.PARAMETERS.items():
             try:
-                params[nm] = df.at[p.lower().strip(), "Value"]
+                # All values for type_func are callable
+                # pylint: disable=not-callable
+                params[nm] = type_func(df.at[p.lower().strip(), "Value"])
             except KeyError:
                 missing.append(p)
+            except ValueError as e:
+                raise errors.IncorrectParameterError(
+                    df.at[p.lower().strip(), "Value"],
+                    parameter=p,
+                    # All values for type_func have __name__
+                    expected=type_func.__name__,  # pylint: disable=no-member
+                ) from e
         if missing:
             raise errors.MissingDataError("Delivery Parameters", missing)
         return params
@@ -255,6 +284,7 @@ if __name__ == "__main__":
         (bres_path, bres_zc_path),
         (hh_path, hh_zc_path),
         params_path,
+        2018,
     )
     delivery_te.read()
     print(
