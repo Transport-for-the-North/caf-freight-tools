@@ -69,3 +69,18 @@ html_show_copyright = False
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ['_static']
+
+# -- Options for LaTeX output ------------------------------------------------
+# Fix the issue with lines of attributes extending off the page
+# https://github.com/sphinx-doc/sphinx/issues/7241#issuecomment-595751032
+latex_elements = {
+    'preamble' : r"""
+\makeatletter
+% \py@argswidth is an available length register, use it rather
+% than LaTeX's internal \@tempdima as done abusively by \py@itemnewline
+\renewcommand{\pysigline}[1]{%
+  \setlength{\py@argswidth}{\dimexpr\labelwidth+\linewidth\relax}%
+  \item[{\parbox[t]{\py@argswidth}{\raggedright#1}}]}
+\makeatother
+"""
+}

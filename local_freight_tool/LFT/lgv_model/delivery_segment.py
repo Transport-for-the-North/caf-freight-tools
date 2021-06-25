@@ -191,8 +191,8 @@ class DeliveryTripEnds:
 
         See Also
         --------
-        PARAMETERS: Lists all required parameter names (values)
-            and internal names (keys).
+        PARAMETERS: Lists all required parameter names and types
+            (values) and internal names (keys).
         PARAMETERS_SHEET: Expected name of the sheet in the workbook.
         PARAMETERS_HEADER: Expected column names and types in the sheet.
         """
