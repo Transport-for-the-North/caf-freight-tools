@@ -210,36 +210,3 @@ class ServiceTripEnds:
                 {"Productions": tot_trips / 2, "Attractions": tot_trips / 2}
             )
         return self._trip_ends
-
-
-# TODO Remove test code
-if __name__ == "__main__":
-    hh_path = Path(
-        r"C:\WSP_Projects\TfN Local Freight Model\01 - Delivery\LGV Method\Household Projections\UK_HH_projections_2018-MSOA.csv"
-    )
-    zc_path = Path(
-        r"C:\WSP_Projects\TfN Local Freight Model\01 - Delivery\LGV Method\NTEM to NoHAM Lookup\NTEM_to_NoHAM_zone_correspondence-updated-20210617.csv"
-    )
-    bres_path = Path(
-        r"C:\WSP_Projects\TfN Local Freight Model\01 - Delivery\LGV Method\BRES Data\BRES_2018_sections_GB_LSOA.csv"
-    )
-    bres_zc_path = Path(
-        r"C:\WSP_Projects\TfN Local Freight Model\01 - Delivery\LGV Method\lsoa_datazone_to_noham_zone_correspondence_missing_zones_added.csv"
-    )
-    service_path = Path(
-        r"C:\WSP_Projects\TfN Local Freight Model\01 - Delivery\LGV Method\LGV_input_tables.xlsx"
-    )
-    service_te = ServiceTripEnds(
-        (hh_path, zc_path), (bres_path, bres_zc_path), service_path, 1.51
-    )
-    service_te.read()
-    print(
-        service_te.inputs_summary,
-        service_te.households,
-        service_te.bres,
-        service_te.total_trips,
-        service_te.trip_proportions,
-        service_te.trips,
-        service_te.trip_ends,
-        sep="\n",
-    )
