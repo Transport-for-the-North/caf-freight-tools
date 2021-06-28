@@ -86,6 +86,9 @@ class DeliveryTripEnds:
         self.parameters = None
         self._trip_proportions = None
         self._parcel_proportions = None
+        self._parcel_stem_trip_ends = None
+        self._parcel_bush_trip_ends = None
+        self._grocery_bush_trip_ends = None
 
     def _check_paths(
         self,
@@ -236,7 +239,7 @@ class DeliveryTripEnds:
             trip_data = pd.concat([self.depots, self.households, self.bres], axis=1)
             self._trip_proportions = trip_data / trip_data.sum(axis=0)
             self._trip_proportions.fillna(0, inplace=True)
-        return self._trip_proportions
+        return self._trip_proportions.copy()
 
     @property
     def parcel_proportions(self) -> pd.DataFrame:
@@ -253,7 +256,63 @@ class DeliveryTripEnds:
             total = customer + business
             # Normalise the total
             self._parcel_proportions = total / total.sum()
-        return self._parcel_proportions
+        return self._parcel_proportions.copy()
+
+    def _check_parameters(self) -> None:
+        """Raises `ValueError` if `parameters` instance variable is None."""
+        if self.parameters is None:
+            raise ValueError(
+                "cannot calculate trip ends until input data "
+                "has been read, call `DeliveryTripEnds.read` first"
+            )
+
+    @property
+    def parcel_stem_trip_ends(self) -> pd.DataFrame:
+        """pd.DataFrame : Trip ends for the parcel stem segment, contains
+        Productions and Attractions (columns) for each Zone (index).
+        """
+        if self._parcel_stem_trip_ends is None:
+            self._check_parameters()
+            trip_ends = []
+            for nm, data in (
+                ("Attractions", self.parcel_proportions),
+                ("Productions", self.depots),
+            ):
+                trip_ends.append(self.parameters["trips_parcel_stem"] * data)
+                if isinstance(trip_ends[-1], pd.DataFrame):
+                    trip_ends[-1] = trip_ends[-1].squeeze()
+                trip_ends[-1].name = nm
+            self._parcel_stem_trip_ends = pd.concat(trip_ends, axis=1)
+            self._parcel_stem_trip_ends.fillna(0, inplace=True)
+        return self._parcel_stem_trip_ends.copy()
+
+    @property
+    def parcel_bush_trip_ends(self) -> pd.DataFrame:
+        """pd.DataFrame : Trip ends for the parcel bush segment, contains
+        Origins and Destinations (columns) for each Zone (index).
+        """
+        if self._parcel_bush_trip_ends is None:
+            self._check_parameters()
+            trips = self.parameters["trips_parcel_bush"] * self.parcel_proportions
+            self._parcel_bush_trip_ends = pd.DataFrame(
+                {"Origins": trips, "Destinations": trips}
+            )
+        return self._parcel_bush_trip_ends.copy()
+
+    @property
+    def grocery_bush_trip_ends(self) -> pd.DataFrame:
+        """pd.DataFrame : Trip ends for the grocery bush segment, contains
+        Origins and Destinations (columns) for each Zone (index).
+        """
+        if self._grocery_bush_trip_ends is None:
+            self._check_parameters()
+            trips = self.parameters["trips_grocery"] * self.households
+            if isinstance(trips, pd.DataFrame):
+                trips = trips.squeeze()
+            self._grocery_bush_trip_ends = pd.DataFrame(
+                {"Origins": trips, "Destinations": trips}
+            )
+        return self._grocery_bush_trip_ends.copy()
 
 
 # TODO Remove test code
@@ -287,13 +346,13 @@ if __name__ == "__main__":
         2018,
     )
     delivery_te.read()
-    print(
-        delivery_te.inputs_summary,
-        delivery_te.depots,
-        delivery_te.bres,
-        delivery_te.households,
-        delivery_te.parameters,
-        delivery_te.trip_proportions,
-        delivery_te.parcel_proportions,
-        sep="\n",
-    )
+    print(f"{delivery_te.inputs_summary=}")
+    print(f"{delivery_te.depots=}")
+    print(f"{delivery_te.bres=}")
+    print(f"{delivery_te.households=}")
+    print(f"{delivery_te.parameters=}")
+    print(f"{delivery_te.trip_proportions=}")
+    print(f"{delivery_te.parcel_proportions=}")
+    print(f"{delivery_te.parcel_stem_trip_ends=}")
+    print(f"{delivery_te.parcel_bush_trip_ends=}")
+    print(f"{delivery_te.grocery_bush_trip_ends=}")
