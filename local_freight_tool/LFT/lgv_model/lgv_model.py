@@ -15,6 +15,7 @@ from datetime import datetime
 from ..data_utils import DataPaths
 from .lgv_inputs import lgv_parameters
 from .service_segment import ServiceTripEnds
+from .delivery_segment import DeliveryTripEnds
 
 
 ##### CLASSES #####
@@ -147,6 +148,25 @@ def main(config_path: Path):
     )
     service.read()
     service.trip_ends.to_csv(output_folder / "service_trip_ends.csv")
+
+    # Calculate the delivery trip ends and save outputs
+    delivery = DeliveryTripEnds(
+        config.voa_paths,
+        config.bres_paths,
+        config.household_paths,
+        config.parameters_path,
+        parameters["year"],
+    )
+    delivery.read()
+    delivery.parcel_stem_trip_ends.to_csv(
+        output_folder / "delivery_parcel_stem_trip_ends.csv"
+    )
+    delivery.parcel_bush_trip_ends.to_csv(
+        output_folder / "delivery_parcel_bush_trip_ends.csv"
+    )
+    delivery.grocery_bush_trip_ends.to_csv(
+        output_folder / "delivery_grocery_trip_ends.csv"
+    )
 
 
 # TODO Remove Test Code

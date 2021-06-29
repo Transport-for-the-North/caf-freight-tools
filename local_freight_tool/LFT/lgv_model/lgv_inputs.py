@@ -114,6 +114,7 @@ LGV_PARAMETERS = {
     "lgv_growth": "LGV growth",
     "avg_new_house_size": "Average new house size",
     "scotland_soc82_ratio": "Scotland SOC821/SOC82",
+    "year": "Model Year",
 }
 """Names of the parameters (values) expected and their internal code name (keys)."""
 
