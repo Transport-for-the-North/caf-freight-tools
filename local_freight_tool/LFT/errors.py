@@ -15,12 +15,10 @@ class MissingInputsError(BaseLocalFreightError):
     
     def __init__(self, missing, *args, **kwargs):
         # Create message
-        msg = f"{missing} "
-        if len(missing) < 2:
-            msg +=  "is"
-        else:
-            msg += "are"
-        msg += " missing from inputs."
+        msg = "Missing input"
+        if len(missing) > 1:
+            msg += "s"
+        msg += f": {missing}"
         super().__init__(msg, *args, **kwargs)
 
 class MissingParameterError(BaseLocalFreightError):
