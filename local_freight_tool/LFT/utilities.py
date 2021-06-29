@@ -742,7 +742,6 @@ def read_multi_sheets(path: Path, sheets: Dict, **kwargs):
     return dfs
 
 
-@staticmethod
 def to_dict(
     df: pd.DataFrame, key_col: str, val_col: tuple[str, type], name: str = None
 ):
