@@ -10,7 +10,7 @@ import re
 import string
 import warnings
 from pathlib import Path
-from typing import Sequence
+from typing import Sequence, Any
 
 # Third party imports
 import numpy as np
@@ -106,6 +106,16 @@ VOA_FILL_FUNCTIONS = {
     "non-zero minimum": lambda a: np.amin(a, where=a > 0, initial=np.inf),
 }
 """Options for filling in NaN values in VOA data."""
+LGV_PARAMETERS_SHEET = "Parameters"
+"""Name of the sheet containing the main LGV parameters."""
+LGV_PARAMETERS_COLUMNS = {"Parameter": str, "Value": float}
+"""Column names in the `LGV_PARAMETERS_SHEET`."""
+LGV_PARAMETERS = {
+    "lgv_growth": "LGV growth",
+    "avg_new_house_size": "Average new house size",
+    "scotland_soc82_ratio": "Scotland SOC821/SOC82",
+}
+"""Names of the parameters (values) expected and their internal code name (keys)."""
 
 ##### FUNCTIONS #####
 def household_projections(path: Path, zone_lookup: Path) -> pd.DataFrame:
@@ -351,3 +361,43 @@ def voa_ratings_list(
         rezoned.dropna(subset=["postcode"], inplace=True)
     rezoned.rename(columns={"postcode": "zone"}, inplace=True)
     return rezoned.groupby("zone", as_index=False).sum()
+
+
+def lgv_parameters(path: Path) -> dict[str, Any]:
+    """Read the LGV Parameters sheet from the Excel workbook.
+
+    Parameters
+    ----------
+    path : Path
+        Path to the Excel workbook containing `LGV_PARAMETERS_SHEET`.
+
+    Returns
+    -------
+    dict[str, Any]
+        Dictionary of all the generic LGV parameters.
+
+    Raises
+    ------
+    LFT.errors.MissingDataError
+        If any expected parameters are missing.
+
+    See Also
+    --------
+    LGV_PARAMETERS_SHEET
+    LGV_PARAMETERS_COLUMNS
+    LGV_PARAMETERS
+    """
+    params = utilities.read_multi_sheets(
+        path, {LGV_PARAMETERS_SHEET: LGV_PARAMETERS_COLUMNS}
+    )[LGV_PARAMETERS_SHEET]
+    params = utilities.to_dict(params, *LGV_PARAMETERS_COLUMNS, name="LGV Parameters")
+    missing = []
+    out_params = {}
+    for key, nm in LGV_PARAMETERS.items():
+        try:
+            out_params[key] = params[nm]
+        except KeyError:
+            missing.append(nm)
+    if missing:
+        raise errors.MissingDataError("LGV Parameters", missing)
+    return out_params

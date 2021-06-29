@@ -7,11 +7,14 @@
 # Standard imports
 import configparser
 from pathlib import Path
+from datetime import datetime
 
 # Third party imports
 
 # Local imports
 from ..data_utils import DataPaths
+from .lgv_inputs import lgv_parameters
+from .service_segment import ServiceTripEnds
 
 
 ##### CLASSES #####
@@ -40,6 +43,7 @@ class LGVConfig(configparser.ConfigParser):
         "voa data",
         "voa zone correspondence",
         "lgv parameters",
+        "output folder",
     )
     """Names of the expected options."""
     household_paths: DataPaths = None
@@ -75,6 +79,7 @@ class LGVConfig(configparser.ConfigParser):
             self.getpath(self.SECTION, self.OPTIONS[5]),
         )
         self.parameters_path = self.getpath(self.SECTION, self.OPTIONS[6])
+        self.output_folder = self.getpath(self.SECTION, self.OPTIONS[7])
 
     def getpath(self, section: str, option: str, **kwargs) -> Path:
         """Gets the `option` from `section` and converts it to a Path object.
@@ -116,3 +121,37 @@ class LGVConfig(configparser.ConfigParser):
             {self.voa_paths=}
             {self.parameters_path=}
         """
+
+
+##### FUNCTIONS #####
+def main(config_path: Path):
+    config = LGVConfig(config_path)
+    parameters = lgv_parameters(config.parameters_path)
+
+    # Create output folder
+    if not config.output_folder.is_dir():
+        raise NotADirectoryError(
+            f"output folder is not a folder, or does not exist: {config.output_folder}"
+        )
+    output_folder = (
+        config.output_folder / f"LGV Model Outputs - {datetime.now():%Y-%m-%d %H.%M.%S}"
+    )
+    output_folder.mkdir(exist_ok=True)
+
+    # Calculate the service trip ends and save output
+    service = ServiceTripEnds(
+        config.household_paths,
+        config.bres_paths,
+        config.parameters_path,
+        parameters["lgv_growth"],
+    )
+    service.read()
+    service.trip_ends.to_csv(output_folder / "service_trip_ends.csv")
+
+
+# TODO Remove Test Code
+if __name__ == "__main__":
+    config_file = Path(
+        r"C:\WSP_Projects\TfN Local Freight Model\01 - Delivery\LGV Method\LGV_config.ini"
+    )
+    main(config_file)
