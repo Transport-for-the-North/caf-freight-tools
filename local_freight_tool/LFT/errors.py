@@ -10,6 +10,18 @@ from typing import List, Union
 class BaseLocalFreightError(Exception):
     """Base error for Local Freight Tool."""
 
+class MissingInputsError(BaseLocalFreightError):
+    """Raised when one or multiple inputs are missing."""
+    
+    def __init__(self, missing, *args, **kwargs):
+        # Create message
+        msg = f"{missing} "
+        if len(missing) < 2:
+            msg +=  "is"
+        else:
+            msg += "are"
+        msg += " missing from inputs."
+        super().__init__(msg, *args, **kwargs)
 
 class MissingParameterError(BaseLocalFreightError):
     """Raised when a parameter is missing from the input."""
