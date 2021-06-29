@@ -7,12 +7,14 @@
 # Standard imports
 from pathlib import Path
 from itertools import chain
+import re
 
 # Third party imports
 import pandas as pd
 
 # Local imports
 from .. import utilities, errors
+from ..rezone import Rezone
 from . import lgv_inputs
 
 
@@ -100,7 +102,7 @@ class CommuteTripProductionsAttractions:
     QS606_HEADERS = {}
     S8_CATEGORIES = {
         "EW": "821. Road Transport Drivers",
-        "UK": "82. Transport and mobile machine drivers and operatives",
+        "SC": "82. Transport and mobile machine drivers and operatives",
     }
     for key in S8_CATEGORIES:
         QS606_HEADERS[key] = QS606_HEADER.copy()
@@ -138,7 +140,9 @@ class CommuteTripProductionsAttractions:
         # Initialise instance variables defined later
         self.params = None
         self.voa_weightings = None
-        self.commute_trip_tables = None
+        self.commute_trip_tables = {}
+        self.zone_lookups = {}
+        self.qs606uk = None
 
     def _check_paths(self, input_paths):
         """Checks the input file paths are of expected type.
@@ -177,6 +181,8 @@ class CommuteTripProductionsAttractions:
         """Read the input data and perform necessary conversions and rezoning.
         """
         self._read_commute_tables()
+        self._read_zone_lookups()
+        self._read_qs606()
 
     def _read_commute_tables(self):
         """Read in commuting tables input XLSX.
@@ -186,14 +192,75 @@ class CommuteTripProductionsAttractions:
             sheets=self.COMMUTING_INPUTS_SHEET_HEADERS)
         self.params = utilities.to_dict(
             commute_tables["Parameters"],
-            "Parameter",
-            ("Value", float))
+            "Parameter", ("Value", float))
         self.voa_weightings = utilities.to_dict(
             commute_tables["Commute VOA property weightings"],
             "SCat code",
             "Weight"
         )
         
-        self.commute_trip_tables = {}
         for key in commute_tables.keys() - set(('Parameters', 'Commute VOA property weightings')):
             self.commute_trip_tables[key] = commute_tables[key]
+    
+    def _read_zone_lookups(self):
+        for key in self.paths:
+            if key.endswith("lookup"):
+                self.zone_lookups[key] = Rezone.read(self.paths[key], None)
+    
+    def _read_qs606(self):
+        """Read in and rezone Census occupation data.
+        """
+        def rename_cols(name: str) -> str:
+            """Renames the occupation data columns
+            """
+            match = re.match('^(5[1-3])|(82)[1]?', name)
+            if match:
+                return match.group(0)
+            else:
+                if name.startswith("mnemonic"):
+                    return "zone"
+                elif name.startswith("All"):
+                    return "total"
+                else:
+                    return name
+        
+        # If haven't yet read in parameters and zone lookups, read in
+        if not self.params:
+            self._read_commute_tables
+        
+        if not self.zone_lookups:
+            self._read_zone_lookups()
+
+        # Read in both E&W and Scottish data
+        qs606 = {}
+        for key in self.S8_CATEGORIES:
+            qs606[key] = (
+                (
+                utilities.read_csv(
+                self.paths[f"QS606{key}"],
+                columns=self.QS606_HEADERS[key],
+                skiprows=7,
+                skipfooter=5,
+                engine='python')
+                )
+                .dropna(axis=1, how="all")
+                .dropna(axis=0, how="any")
+            )
+            qs606[key] = qs606[key].rename(columns=rename_cols)
+        
+        # Scottish data doesn't include SOC821, so calculate from SOC82
+        qs606['SC']['821'] = qs606['SC']['82'] * self.params['Scotland SOC821/SOC82']
+
+        # Combine the data for England, Wales and Scotland
+        qs606uk = pd.concat([qs606['EW'], qs606['SC'].drop(axis=1, labels=['82'])])
+
+        # Combine columns into skilled trades (SOC51, 52, 53) and drivers (SOC821)
+        qs606uk['Skilled trades'] = qs606uk[[col for col in qs606uk.columns if col.startswith("5")]].sum(axis=1)
+        qs606uk = qs606uk.rename(columns={
+            '821': 'Drivers'
+        })
+        qs606uk = qs606uk[['zone', 'total', 'Skilled trades', 'Drivers']]
+        
+        # Rezone to model zone system
+        cols = qs606uk.columns
+        self.qs606uk = Rezone.rezoneOD(qs606uk, self.zone_lookups["LSOA lookup"], dfCols=(cols[0],), rezoneCols=cols[1:])
