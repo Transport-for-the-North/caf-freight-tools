@@ -740,3 +740,52 @@ def read_multi_sheets(path: Path, sheets: Dict, **kwargs):
                 raise MissingWorksheetError(path.stem, sheet) from err
             raise
     return dfs
+
+
+@staticmethod
+def to_dict(
+    df: pd.DataFrame, key_col: str, val_col: tuple(str, type), name: str = None
+):
+    """Transform a dataframe to a dictionary
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        Dataframe with columns to transform to dictionary
+    key_col : str
+        Column name as string to use as keys in dictionary.
+    val_col : tuple(str, type) or str
+        Tuple with (column name, data type) or column name as string to
+        use as values in dictionary, e.g. ("Values", float) or "Values".
+    name : str, optional
+        Name of dataframe to display in error message
+
+    Raises
+    ------
+    ValueError
+        If the value column in the dataframe is not of the expected type.
+
+    Returns
+    -------
+    dict
+        Dictionary with keys corresponding to elements in key_col, and
+        values corresponding to elements in val_col.
+    """
+    dictionary = {}
+
+    if isinstance(val_col, tuple):
+        val_dtype = val_col[1]
+        val_col = val_col[0]
+        try:
+            df[val_col] = df[val_col].astype(val_dtype)
+        except ValueError as err:
+            msg = f"Expected '{val_col}'"
+            if name:
+                msg += f"in '{name}'' "
+            msg += f"to be of type '{val_dtype}'"
+            raise ValueError(msg) from err
+
+    for i in df.index:
+        dictionary[df.at[i, key_col]] = df.at[i, val_col]
+
+    return dictionary
