@@ -488,7 +488,7 @@ def check_file_path(
         raise FileNotFoundError(f"{name} file does not exist: {path}")
     if not path.is_file():
         raise FileNotFoundError(f"{name} is a folder not a file: {path}")
-    if extensions is not None:
+    if extensions:
         extensions = [s.lower() for s in extensions]
         if path.suffix.lower() not in extensions:
             msg = " or".join(", ".join(extensions).rsplit(",", 1))
@@ -742,7 +742,6 @@ def read_multi_sheets(path: Path, sheets: Dict, **kwargs):
     return dfs
 
 
-@staticmethod
 def to_dict(
     df: pd.DataFrame, key_col: str, val_col: tuple[str, type], name: str = None
 ):
