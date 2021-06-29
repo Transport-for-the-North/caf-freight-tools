@@ -744,7 +744,7 @@ def read_multi_sheets(path: Path, sheets: Dict, **kwargs):
 
 @staticmethod
 def to_dict(
-    df: pd.DataFrame, key_col: str, val_col: tuple(str, type), name: str = None
+    df: pd.DataFrame, key_col: str, val_col: tuple((str, type)), name: str = None
 ):
     """Transform a dataframe to a dictionary
 
