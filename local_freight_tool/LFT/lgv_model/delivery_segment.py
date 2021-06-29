@@ -13,7 +13,7 @@ import pandas as pd
 
 # Local imports
 from . import lgv_inputs
-from .. import utilities, errors
+from .. import utilities, errors, data_utils
 
 
 ##### CLASSES #####
@@ -61,9 +61,9 @@ class DeliveryTripEnds:
 
     def __init__(
         self,
-        voa_paths: tuple[Path, Path],
-        bres_paths: tuple[Path, Path],
-        household_paths: tuple[Path, Path],
+        voa_paths: data_utils.DataPaths,
+        bres_paths: data_utils.DataPaths,
+        household_paths: data_utils.DataPaths,
         parameters_path: Path,
         year: int,
     ):
@@ -92,30 +92,23 @@ class DeliveryTripEnds:
 
     def _check_paths(
         self,
-        voa_paths: tuple[Path, Path],
-        bres_paths: tuple[Path, Path],
-        household_paths: tuple[Path, Path],
+        voa_paths: data_utils.DataPaths,
+        bres_paths: data_utils.DataPaths,
+        household_paths: data_utils.DataPaths,
         parameters_path: Path,
     ):
         """Checks the input files exist and are the expected type."""
-        self._voa_path = utilities.check_file_path(
-            voa_paths[0], "VOA data", ".csv", ".txt", return_path=True
-        )
-        self._voa_zc = utilities.check_file_path(
-            voa_paths[1], "VOA lookup", ".csv", ".txt", return_path=True
-        )
-        self._bres_path = utilities.check_file_path(
-            bres_paths[0], "BRES data", ".csv", ".txt", return_path=True
-        )
-        self._bres_zc = utilities.check_file_path(
-            bres_paths[1], "BRES lookup", ".csv", ".txt", return_path=True
-        )
-        self._household_path = utilities.check_file_path(
-            household_paths[0], "Household data", ".csv", ".txt", return_path=True
-        )
-        self._household_zc = utilities.check_file_path(
-            household_paths[1], "Household lookup", ".csv", ".txt", return_path=True
-        )
+        extensions = (".csv", ".txt")
+        for nm, paths in (
+            ("VOA", voa_paths),
+            ("Households", household_paths),
+            ("BRES", bres_paths),
+        ):
+            utilities.check_file_path(paths.path, f"{nm} data", *extensions)
+            utilities.check_file_path(paths.zc_path, f"{nm} lookup", *extensions)
+        self._voa_paths = voa_paths
+        self._household_paths = household_paths
+        self._bres_paths = bres_paths
         self._parameters_path = utilities.check_file_path(
             parameters_path, "Delivery Parameters", ".xlsx", return_path=True
         )
@@ -125,12 +118,14 @@ class DeliveryTripEnds:
         """pd.DataFrame : Summary table of class input parameters."""
         return pd.DataFrame.from_dict(
             {
-                "VOA Data Path": str(self._voa_path),
-                "VOA Zone Correpondence Path": str(self._voa_zc),
-                "BRES Data Path": str(self._bres_path),
-                "BRES Zone Correpondence Path": str(self._bres_zc),
-                "Household Data Path": str(self._household_path),
-                "Household Zone Correspondence Path": str(self._household_zc),
+                "VOA Data Path": str(self._voa_paths.path),
+                "VOA Zone Correpondence Path": str(self._voa_paths.zc_path),
+                "BRES Data Path": str(self._bres_paths.path),
+                "BRES Zone Correpondence Path": str(self._bres_paths.zc_path),
+                "Household Data Path": str(self._household_paths.path),
+                "Household Zone Correspondence Path": str(
+                    self._household_paths.zc_path
+                ),
                 "Delivery Parameters Path": str(self._parameters_path),
                 "Model Year": self._year,
             },
@@ -151,9 +146,9 @@ class DeliveryTripEnds:
         """
         self.parameters = self.read_parameters(self._parameters_path)
         self.depots = lgv_inputs.voa_ratings_list(
-            self._voa_path,
+            self._voa_paths.path,
             self.VOA_SCAT_CODES,
-            self._voa_zc,
+            self._voa_paths.zc_path,
             year=self._year,
             fill_func=self.parameters["voa_fill_func"],
         )
@@ -162,11 +157,11 @@ class DeliveryTripEnds:
         )
         self.depots.set_index("Zone", inplace=True)
         self.households = lgv_inputs.household_projections(
-            self._household_path, self._household_zc
+            self._household_paths.path, self._household_paths.zc_path
         )
         self.households.set_index("Zone", inplace=True)
         self.bres = lgv_inputs.filtered_bres(
-            self._bres_path, self._bres_zc, self.BRES_AGGREGATION
+            self._bres_paths.path, self._bres_paths.zc_path, self.BRES_AGGREGATION
         )
         self.bres.set_index("Zone", inplace=True)
 

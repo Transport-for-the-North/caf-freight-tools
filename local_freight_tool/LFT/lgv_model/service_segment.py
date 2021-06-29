@@ -12,7 +12,7 @@ from pathlib import Path
 import pandas as pd
 
 # Local imports
-from .. import utilities, errors
+from .. import utilities, errors, data_utils
 from . import lgv_inputs
 
 
@@ -22,14 +22,12 @@ class ServiceTripEnds:
 
     Parameters
     ----------
-    household_paths : tuple[Path, Path]
-        - Path to the CSV containing the household projections data.
-        - Path to the zone correpondence file to convert household
-          data to the model zone system.
-    bres_paths : tuple[Path, Path]
-        - Path to the CSV containing the BRES data.
-        - Path to the zone correspondence CSV for converting the
-          BRES data to the model zone system.
+    household_paths : LFT.data_utils.DataPaths
+        Paths to the CSVs containing the household projections data and
+        the relevant zone correspondence.
+    bres_paths : LFT.data_utils.DataPaths
+        Paths to the CSVs containing the BRES data and the relevant
+        zone correpondence.
     service_trips : Path
         Path to Excel workbook containing 'Annual Service Trips'
         sheet which should contain column names as defined in
@@ -55,8 +53,8 @@ class ServiceTripEnds:
 
     def __init__(
         self,
-        household_paths: tuple[Path, Path],
-        bres_paths: tuple[Path, Path],
+        household_paths: data_utils.DataPaths,
+        bres_paths: data_utils.DataPaths,
         service_trips: Path,
         scale_factor: float,
     ):
@@ -81,23 +79,17 @@ class ServiceTripEnds:
 
     def _check_paths(
         self,
-        household_paths: tuple[Path, Path],
-        bres_paths: tuple[Path, Path],
+        household_paths: data_utils.DataPaths,
+        bres_paths: data_utils.DataPaths,
         service_trips: Path,
     ):
         """Checks the input files exist and are the expected type."""
-        self._household_path = utilities.check_file_path(
-            household_paths[0], "Household data", ".csv", ".txt", return_path=True
-        )
-        self._household_zc = utilities.check_file_path(
-            household_paths[1], "Household lookup", ".csv", ".txt", return_path=True
-        )
-        self._bres_path = utilities.check_file_path(
-            bres_paths[0], "BRES data", ".csv", ".txt", return_path=True
-        )
-        self._bres_zc = utilities.check_file_path(
-            bres_paths[1], "BRES lookup", ".csv", ".txt", return_path=True
-        )
+        extensions = (".csv", ".txt")
+        for nm, paths in (("Households", household_paths), ("BRES", bres_paths)):
+            utilities.check_file_path(paths.path, f"{nm} data", *extensions)
+            utilities.check_file_path(paths.zc_path, f"{nm} lookup", *extensions)
+        self._household_paths = household_paths
+        self._bres_paths = bres_paths
         self._trips_path = utilities.check_file_path(
             service_trips, "Service trips", ".xlsx", return_path=True
         )
@@ -107,10 +99,12 @@ class ServiceTripEnds:
         """pd.DataFrame : Summary table of class input parameters."""
         return pd.DataFrame.from_dict(
             {
-                "Household Data Path": str(self._household_path),
-                "Household Zone Correspondence Path": str(self._household_zc),
-                "BRES Data Path": str(self._bres_path),
-                "BRES Zone Correpondence Path": str(self._bres_zc),
+                "Household Data Path": str(self._household_paths.path),
+                "Household Zone Correspondence Path": str(
+                    self._household_paths.zc_path
+                ),
+                "BRES Data Path": str(self._bres_paths.path),
+                "BRES Zone Correpondence Path": str(self._bres_paths.zc_path),
                 "Annual Service Trips Path": str(self._trips_path),
                 "Scale Factor": self._scale_factor,
             },
@@ -134,11 +128,11 @@ class ServiceTripEnds:
             Reads, filters and converts the BRES input CSV.
         """
         self.households = lgv_inputs.household_projections(
-            self._household_path, self._household_zc
+            self._household_paths.path, self._household_paths.zc_path
         )
         self.households.set_index("Zone", inplace=True)
         self.bres = lgv_inputs.filtered_bres(
-            self._bres_path, self._bres_zc, self.BRES_AGGREGATION
+            self._bres_paths.path, self._bres_paths.zc_path, self.BRES_AGGREGATION
         )
         self.bres.set_index("Zone", inplace=True)
         # Read and check service trips data
