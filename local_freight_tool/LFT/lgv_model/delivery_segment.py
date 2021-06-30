@@ -271,7 +271,7 @@ class DeliveryTripEnds:
             trip_ends = []
             for nm, data in (
                 ("Attractions", self.parcel_proportions),
-                ("Productions", self.depots),
+                ("Productions", self.trip_proportions["Depots"]),
             ):
                 trip_ends.append(self.parameters["trips_parcel_stem"] * data)
                 if isinstance(trip_ends[-1], pd.DataFrame):
