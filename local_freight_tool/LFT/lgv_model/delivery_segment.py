@@ -301,7 +301,9 @@ class DeliveryTripEnds:
         """
         if self._grocery_bush_trip_ends is None:
             self._check_parameters()
-            trips = self.parameters["trips_grocery"] * self.households
+            trips = (
+                self.parameters["trips_grocery"] * self.trip_proportions["Households"]
+            )
             if isinstance(trips, pd.DataFrame):
                 trips = trips.squeeze()
             self._grocery_bush_trip_ends = pd.DataFrame(
