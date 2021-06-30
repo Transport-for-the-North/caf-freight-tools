@@ -658,6 +658,8 @@ def read_excel(
     ValueError
         If any of the columns cannot be converted to the
         given data type.
+    MissingWorksheetError
+        If the specified sheet isn't in the XLSX.
     """
 
     path = Path(path)
@@ -680,6 +682,9 @@ def read_excel(
     try:
         df = pd.read_excel(path, **kwargs)
     except ValueError as err:
+        if str(err).lower().startswith("worksheet"):
+            raise MissingWorksheetError(path.stem, key) from err
+
         match = re.match(
             r".*columns expected but not found:\s+\[((?:'[^']+',?\s?)+)\]",
             str(err),
@@ -701,6 +706,12 @@ def read_excel(
                         f"which cannot be converted to {t}"
                     ) from err
         raise
+    except KeyError as err:
+        match = re.match(r".*Worksheet\s.*does not exist.", str(err), re.IGNORECASE)
+        if match:
+            raise MissingWorksheetError(path.stem, key) from err
+        raise
+
     return df
 
 
