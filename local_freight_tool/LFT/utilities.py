@@ -639,7 +639,9 @@ def read_excel(
         - List or tuple - used for usecols parameter of `pandas.read_excel`.
         - Dict - used for the dtype and usecols parameter of
           `pandas.read_excel`, where keys are column name and values are
-          data type.
+          data type. If a dict is given with values being dicts or lists, the
+          first key is taken as the sheet name and the values are taken as the
+          columns dictionary.
         - None - reads in all columns from the XLSX.
     kwargs : all other keyword arguments
         Passed to `pandas.read_excel`.
@@ -656,12 +658,21 @@ def read_excel(
     ValueError
         If any of the columns cannot be converted to the
         given data type.
+    MissingWorksheetError
+        If the specified sheet isn't in the XLSX.
     """
 
     path = Path(path)
     if name is None:
         name = path.stem
     check_file_path(path, name, ".xlsx")
+    if isinstance(columns, dict) & isinstance(
+        list(columns.values())[0], (tuple, list, dict)
+    ):
+        key = list(columns.keys())[0]
+        kwargs["sheet_name"] = key
+        columns = columns[key]
+
     if isinstance(columns, (tuple, list)):
         kwargs["usecols"] = columns
     elif isinstance(columns, dict):
@@ -671,6 +682,9 @@ def read_excel(
     try:
         df = pd.read_excel(path, **kwargs)
     except ValueError as err:
+        if str(err).lower().startswith("worksheet"):
+            raise MissingWorksheetError(path.stem, key) from err
+
         match = re.match(
             r".*columns expected but not found:\s+\[((?:'[^']+',?\s?)+)\]",
             str(err),
@@ -692,6 +706,12 @@ def read_excel(
                         f"which cannot be converted to {t}"
                     ) from err
         raise
+    except KeyError as err:
+        match = re.match(r".*Worksheet\s.*does not exist.", str(err), re.IGNORECASE)
+        if match:
+            raise MissingWorksheetError(path.stem, key) from err
+        raise
+
     return df
 
 
