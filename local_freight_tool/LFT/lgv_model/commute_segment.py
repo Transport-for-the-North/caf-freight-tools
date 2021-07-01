@@ -86,8 +86,7 @@ class CommuteTripProductionsAttractions:
     }
     BRES_AGGREGATION = {
         "Non-Construction": [
-            i
-            for i in chain(
+            chain(
                 lgv_inputs.letters_range(end="E"),
                 lgv_inputs.letters_range(start="G", end="S"),
             )
@@ -109,11 +108,13 @@ class CommuteTripProductionsAttractions:
         QS606_HEADERS[key] = QS606_HEADER.copy()
         QS606_HEADERS[key][S8_CATEGORIES[key]] = float
 
-    SC_W_DWELLINGS_HEADER = {"UniqueID": str, 2017: int, 2018: int}
-
-    E_DWELLINGS_SHEET_HEADER = {
-        "2018-19": {"Current\nONS code": str, "Demolitions": int, "Net Additions": int}
-    }
+    E_DWELLINGS_HEADER = [
+        "Current\nONS code",
+        "Lower and Single Tier Authority Data",
+        "Demolitions",
+        "Net Additions",
+    ]
+    E_DWELLINGS_NEW_COLS = {"Current\nONS code": "zone"}
 
     BUSINESS_FLOORSPACE_HEADER = {"AREA_CODE": str}
     for column_start in ["Floorspace_2017-18_", "Floorspace_2018-19_"]:
@@ -136,6 +137,7 @@ class CommuteTripProductionsAttractions:
         self.commute_trips_main_usage = {}
         self.commute_trips_land_use = None
         self.trip_productions = None
+        self.floorspace = {}
 
     def _check_paths(self, input_paths):
         """Checks the input file paths are of expected type.
@@ -183,6 +185,7 @@ class CommuteTripProductionsAttractions:
         self._read_commute_tables()
         self._read_zone_lookups()
         self._read_qs606()
+        self._read_dwellings_data()
 
     def _read_commute_tables(self):
         """Read in commuting tables input XLSX."""
@@ -195,6 +198,7 @@ class CommuteTripProductionsAttractions:
         self.params = utilities.to_dict(
             commute_tables["Parameters"], "Parameter", ("Value", float)
         )
+        self.params["Model Year"] = int(self.params["Model Year"])
 
         # write the VOA weightings to a dictionary
         self.voa_weightings = utilities.to_dict(
@@ -231,13 +235,11 @@ class CommuteTripProductionsAttractions:
             match = re.match("^(5[1-3])|(82)[1]?", name)
             if match:
                 return match.group(0)
-            else:
-                if name.startswith("mnemonic"):
-                    return "zone"
-                elif name.startswith("All"):
-                    return "total"
-                else:
-                    return name
+            if name.startswith("mnemonic"):
+                return "zone"
+            if name.startswith("All"):
+                return "total"
+            return name
 
         # If haven't yet read in parameters and zone lookups, read in
         if not self.params:
@@ -286,8 +288,88 @@ class CommuteTripProductionsAttractions:
             rezoneCols=cols[1:],
         )
 
+    def _read_dwellings_data(self):
+        """Read in, calculate and rezone additional dwellings data."""
+        # Read in additional dwellings data for England
+        e_dwellings = (
+            utilities.read_excel(
+                self.paths["E dwellings"],
+                columns=self.E_DWELLINGS_HEADER,
+                skiprows=3,
+            )
+            .dropna(axis=1, how="all")
+            .dropna(axis=0, how="any")
+            .rename(columns=self.E_DWELLINGS_NEW_COLS)
+            .drop(axis=1, labels=["Lower and Single Tier Authority Data"])
+        )
+        for col in ["Demolitions", "Net Additions"]:
+            try:
+                e_dwellings[col] = e_dwellings[col].astype(float)
+            except ValueError as err:
+                match = re.match(
+                    r"could not convert \w+ to float", str(err), re.IGNORECASE
+                )
+                if match:
+                    raise errors.NonNumericDataError(
+                        name=f"{self.paths['E dwellings'].stem} column",
+                        non_numeric=str(col),
+                    )
+                raise
+
+        # Calculate total additional construction (net additions + demolitions)
+        e_dwellings["additional dwellings"] = (
+            e_dwellings["Net Additions"] + 2 * e_dwellings["Demolitions"]
+        )
+
+        # Calculate ratio of additional construction over net additional dwellings
+        additional_net_ratio = (
+            e_dwellings["additional dwellings"].sum()
+            / e_dwellings["Net Additions"].sum()
+        )
+
+        # Read in Welsh and Scottish dwellings data
+        if not self.params:
+            self._read_commute_tables()
+        sc_w_header = {
+            "zone": str,
+            str(self.params["Model Year"] - 1): int,
+            str(self.params["Model Year"]): int,
+        }
+        sc_w_dwellings = utilities.read_csv(
+            self.paths["SC&W dwellings"], columns=sc_w_header
+        )
+
+        # Calculate additional construction
+        sc_w_dwellings.loc[:, "additional dwellings"] = (
+            sc_w_dwellings.loc[:, str(self.params["Model Year"])]
+            - sc_w_dwellings.loc[:, str(self.params["Model Year"] - 1)]
+        ) * additional_net_ratio
+
+        # Concatenate the dwellings data
+        cols = ["zone", "additional dwellings"]
+        dwellings = pd.concat([e_dwellings[cols], sc_w_dwellings[cols]], axis=0)
+
+        # Convert to floorspace
+        dwellings["floorspace"] = (
+            dwellings["additional dwellings"] * self.params["Average new house size"]
+        )
+
+        dwellings.drop(axis=1, labels=["additional dwellings"], inplace=True)
+
+        # rezone dwellings data from LAD to model zone system
+        cols = dwellings.columns
+
+        # Assign to floorspace dictionary
+        self.floorspace["Residential"] = Rezone.rezoneOD(
+            dwellings,
+            self.zone_lookups["LAD lookup"],
+            dfCols=(cols[0],),
+            rezoneCols=cols[1:],
+        )
+
     def estimate_productions(self):
         "Estimates trip productions by zone and employment segment"
+        # TODO review calc to check for 1/3
         if self.qs606uk is None:
             self._read_qs606()
 
