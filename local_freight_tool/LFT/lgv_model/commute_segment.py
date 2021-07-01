@@ -62,7 +62,7 @@ class CommuteTripProductionsAttractions:
 
     INPUT_KEYS = {
         "commuting tables": ".xlsx",
-        "household projectons": ".csv",
+        "household projections": ".csv",
         "BRES": ".csv",
         "QS606EW": ".csv",
         "QS606SC": ".csv",
@@ -121,6 +121,9 @@ class CommuteTripProductionsAttractions:
     BUSINESS_CATEGORIES = ["Retail", "Office", "Industrial", "Other"]
     BUSINESS_FLOORSPACE_REMOVE_ROWS = ["K", "E9", "W9", "E1"]
 
+    HH_PROJECTIONS_HEADER = {"Area Description": str, "HHs": float, "Jobs": float}
+    HH_RENAME = {"Area Description": "zone", "HHs": "households", "Jobs": "jobs"}
+
     def __init__(self, input_paths: dict):
         """Initialise class by checking all input paths are in input dict and
         all input files exist"""
@@ -136,6 +139,8 @@ class CommuteTripProductionsAttractions:
         self.commute_trips_main_usage = {}
         self.commute_trips_land_use = None
         self.trip_productions = None
+        self.TEMPro_data = {}
+        self.attractor_factors = {}
 
     def _check_paths(self, input_paths):
         """Checks the input file paths are of expected type.
@@ -286,7 +291,14 @@ class CommuteTripProductionsAttractions:
         )
 
     def _read_dwellings_data(self):
-        """Read in, calculate and rezone additional dwellings data."""
+        """Read in, calculate and rezone additional dwellings data.
+
+        Returns
+        -------
+        pd.DataFrame
+            Additional dwellings data in model zone system.
+        """
+
         # Read in additional dwellings data for England
         e_dwellings = (
             utilities.read_excel(
@@ -365,7 +377,8 @@ class CommuteTripProductionsAttractions:
         )
 
     def _read_ndr(self):
-        """Reads in NDR Business floorspace data
+        """Reads in NDR Business floorspace data, calculates additional
+        floorspace and rezoned to model zone system.
 
         Returns
         -------
@@ -428,10 +441,70 @@ class CommuteTripProductionsAttractions:
             rezoneCols=ndr.columns[1:],
         )
 
-    def _calc_floorspace_change(self):
+    def _read_household_projections(self):
+        """Reads in household projections data."""
+        households = utilities.read_csv(
+            self.paths["household projections"],
+            name="Household projections",
+            columns=self.HH_PROJECTIONS_HEADER,
+        ).rename(columns=self.HH_RENAME)
+
+        # get sum of jobs
+        self.TEMPro_data["EW jobs"] = households[
+            households.zone.str.startswith("E") | households.zone.str.startswith("W")
+        ].jobs.sum()
+
+        # get Scottish jobs data
+        scottish_jobs = households[["zone", "jobs"]][
+            households.zone.str.startswith("S")
+        ]
+
+        # rezone to model zone system
+        if not self.zone_lookups:
+            self._read_zone_lookups()
+
+        self.TEMPro_data["S jobs"] = Rezone.rezoneOD(
+            scottish_jobs,
+            self.zone_lookups["MSOA lookup"],
+            dfCols=(scottish_jobs.columns[0],),
+            rezoneCols=scottish_jobs.columns[1:],
+        )
+        self.TEMPro_data["households"] = Rezone.rezoneOD(
+            households,
+            self.zone_lookups["MSOA lookup"],
+            dfCols=(households.columns[0],),
+            rezoneCols=households.columns[1:],
+        )
+
+    def _calc_construction_factors(self):
+        """Calculates the total change in sqm in residential and business
+        floorspace and uses it to calculate construction attractor factors
+        """
+        # get residential floorspace
         residential_floorspace = self._read_dwellings_data()
+
+        # get business floorspace for England and Wales
         ndr_floorspace = self._read_ndr()
-        return residential_floorspace, ndr_floorspace
+
+        # Estimate Scottish business floorspace from job data
+        if not self.TEMPro_data:
+            self._read_household_projections()
+
+        scottish_floorspace = self.TEMPro_data["S jobs"]
+        scottish_floorspace.loc[:, "floorspace"] = (
+            scottish_floorspace.loc[:, "jobs"]
+            * ndr_floorspace.floorspace.sum()
+            / self.TEMPro_data["EW jobs"]
+        )
+        scottish_floorspace = scottish_floorspace[["zone", "floorspace"]]
+
+        # combine all floorspace differences
+        floorspace = (
+            pd.concat([residential_floorspace, ndr_floorspace, scottish_floorspace])
+            .groupby("zone")
+            .sum()
+        )
+        self.attractor_factors["Construction"] = floorspace / floorspace.sum()
 
     def estimate_productions(self):
         """Reads in files and estimates trip productions by zone and employment
@@ -456,4 +529,4 @@ class CommuteTripProductionsAttractions:
             )
 
     def estimate_attractions(self):
-        self._calc_floorspace_change()
+        self._calc_construction_factors()
