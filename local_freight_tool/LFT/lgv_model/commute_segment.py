@@ -119,6 +119,7 @@ class CommuteTripProductionsAttractions:
     BUSINESS_FLOORSPACE_HEADER = {"AREA_CODE": str}
     BUSINESS_FLOORSPACE_RENAME = {"AREA_CODE": "zone"}
     BUSINESS_CATEGORIES = ["Retail", "Office", "Industrial", "Other"]
+    BUSINESS_FLOORSPACE_REMOVE_ROWS = ["K", "E9", "W9", "E1"]
 
     def __init__(self, input_paths: dict):
         """Initialise class by checking all input paths are in input dict and
@@ -132,11 +133,9 @@ class CommuteTripProductionsAttractions:
         self.params = None
         self.voa_weightings = None
         self.zone_lookups = {}
-        self.qs606uk = None
         self.commute_trips_main_usage = {}
         self.commute_trips_land_use = None
         self.trip_productions = None
-        self.floorspace = {}
 
     def _check_paths(self, input_paths):
         """Checks the input file paths are of expected type.
@@ -180,11 +179,10 @@ class CommuteTripProductionsAttractions:
         return pd.DataFrame.from_dict(self.paths, orient="index", columns=["Path"])
 
     def read(self):
-        """Read the input data and perform necessary conversions and rezoning."""
+        """Reads the inputs used for productions and attractions and performs
+        necessary conversions and rezoning."""
         self._read_commute_tables()
         self._read_zone_lookups()
-        self._read_qs606()
-        self._read_dwellings_data()
 
     def _read_commute_tables(self):
         """Read in commuting tables input XLSX."""
@@ -280,7 +278,7 @@ class CommuteTripProductionsAttractions:
 
         # Rezone to model zone system
         cols = qs606uk.columns
-        self.qs606uk = Rezone.rezoneOD(
+        return Rezone.rezoneOD(
             qs606uk,
             self.zone_lookups["LSOA lookup"],
             dfCols=(cols[0],),
@@ -359,7 +357,7 @@ class CommuteTripProductionsAttractions:
         cols = dwellings.columns
 
         # Assign to floorspace dictionary
-        self.floorspace["Residential"] = Rezone.rezoneOD(
+        return Rezone.rezoneOD(
             dwellings,
             self.zone_lookups["LAD lookup"],
             dfCols=(cols[0],),
@@ -367,7 +365,13 @@ class CommuteTripProductionsAttractions:
         )
 
     def _read_ndr(self):
-        """Reads in NDR Business floorspace data"""
+        """Reads in NDR Business floorspace data
+
+        Returns
+        -------
+        pd.DataFrame
+            Dataframe with NDR additional floorspace data for England and Wales
+        """
 
         # Check input parameters have been read in
         if not self.params:
@@ -385,6 +389,12 @@ class CommuteTripProductionsAttractions:
         ndr = utilities.read_csv(
             self.paths["NDR floorspace"], columns=self.BUSINESS_FLOORSPACE_HEADER
         ).rename(columns=self.BUSINESS_FLOORSPACE_RENAME)
+
+        # Remove rows that are not LAD
+        conditional = ndr.zone.str.startswith(self.BUSINESS_FLOORSPACE_REMOVE_ROWS[0])
+        for row in self.BUSINESS_FLOORSPACE_REMOVE_ROWS[1:]:
+            conditional = conditional | ndr.zone.str.startswith(row)
+        ndr = ndr[~conditional]
 
         # distinguish columns by year
         previous_yr = [
@@ -407,26 +417,43 @@ class CommuteTripProductionsAttractions:
         # Sum all differences
         ndr["floorspace"] = ndr[self.BUSINESS_CATEGORIES].sum(axis=1)
 
-        return ndr[["zone", "floorspace"]]
+        # only include relevant columns
+        ndr = ndr[["zone", "floorspace"]]
+
+        # rezone to model zone system
+        return Rezone.rezoneOD(
+            ndr,
+            self.zone_lookups["LAD lookup"],
+            dfCols=(ndr.columns[0],),
+            rezoneCols=ndr.columns[1:],
+        )
+
+    def _calc_floorspace_change(self):
+        residential_floorspace = self._read_dwellings_data()
+        ndr_floorspace = self._read_ndr()
+        return residential_floorspace, ndr_floorspace
 
     def estimate_productions(self):
-        "Estimates trip productions by zone and employment segment"
+        """Reads in files and estimates trip productions by zone and employment
+        segment"""
+        qs606uk = self._read_qs606()
         # TODO review calc to check for 1/3
-        if self.qs606uk is None:
-            self._read_qs606()
 
         # Calculate total occupation numbers for Skilled trades and Drivers
-        totals = self.qs606uk.drop(axis=1, labels=["zone", "total"]).sum()
+        totals = qs606uk.drop(axis=1, labels=["zone", "total"]).sum()
 
         # Create trip productions df
-        self.trip_productions = self.qs606uk[["zone"]]
+        self.trip_productions = qs606uk[["zone"]]
 
         # perform trip production calculation
         for occupation in self.commute_trips_main_usage:
             self.trip_productions.loc[:, occupation] = (
                 0.5
-                * self.qs606uk.loc[:, occupation]
+                * qs606uk.loc[:, occupation]
                 * self.commute_trips_main_usage[occupation]
                 * self.params["LGV growth"]
                 / totals[occupation]
             )
+
+    def estimate_attractions(self):
+        self._calc_floorspace_change()
