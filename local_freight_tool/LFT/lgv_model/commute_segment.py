@@ -117,9 +117,8 @@ class CommuteTripProductionsAttractions:
     E_DWELLINGS_NEW_COLS = {"Current\nONS code": "zone"}
 
     BUSINESS_FLOORSPACE_HEADER = {"AREA_CODE": str}
-    for column_start in ["Floorspace_2017-18_", "Floorspace_2018-19_"]:
-        for category in ["Retail", "Office", "Industral", "Other"]:
-            BUSINESS_FLOORSPACE_HEADER[column_start + category] = float
+    BUSINESS_FLOORSPACE_RENAME = {"AREA_CODE": "zone"}
+    BUSINESS_CATEGORIES = ["Retail", "Office", "Industrial", "Other"]
 
     def __init__(self, input_paths: dict):
         """Initialise class by checking all input paths are in input dict and
@@ -332,8 +331,8 @@ class CommuteTripProductionsAttractions:
             self._read_commute_tables()
         sc_w_header = {
             "zone": str,
-            str(self.params["Model Year"] - 1): int,
             str(self.params["Model Year"]): int,
+            str(self.params["Model Year"] + 1): int,
         }
         sc_w_dwellings = utilities.read_csv(
             self.paths["SC&W dwellings"], columns=sc_w_header
@@ -341,8 +340,8 @@ class CommuteTripProductionsAttractions:
 
         # Calculate additional construction
         sc_w_dwellings.loc[:, "additional dwellings"] = (
-            sc_w_dwellings.loc[:, str(self.params["Model Year"])]
-            - sc_w_dwellings.loc[:, str(self.params["Model Year"] - 1)]
+            sc_w_dwellings.loc[:, str(self.params["Model Year"] + 1)]
+            - sc_w_dwellings.loc[:, str(self.params["Model Year"])]
         ) * additional_net_ratio
 
         # Concatenate the dwellings data
@@ -366,6 +365,49 @@ class CommuteTripProductionsAttractions:
             dfCols=(cols[0],),
             rezoneCols=cols[1:],
         )
+
+    def _read_ndr(self):
+        """Reads in NDR Business floorspace data"""
+
+        # Check input parameters have been read in
+        if not self.params:
+            self._read_commute_tables()
+
+        # Get years for NDR business floorspace columns from Model Year
+        for column_start in [
+            f"Floorspace_{self.params['Model Year']-1}-{str(self.params['Model Year'])[2:]}_",
+            f"Floorspace_{self.params['Model Year']}-{int(str(self.params['Model Year'])[2:])+1}_",
+        ]:
+            for category in self.BUSINESS_CATEGORIES:
+                self.BUSINESS_FLOORSPACE_HEADER[column_start + category] = float
+
+        # Read in NDR data
+        ndr = utilities.read_csv(
+            self.paths["NDR floorspace"], columns=self.BUSINESS_FLOORSPACE_HEADER
+        ).rename(columns=self.BUSINESS_FLOORSPACE_RENAME)
+
+        # distinguish columns by year
+        previous_yr = [
+            col for col in ndr.columns if str(self.params["Model Year"] - 1) in col
+        ]
+        current_yr = [
+            col for col in ndr.columns if str(self.params["Model Year"]) in col
+        ]
+
+        # sort lists alphabetically to ensure they are in the same category order
+        previous_yr.sort()
+        current_yr.sort()
+
+        # Calculate floorspace differences
+        for i, col in enumerate(current_yr):
+            ndr.loc[:, f"{col.split('_')[-1]}"] = (
+                ndr.loc[:, col] - ndr.loc[:, previous_yr[i]]
+            ).abs()
+
+        # Sum all differences
+        ndr["floorspace"] = ndr[self.BUSINESS_CATEGORIES].sum(axis=1)
+
+        return ndr[["zone", "floorspace"]]
 
     def estimate_productions(self):
         "Estimates trip productions by zone and employment segment"
