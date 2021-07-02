@@ -10,11 +10,12 @@ import re
 import string
 import warnings
 from pathlib import Path
-from typing import Sequence, Any, Union
+from typing import Dict, Sequence, Any, Union
 
 # Third party imports
 import numpy as np
 import pandas as pd
+from pandas.core.algorithms import isin
 
 # Local imports
 from .. import utilities, errors
@@ -239,7 +240,7 @@ def letters_range(start: str = "A", end: str = "Z") -> str:
 
 def voa_ratings_list(
     path: Path,
-    scat_codes: Sequence[int],
+    scat_codes: Union[Sequence[int], pd.DataFrame],
     zone_lookup: Path,
     year: int = None,
     fill_func: str = "minimum",
@@ -253,8 +254,10 @@ def voa_ratings_list(
     ----------
     path : Path
         Path to the VOA ratings list file.
-    scat_codes : Sequence[int]
-        List of SCAT code numbers to include in returned DataFrame.
+    scat_codes : Sequence[int] or pd.DataFrame
+        List of SCAT code numbers to include in returned DataFrame or
+        dataframe with SCAT codes for for indices and weightings in `Weight`
+        column.
     zone_lookup : Path
         Path to the lookup between the VOA postcodes and the model
         zone system, expects 3 columns containing postcode, model
@@ -306,6 +309,12 @@ def voa_ratings_list(
             downcast="integer",
         ),
     )
+
+    weightings = None
+    # if weightings, normalise then and extract scat codes
+    if isinstance(scat_codes, pd.DataFrame):
+        weightings = scat_codes / scat_codes.sum()
+        scat_codes = scat_codes.index
     voa_data = voa_data.loc[voa_data["scat_num"].isin(scat_codes)].copy()
     # Use from_date for any missing eff_date and convert to date objects
     nan_date = voa_data["eff_date"].isna()
@@ -346,6 +355,18 @@ def voa_ratings_list(
             RuntimeWarning,
         )
         voa_data.loc[nan_value, "rateable_value"] = fill
+
+    # Weight rateable value if required according to scat number
+    if not weightings is None:
+        voa_data = voa_data[["postcode", "rateable_value", "scat_num"]].merge(
+            weightings, left_on="scat_num", right_on=weightings.index, how="left"
+        )
+        voa_data["weighted_rateable_value"] = (
+            voa_data["rateable_value"] * voa_data["Weight"]
+        )
+        voa_data = voa_data[["postcode", "weighted_rateable_value"]].rename(
+            columns={"weighted_rateable_value": "rateable_value"}
+        )
 
     # Use postcode lookup to aggregate rateable_value to model zones
     # and warn user of any missing postcodes
