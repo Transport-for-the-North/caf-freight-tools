@@ -242,7 +242,7 @@ def voa_ratings_list(
     scat_codes: Sequence[int],
     zone_lookup: Path,
     year: int = None,
-    fill_func: str = "min",
+    fill_func: str = "minimum",
 ) -> pd.DataFrame:
     """Reads VOA NDR ratings list entries file and filters based on `scat_codes`.
 
