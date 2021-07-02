@@ -92,6 +92,7 @@ class CommuteTripProductionsAttractions:
             )
         )
     }
+
     QS606_HEADER = {
         "mnemonic": str,
         "All categories: Occupation": float,
@@ -137,10 +138,16 @@ class CommuteTripProductionsAttractions:
         self.voa_weightings = None
         self.zone_lookups = {}
         self.commute_trips_main_usage = {}
-        self.commute_trips_land_use = None
+        self.commute_trips_land_use = {}
         self.trip_productions = None
         self.TEMPro_data = {}
         self.attractor_factors = {}
+        self.ATTRACTION_FUNCTIONS = {
+            "Construction": self._calc_construction_factors,
+            "Residential": self._calc_residential_factors,
+            "Employment": self._calc_employment_factors,
+        }
+        self.trip_attractions = {}
 
     def _check_paths(self, input_paths):
         """Checks the input file paths are of expected type.
@@ -557,7 +564,33 @@ class CommuteTripProductionsAttractions:
                 / totals[occupation]
             )
 
-    def estimate_attractions(self):
-        self._calc_construction_factors()
-        self._calc_residential_factors()
-        self._calc_employment_factors()
+    def estimate_skilled_attractions(self):
+        """Estimates trip attractions for skilled trades."""
+        # check for commute trip data by land use at trip end
+        if not self.commute_trips_land_use:
+            self._read_commute_tables()
+
+        # if attractor factors have not been calculated, calculate
+        if not self.attractor_factors:
+            self._calc_construction_factors()
+            self._calc_residential_factors()
+            self._calc_employment_factors()
+        # if attractor factors have been calculated, check for any missing
+        else:
+            factors_missing = [
+                x
+                for x in self.commute_trips_land_use
+                if x not in self.attractor_factors
+            ]
+            if factors_missing:
+                for category in factors_missing:
+                    self.ATTRACTION_FUNCTIONS[category]()
+
+        # calculate skilled attractions
+        skilled_attractions = {}
+        for key in self.commute_trips_land_use:
+            skilled_attractions[key] = (
+                self.commute_trips_land_use[key] * self.attractor_factors[key]
+            )
+
+        self.trip_attractions["Skilled trades"] = sum(skilled_attractions.values())
