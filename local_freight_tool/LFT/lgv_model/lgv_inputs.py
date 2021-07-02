@@ -10,7 +10,7 @@ import re
 import string
 import warnings
 from pathlib import Path
-from typing import Sequence, Any
+from typing import Sequence, Any, Union
 
 # Third party imports
 import numpy as np
@@ -149,7 +149,9 @@ def household_projections(path: Path, zone_lookup: Path) -> pd.DataFrame:
 
 
 def filtered_bres(
-    path: Path, zone_lookup: Path, aggregation: dict[str, tuple[str]]
+    path: Path,
+    zone_lookup: Union[Path, pd.DataFrame],
+    aggregation: dict[str, tuple[str]],
 ) -> pd.DataFrame:
     """Read and filter the ONS BRES data CSV.
 
@@ -161,8 +163,8 @@ def filtered_bres(
     ----------
     path : Path
         Path to the CSV containing BRES data.
-    zone_lookup : Path
-        Path to zone correspondence CSV.
+    zone_lookup : Path or pd.DataFrame
+        Path to zone correspondence CSV or zone lookup dataframe.
     aggregation : dict[str, tuple[str]]
         Dictionary containing names of any industry columns
         to aggregate together, the keys should be the name
@@ -205,7 +207,10 @@ def filtered_bres(
 
     # Convert to model zone system
     include.remove(ZONE_COL)
-    lookup = Rezone.read(zone_lookup, None)
+    if isinstance(zone_lookup, pd.DataFrame):
+        lookup = zone_lookup
+    else:
+        lookup = Rezone.read(zone_lookup, None)
     rezoned = Rezone.rezoneOD(bres, lookup, dfCols=("Zone",), rezoneCols=include)
     return rezoned
 
