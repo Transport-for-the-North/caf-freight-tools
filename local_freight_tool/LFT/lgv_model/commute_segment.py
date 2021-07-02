@@ -69,9 +69,11 @@ class CommuteTripProductionsAttractions:
         "SC&W dwellings": ".csv",
         "E dwellings": ".xlsx",
         "NDR floorspace": ".csv",
+        "VOA": ".csv",
         "LSOA lookup": ".csv",
         "MSOA lookup": ".csv",
         "LAD lookup": ".csv",
+        "Postcodes": ".csv",
     }
 
     COMMUTING_INPUTS_SHEET_HEADERS = {
@@ -79,9 +81,8 @@ class CommuteTripProductionsAttractions:
         "Commute trips by main usage": {"Main usage": str, "Trips": float},
         "Commute trips by land use": {"Land use at trip end": str, "Trips": float},
         "Commute VOA property weightings": {
-            "Weight": str,
+            "Weight": float,
             "SCat code": int,
-            "Primary Desc Code": str,
         },
     }
     BRES_AGGREGATION = {
@@ -134,18 +135,20 @@ class CommuteTripProductionsAttractions:
         self.paths = self._check_paths(input_paths)
 
         # Initialise instance variables defined later
-        self.params = None
+        self.params = {}
         self.voa_weightings = None
         self.zone_lookups = {}
         self.commute_trips_main_usage = {}
         self.commute_trips_land_use = {}
-        self.trip_productions = None
+        self.trip_productions = {}
         self.TEMPro_data = {}
         self.attractor_factors = {}
         self.ATTRACTION_FUNCTIONS = {
             "Construction": self._calc_construction_factors,
             "Residential": self._calc_residential_factors,
             "Employment": self._calc_employment_factors,
+            "Skilled trades": self._estimate_skilled_attractions,
+            "Drivers": self._estimate_driver_attractions,
         }
         self.trip_attractions = {}
 
@@ -190,12 +193,6 @@ class CommuteTripProductionsAttractions:
         """
         return pd.DataFrame.from_dict(self.paths, orient="index", columns=["Path"])
 
-    def read(self):
-        """Reads the inputs used for productions and attractions and performs
-        necessary conversions and rezoning."""
-        self._read_commute_tables()
-        self._read_zone_lookups()
-
     def _read_commute_tables(self):
         """Read in commuting tables input XLSX."""
         # read in XLSX
@@ -209,10 +206,10 @@ class CommuteTripProductionsAttractions:
         )
         self.params["Model Year"] = int(self.params["Model Year"])
 
-        # write the VOA weightings to a dictionary
-        self.voa_weightings = utilities.to_dict(
-            commute_tables["Commute VOA property weightings"], "SCat code", "Weight"
-        )
+        # assign VOA weightings
+        voa_weightings = commute_tables["Commute VOA property weightings"]
+        voa_weightings.index = voa_weightings["SCat code"]
+        self.voa_weightings = voa_weightings[["Weight"]]
 
         # write the commute trips by main usage to a dictionary
         commute_trips_main_usage = utilities.to_dict(
@@ -499,9 +496,9 @@ class CommuteTripProductionsAttractions:
         if not self.TEMPro_data:
             self._read_household_projections()
 
-        scottish_floorspace = self.TEMPro_data["S jobs"]
+        scottish_floorspace = self.TEMPro_data["S jobs"].copy()
         scottish_floorspace.loc[:, "floorspace"] = (
-            scottish_floorspace.loc[:, "jobs"]
+            scottish_floorspace["jobs"]
             * ndr_floorspace.floorspace.sum()
             / self.TEMPro_data["EW jobs"]
         )
@@ -564,8 +561,15 @@ class CommuteTripProductionsAttractions:
                 / totals[occupation]
             )
 
-    def estimate_skilled_attractions(self):
-        """Estimates trip attractions for skilled trades."""
+    def _estimate_skilled_attractions(self):
+        """Estimates trip attractions for skilled trades.
+
+        Returns
+        -------
+        pd.DataFrame
+            DataFrame of trip attractions with zones as indices and a "trips"
+            column.
+        """
         # check for commute trip data by land use at trip end
         if not self.commute_trips_land_use:
             self._read_commute_tables()
@@ -585,4 +589,42 @@ class CommuteTripProductionsAttractions:
                 self.commute_trips_land_use[key] * self.attractor_factors[key]
             )
 
-        self.trip_attractions["Skilled trades"] = sum(skilled_attractions.values())
+        skilled_attractions = sum(skilled_attractions.values()).rename(
+            columns={"factor": "trips"}
+        )
+
+        return skilled_attractions
+
+    def _estimate_driver_attractions(self):
+        """Estimates trip attractions for Drivers
+
+        Returns
+        -------
+        pd.DataFrame
+            DataFrame of trip attractions with zones as indices and a "trips"
+            column.
+        """
+        if self.voa_weightings is None:
+            self._read_commute_tables()
+        voa_data = lgv_inputs.voa_ratings_list(
+            self.paths["VOA"],
+            self.voa_weightings,
+            self.paths["Postcodes"],
+            year=self.params["Model Year"],
+            fill_func="non-zero minimum",
+        )
+        voa_data.index = voa_data["zone"]
+        voa_data.drop(axis=1, labels=["zone"], inplace=True)
+        voa_data["trips"] = (voa_data / voa_data.sum()) * self.commute_trips_land_use[
+            "Employment"
+        ]
+
+        return voa_data[["trips"]]
+
+    def estimate_attractions(self):
+        """Estimates trip attractions"""
+        if not self.commute_trips_main_usage:
+            self._read_commute_tables()
+
+        for category in self.commute_trips_main_usage:
+            self.trip_attractions[category] = self.ATTRACTION_FUNCTIONS[category]()
