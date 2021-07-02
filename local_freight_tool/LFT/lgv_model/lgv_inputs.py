@@ -10,12 +10,11 @@ import re
 import string
 import warnings
 from pathlib import Path
-from typing import Dict, Sequence, Any, Union
+from typing import Sequence, Any, Union
 
 # Third party imports
 import numpy as np
 import pandas as pd
-from pandas.core.algorithms import isin
 
 # Local imports
 from .. import utilities, errors
