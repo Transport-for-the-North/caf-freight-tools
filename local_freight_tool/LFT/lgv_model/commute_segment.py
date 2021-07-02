@@ -647,3 +647,21 @@ class CommuteTripProductionsAttractions:
         )
         for col in trip_attractions:
             self.trip_attractions[col] = trip_attractions[col]["trips"]
+        
+    @property
+    def productions(self) -> pd.DataFrame:
+        """pd.DataFrame : Trip productions for each zone (index) and
+        with columns Total, Skilled trades and Drivers
+        """
+        if self.trip_productions is None:
+            self.estimate_productions()
+        return self.trip_productions
+    
+    @property
+    def attractions(self) -> pd.DataFrame:
+        """pd.DataFrame : Trip productions for each zone (index) and
+        with columns Total, Skilled trades and Drivers
+        """
+        if self.trip_attractions is None:
+            self.estimate_attractions()
+        return self.trip_attractions
