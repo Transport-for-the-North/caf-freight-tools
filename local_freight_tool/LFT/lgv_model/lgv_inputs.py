@@ -366,10 +366,9 @@ def voa_ratings_list(
         )
         rezoned.dropna(subset=["postcode"], inplace=True)
     rezoned.rename(columns={"postcode": "zone"}, inplace=True)
-    try:
-        rezoned["zone"] = rezoned["zone"].astype(int)
-    except:
-        pass
+    rezoned["zone"] = pd.to_numeric(
+        rezoned["zone"], errors="ignore", downcast="integer"
+    )
     return rezoned.groupby("zone", as_index=False).sum()
 
 
