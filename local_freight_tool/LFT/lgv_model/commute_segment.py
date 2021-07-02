@@ -469,6 +469,8 @@ class CommuteTripProductionsAttractions:
             dfCols=(scottish_jobs.columns[0],),
             rezoneCols=scottish_jobs.columns[1:],
         )
+        # Job data is not required for households
+        households.drop(axis=1, labels=["jobs"], inplace=True)
         self.TEMPro_data["households"] = Rezone.rezoneOD(
             households,
             self.zone_lookups["MSOA lookup"],
@@ -504,7 +506,20 @@ class CommuteTripProductionsAttractions:
             .groupby("zone")
             .sum()
         )
-        self.attractor_factors["Construction"] = floorspace / floorspace.sum()
+        self.attractor_factors["Construction"] = (floorspace / floorspace.sum()).rename(
+            columns={"floorspace": "factor"}
+        )
+
+    def _calc_residential_factors(self):
+        """Calculates residential attractor factors from TEMPro households
+        data.
+        """
+        if not self.TEMPro_data:
+            self._read_household_projections()
+        households = self.TEMPro_data["households"]
+        households.index = households["zone"]
+        households["factor"] = households["households"] / households["households"].sum()
+        self.attractor_factors["Residential"] = households[["factor"]]
 
     def estimate_productions(self):
         """Reads in files and estimates trip productions by zone and employment
@@ -530,3 +545,4 @@ class CommuteTripProductionsAttractions:
 
     def estimate_attractions(self):
         self._calc_construction_factors()
+        self._calc_residential_factors()
