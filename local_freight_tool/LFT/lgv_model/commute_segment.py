@@ -570,21 +570,13 @@ class CommuteTripProductionsAttractions:
         if not self.commute_trips_land_use:
             self._read_commute_tables()
 
-        # if attractor factors have not been calculated, calculate
-        if not self.attractor_factors:
-            self._calc_construction_factors()
-            self._calc_residential_factors()
-            self._calc_employment_factors()
-        # if attractor factors have been calculated, check for any missing
-        else:
-            factors_missing = [
-                x
-                for x in self.commute_trips_land_use
-                if x not in self.attractor_factors
-            ]
-            if factors_missing:
-                for category in factors_missing:
-                    self.ATTRACTION_FUNCTIONS[category]()
+        # check for any missing attractor factors
+        factors_missing = [
+            x for x in self.commute_trips_land_use if x not in self.attractor_factors
+        ]
+        if factors_missing:
+            for category in factors_missing:
+                self.ATTRACTION_FUNCTIONS[category]()
 
         # calculate skilled attractions
         skilled_attractions = {}
