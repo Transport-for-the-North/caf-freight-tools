@@ -85,12 +85,12 @@ class CommuteTripProductionsAttractions:
         },
     }
     BRES_AGGREGATION = {
-        "Non-Construction": [
+        "Non-Construction": list(
             chain(
                 lgv_inputs.letters_range(end="E"),
                 lgv_inputs.letters_range(start="G", end="S"),
             )
-        ]
+        )
     }
     QS606_HEADER = {
         "mnemonic": str,
@@ -521,6 +521,20 @@ class CommuteTripProductionsAttractions:
         households["factor"] = households["households"] / households["households"].sum()
         self.attractor_factors["Residential"] = households[["factor"]]
 
+    def _calc_employment_factors(self):
+        """Calculates employment attractor factors from BRES data"""
+        if not self.zone_lookups:
+            self._read_zone_lookups()
+        bres = lgv_inputs.filtered_bres(
+            self.paths["BRES"], self.zone_lookups["LSOA lookup"], self.BRES_AGGREGATION
+        ).rename(columns={"Zone": "zone"})
+        bres.index = bres["zone"]
+        bres["factor"] = (
+            bres[self.BRES_AGGREGATION.keys()]
+            / bres[self.BRES_AGGREGATION.keys()].sum()
+        )
+        self.attractor_factors["Employment"] = bres[["factor"]]
+
     def estimate_productions(self):
         """Reads in files and estimates trip productions by zone and employment
         segment"""
@@ -546,3 +560,4 @@ class CommuteTripProductionsAttractions:
     def estimate_attractions(self):
         self._calc_construction_factors()
         self._calc_residential_factors()
+        self._calc_employment_factors()
