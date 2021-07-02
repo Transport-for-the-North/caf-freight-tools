@@ -140,7 +140,7 @@ class CommuteTripProductionsAttractions:
         self.zone_lookups = {}
         self.commute_trips_main_usage = {}
         self.commute_trips_land_use = {}
-        self.trip_productions = {}
+        self.trip_productions = None
         self.TEMPro_data = {}
         self.attractor_factors = {}
         self.ATTRACTION_FUNCTIONS = {
@@ -150,7 +150,7 @@ class CommuteTripProductionsAttractions:
             "Skilled trades": self._estimate_skilled_attractions,
             "Drivers": self._estimate_driver_attractions,
         }
-        self.trip_attractions = {}
+        self.trip_attractions = None
 
     def _check_paths(self, input_paths):
         """Checks the input file paths are of expected type.
@@ -561,6 +561,10 @@ class CommuteTripProductionsAttractions:
                 / totals[occupation]
             )
 
+        self.trip_productions.index = self.trip_productions["zone"]
+        self.trip_productions.drop(columns=["zone"], inplace=True)
+        self.trip_productions["Total"] = self.trip_productions.sum(axis=1)
+
     def _estimate_skilled_attractions(self):
         """Estimates trip attractions for skilled trades.
 
@@ -626,5 +630,20 @@ class CommuteTripProductionsAttractions:
         if not self.commute_trips_main_usage:
             self._read_commute_tables()
 
+        trip_attractions = {}
         for category in self.commute_trips_main_usage:
-            self.trip_attractions[category] = self.ATTRACTION_FUNCTIONS[category]()
+            trip_attractions[category] = self.ATTRACTION_FUNCTIONS[category]()
+
+        # align matrices
+        (
+            trip_attractions["Drivers"],
+            trip_attractions["Skilled trades"],
+        ) = trip_attractions["Drivers"].align(
+            trip_attractions["Skilled trades"], join="outer", fill_value=0
+        )
+
+        self.trip_attractions = sum(trip_attractions.values()).rename(
+            columns={"trips": "Total"}
+        )
+        for col in trip_attractions:
+            self.trip_attractions[col] = trip_attractions[col]["trips"]
