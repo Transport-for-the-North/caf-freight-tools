@@ -10,10 +10,45 @@ from typing import Callable
 
 # Third party imports
 import pandas as pd
+import numpy as np
 
 # Local imports
 from . import lgv_inputs
 from .. import utilities, errors, data_utils
+
+
+##### FUNCTIONS #####
+def zone_list(value: str) -> list[int]:
+    """Converts string of numbers separated by commas to list of integers.
+
+    Parameters
+    ----------
+    value : str
+        Comma-separated string of integers.
+
+    Returns
+    -------
+    list[int]
+        List of integers from the `value` string.
+
+    Raises
+    ------
+    ValueError
+        If any of the items in the list cannot be
+        converted to integers.
+    """
+    if value is None:
+        return None
+    if isinstance(value, float):
+        if np.isnan(value):
+            return None
+        raise TypeError(f"`value` should be string not {type(value)}")
+    try:
+        return [int(i) for i in value.split(",") if i.strip() != ""]
+    except ValueError as e:
+        raise ValueError(
+            f"{value!r} cannot be converted to list of zones (integers)"
+        ) from e
 
 
 ##### CLASSES #####
@@ -57,6 +92,7 @@ class DeliveryTripEnds:
         "intra_grocery": ("Intra-Zonal Proportions - Grocery", float),
         "bush_cut_off": ("Bush Cut-off (kms)", float),
         "voa_fill_func": ("VOA Infill Function", str),
+        "depots_infill": ("Depots Infill Zones", zone_list),
     }
 
     def __init__(
@@ -160,6 +196,7 @@ class DeliveryTripEnds:
             self._household_paths.path, self._household_paths.zc_path
         )
         self.households.set_index("Zone", inplace=True)
+        self._infill_missing_depots()
         self.bres = lgv_inputs.filtered_bres(
             self._bres_paths.path, self._bres_paths.zc_path, self.BRES_AGGREGATION
         )
@@ -218,6 +255,45 @@ class DeliveryTripEnds:
         if missing:
             raise errors.MissingDataError("Delivery Parameters", missing)
         return params
+
+    def _infill_missing_depots(self):
+        """Infill depot data for any zones in `depots_infill` parameter.
+
+        Rateable value of depots is infilled by calculating rateable value
+        of depots per household in all zones not in `depots_infill` and
+        multiplying that by the number of households for each zone in
+        `depots_infill`.
+
+        Raises
+        ------
+        errors.MissingDataError
+            If any zones in `depots_infill` aren't present in the
+            households data.
+        ValueError
+            If any zones in `depots_infill` already have depot
+            data.
+        """
+        if self.parameters["depots_infill"] is None:
+            return
+        zones = self.parameters["depots_infill"]
+        missing = [i for i in zones if i not in self.households.index]
+        if missing:
+            raise errors.MissingDataError("Households for zones", missing)
+        already = [i for i in zones if i in self.depots.index]
+        if already:
+            raise ValueError(
+                f"{len(already)} zones ({already}) already have depot data."
+            )
+        # Calculate rateable value of depots per households and
+        # then calculate rateable value for all infill zones
+        depots_per_hh = np.sum(
+            self.depots.loc[~self.depots.index.isin(zones)].values
+        ) / np.sum(self.households.loc[~self.households.index.isin(zones)].values)
+        new_depots = self.households.loc[self.households.index.isin(zones)].copy()
+        new_depots = new_depots * depots_per_hh
+        # Add additional depot data to original dataframe
+        new_depots.columns = self.depots.columns
+        self.depots = pd.concat([self.depots, new_depots])
 
     @property
     def trip_proportions(self) -> pd.DataFrame:
