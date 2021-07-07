@@ -231,6 +231,89 @@ def gravity_model_equation(
     return numerator.divide(denominator, axis=0)
 
 
+def _check_matrix(matrix: np.ndarray):
+    if matrix.ndim != 2:
+        raise ValueError(f"matrix should have 2 dimensions not: {matrix.ndim}")
+    if matrix.shape[0] != matrix.shape[1]:
+        raise ValueError(f"matrix should be a square not shape: {matrix.shape}")
+
+
+def factor_1d(matrix: np.ndarray, total: np.ndarray, axis: int):
+    _check_matrix(matrix)
+    if total.ndim != 1:
+        raise ValueError(f"total should have 1 dimension not: {total.ndim}")
+    if len(total) != matrix.shape[0]:
+        raise ValueError("total should be the same length as matrix")
+    if axis not in (0, 1):
+        raise ValueError(f"axis should be 0 or 1 not: {axis}")
+
+    curr_tot = np.sum(matrix, axis=axis)
+    factor = total / curr_tot
+    if axis == 0:
+        # Factoring column totals so multiplying factor by each row
+        new_matrix = matrix * factor
+    else:
+        # Factoring row totals so muliplying factor by each column
+        new_matrix = matrix * factor.reshape((len(factor), 1))
+    return new_matrix
+
+
+def compare_totals(matrix: np.ndarray, col_total: np.ndarray, row_total: np.ndarray):
+    differences = []
+    for i, tot in enumerate((col_total, row_total)):
+        curr_tot = np.sum(matrix, axis=i)
+        differences.append(np.abs(curr_tot - tot))
+    return np.mean(differences)
+
+
+def factor_2d(matrix: np.ndarray, col_total: np.ndarray, row_total: np.ndarray):
+    _check_matrix(matrix)
+    # Factor columns then rows
+    matrix = factor_1d(matrix, col_total, 0)
+    matrix = factor_1d(matrix, row_total, 1)
+    avg_diff = compare_totals(matrix, col_total, row_total)
+    return matrix, avg_diff
+
+
+def furness_2d(
+    matrix: np.ndarray,
+    col_total: np.ndarray,
+    row_total: np.ndarray,
+    diff_cutoff: float = 0.1,
+    max_loops: int = 1000,
+    check_diff: int = 10,
+):
+    loop = 0
+    avg_diff = compare_totals(matrix, col_total, row_total)
+    differences = [avg_diff]
+    while avg_diff > diff_cutoff:
+        if loop >= max_loops:
+            print(
+                f"Reached maximum number of loops ({loop}) "
+                f"with mean row/column difference: {avg_diff:.1e}"
+            )
+            break
+        if len(differences) >= check_diff:
+            differences = differences[-check_diff:]
+            if np.isclose(differences, differences[0]).all():
+                # If avg_diff hasn't changed for a number of loops then exit early
+                print(
+                    f"Mean row/column difference ({avg_diff:.1e}) has not "
+                    f"improved for {check_diff} loops, ending on loop {loop}"
+                )
+                break
+        matrix, avg_diff = factor_2d(matrix, col_total, row_total)
+        loop += 1
+        # Keep last 5 differences for checking
+        differences = differences[-(check_diff - 1) :] + [avg_diff]
+    else:
+        print(
+            f"Furness converged (loop {loop}) "
+            f"with mean row/column difference: {avg_diff:.1e}"
+        )
+    return matrix, avg_diff
+
+
 def main():
     pass
 
@@ -245,6 +328,8 @@ def test_gm_func():
     costs = pd.DataFrame(rng.integers(1000, 2000, (3, 3)), index=zones, columns=zones)
     trips = gravity_model_equation(trip_ends, costs, function="tanner", alpha=1, beta=1)
     print("Trip Ends:", trip_ends, "Costs:", costs, "Trips:", trips, sep="\n")
+    trips, _ = furness_2d(trips.values, trip_ends.attractions.values, trip_ends.productions.values)
+    print("Furnessed:", trips, sep="\n")
 
 
 ##### MAIN #####
