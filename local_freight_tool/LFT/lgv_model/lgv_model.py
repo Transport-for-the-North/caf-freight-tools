@@ -299,7 +299,7 @@ def calculate_trip_ends(
             "Postcodes": config.voa_paths.zc_path,
         }
     )
-    commute_trips = commute.trips()
+    commute_trips = commute.trips
     for key in commute_trips:
         commute_trips[key].to_csv(output_folder / Path(f"commute_{key}_trip_ends.csv"))
 
