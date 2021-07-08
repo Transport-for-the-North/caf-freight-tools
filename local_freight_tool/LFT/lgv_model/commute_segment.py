@@ -5,7 +5,6 @@
 
 ##### IMPORTS #####
 # Standard imports
-from pathlib import Path
 from itertools import chain
 import re
 
@@ -151,6 +150,7 @@ class CommuteTripProductionsAttractions:
             "Drivers": self._estimate_driver_attractions,
         }
         self.trip_attractions = None
+        self.trip_ends = {}
 
     def _check_paths(self, input_paths):
         """Checks the input file paths are of expected type.
@@ -647,7 +647,26 @@ class CommuteTripProductionsAttractions:
         )
         for col in trip_attractions:
             self.trip_attractions[col] = trip_attractions[col]["trips"]
-        
+
+    def calc_trip_ends(self):
+        """Takes production and attraction dataframes with skilled trades and
+        drivers as columns and zones as indices and creates skilled trade and
+        driver trip dataframes with productions and attractions as columns and
+        zones as indices.
+        """
+        if self.trip_productions is None:
+            self.estimate_productions()
+        if self.trip_attractions is None:
+            self.estimate_attractions()
+        for soc in ["Skilled trades", "Drivers"]:
+            self.trip_ends[soc] = pd.concat(
+                [
+                    self.trip_productions[soc].rename(columns={soc: "Productions"}),
+                    self.trip_attractions[soc].rename(columns={soc: "Attractions"}),
+                ],
+                axis=1,
+            )
+
     @property
     def productions(self) -> pd.DataFrame:
         """pd.DataFrame : Trip productions for each zone (index) and
@@ -656,7 +675,7 @@ class CommuteTripProductionsAttractions:
         if self.trip_productions is None:
             self.estimate_productions()
         return self.trip_productions
-    
+
     @property
     def attractions(self) -> pd.DataFrame:
         """pd.DataFrame : Trip productions for each zone (index) and
@@ -665,3 +684,12 @@ class CommuteTripProductionsAttractions:
         if self.trip_attractions is None:
             self.estimate_attractions()
         return self.trip_attractions
+
+    @property
+    def trips(self) -> pd.DataFrame:
+        """Dict[pd.DataFrame] : dictionary with keys Skilled trades and
+        Drivers, with values being the trip dataframes, each with productions
+        and attractions as columns and zones as indices."""
+        if not self.trip_ends:
+            self.calc_trip_ends()
+        return self.trip_ends
