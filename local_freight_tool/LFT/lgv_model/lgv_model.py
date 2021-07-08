@@ -47,6 +47,12 @@ class LGVConfig(configparser.ConfigParser):
         "voa data",
         "voa zone correspondence",
         "lgv parameters",
+        "QS606EW",
+        "QS606SC",
+        "SC&W dwellings",
+        "E dwellings",
+        "NDR floorspace",
+        "LAD lookup",
         "output folder",
     )
     """Names of the expected options."""
@@ -58,6 +64,19 @@ class LGVConfig(configparser.ConfigParser):
     """Paths for the VOA data and zone correspondence."""
     parameters_path: Path = None
     """Path to the LGV parameters Excel workbook."""
+    qs606ew_path: Path = None
+    """Path to the England & Wales Census Occupation data CSV."""
+    qs606sc_path: Path = None
+    """Path to the Scottish Census Occupation data CSV."""
+    sc_w_dwellings_path: Path = None
+    """Path to the Scottish and Welsh dwellings data CSV."""
+    e_dwellings_path: Path = None
+    """Path to the English dwellings data XLSX."""
+    ndr_floorspace_path: Path = None
+    """Path to the NDR Business Floorspace CSV."""
+    lad_lookup_path: Path = None
+    """Path to the Local Authority District to NoHAM zone correspondence
+    CSV"""
 
     def __init__(self, path: Path):
         """Initialises the class by reading the given file."""
@@ -83,7 +102,13 @@ class LGVConfig(configparser.ConfigParser):
             self.getpath(self.SECTION, self.OPTIONS[5]),
         )
         self.parameters_path = self.getpath(self.SECTION, self.OPTIONS[6])
-        self.output_folder = self.getpath(self.SECTION, self.OPTIONS[7])
+        self.qs606ew_path = self.getpath(self.SECTION, self.OPTIONS[7])
+        self.qs606sc_path = self.getpath(self.SECTION, self.OPTIONS[8])
+        self.sc_w_dwellings_path = self.getpath(self.SECTION, self.OPTIONS[9])
+        self.e_dwellings_path = self.getpath(self.SECTION, self.OPTIONS[10])
+        self.ndr_floorspace_path = self.getpath(self.SECTION, self.OPTIONS[11])
+        self.lad_lookup_path = self.getpath(self.SECTION, self.OPTIONS[12])
+        self.output_folder = self.getpath(self.SECTION, self.OPTIONS[13])
 
     def getpath(self, section: str, option: str, **kwargs) -> Path:
         """Gets the `option` from `section` and converts it to a Path object.
@@ -124,6 +149,12 @@ class LGVConfig(configparser.ConfigParser):
             {self.bres_paths=}
             {self.voa_paths=}
             {self.parameters_path=}
+            {self.qs606ew_path=}
+            {self.qs606sc_path=}
+            {self.sc_w_dwellings_path=}
+            {self.e_dwellings_path=}
+            {self.ndr_floorspace_path=}
+            {self.lad_lookup_path=}
         """
 
 
