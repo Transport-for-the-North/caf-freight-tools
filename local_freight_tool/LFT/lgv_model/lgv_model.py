@@ -19,6 +19,7 @@ from ..data_utils import DataPaths
 from .lgv_inputs import lgv_parameters
 from .service_segment import ServiceTripEnds
 from .delivery_segment import DeliveryTripEnds
+from .commute_segment import CommuteTripEnds
 
 
 ##### CLASSES #####
@@ -52,6 +53,8 @@ class LGVConfig(configparser.ConfigParser):
         "SC&W dwellings",
         "E dwellings",
         "NDR floorspace",
+        "LSOA lookup",
+        "MSOA lookup",
         "LAD lookup",
         "output folder",
     )
@@ -74,6 +77,12 @@ class LGVConfig(configparser.ConfigParser):
     """Path to the English dwellings data XLSX."""
     ndr_floorspace_path: Path = None
     """Path to the NDR Business Floorspace CSV."""
+    lsoa_lookup_path: Path = None
+    """Path to the LSOA to NoHAM zone correspondence
+    CSV"""
+    msoa_lookup_path: Path = None
+    """Path to the MSOA to NoHAM zone correspondence
+    CSV"""
     lad_lookup_path: Path = None
     """Path to the Local Authority District to NoHAM zone correspondence
     CSV"""
@@ -107,8 +116,10 @@ class LGVConfig(configparser.ConfigParser):
         self.sc_w_dwellings_path = self.getpath(self.SECTION, self.OPTIONS[9])
         self.e_dwellings_path = self.getpath(self.SECTION, self.OPTIONS[10])
         self.ndr_floorspace_path = self.getpath(self.SECTION, self.OPTIONS[11])
-        self.lad_lookup_path = self.getpath(self.SECTION, self.OPTIONS[12])
-        self.output_folder = self.getpath(self.SECTION, self.OPTIONS[13])
+        self.lsoa_lookup_path = self.getpath(self.SECTION, self.OPTIONS[12])
+        self.msoa_lookup_path = self.getpath(self.SECTION, self.OPTIONS[13])
+        self.lad_lookup_path = self.getpath(self.SECTION, self.OPTIONS[14])
+        self.output_folder = self.getpath(self.SECTION, self.OPTIONS[15])
 
     def getpath(self, section: str, option: str, **kwargs) -> Path:
         """Gets the `option` from `section` and converts it to a Path object.
@@ -154,6 +165,8 @@ class LGVConfig(configparser.ConfigParser):
             {self.sc_w_dwellings_path=}
             {self.e_dwellings_path=}
             {self.ndr_floorspace_path=}
+            {self.lsoa_lookup_path=}
+            {self.msoa_lookup_path=}
             {self.lad_lookup_path=}
         """
 
@@ -178,7 +191,14 @@ class LGVTripEnds:
     """Delivery grocery bush Origins and Destinations
     trip ends (columns) for all zones (index).
     """
-    # TODO Add commuting segment
+    commuting_drivers: pd.DataFrame
+    """Commuting Productions and Attractions trip ends (columns) for Drivers
+    (SOC821) for all zones (index).
+    """
+    commuting_skilled_trades: pd.DataFrame
+    """Commuting Productions and Attractions trip ends (columns) for Skilled
+    trades (SOCs 51, 52, 53) for all zones (index).
+    """
 
     def __dir__(self) -> tuple[str]:
         return (
@@ -186,6 +206,8 @@ class LGVTripEnds:
             "delivery_parcel_stem",
             "delivery_parcel_bush",
             "delivery_grocery",
+            "commuting_drivers",
+            "commuting_skilled_trades",
         )
 
     def __dict__(self) -> dict[str, pd.DataFrame]:
@@ -260,12 +282,35 @@ def calculate_trip_ends(
         output_folder / "delivery_grocery_trip_ends.csv"
     )
 
+    commute = CommuteTripEnds(
+        {
+            "commuting tables": config.parameters_path,
+            "household projections": config.household_paths.path,
+            "BRES": config.bres_paths.path,
+            "QS606EW": config.qs606ew_path,
+            "QS606SC": config.qs606sc_path,
+            "SC&W dwellings": config.sc_w_dwellings_path,
+            "E dwellings": config.e_dwellings_path,
+            "NDR floorspace": config.ndr_floorspace_path,
+            "VOA": config.voa_paths.path,
+            "LSOA lookup": config.lsoa_lookup_path,
+            "MSOA lookup": config.msoa_lookup_path,
+            "LAD lookup": config.lad_lookup_path,
+            "Postcodes": config.voa_paths.zc_path,
+        }
+    )
+    commute_trips = commute.trips()
+    for key in commute_trips:
+        commute_trips[key].to_csv(output_folder / Path(f"commute_{key}_trip_ends.csv"))
+
     # TODO Add commuting trip ends
     return LGVTripEnds(
         service=service.trip_ends,
         delivery_parcel_stem=delivery.parcel_stem_trip_ends,
         delivery_parcel_bush=delivery.parcel_bush_trip_ends,
         delivery_grocery=delivery.grocery_bush_trip_ends,
+        commute_drivers=commute_trips["Drivers"],
+        commuting_skilled_trades=commute_trips["Skilled trades"],
     )
 
 
