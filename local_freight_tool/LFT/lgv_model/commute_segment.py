@@ -18,7 +18,7 @@ from . import lgv_inputs
 
 
 ##### CLASSES #####
-class CommuteTripProductionsAttractions:
+class CommuteTripEnds:
     """Functionality for generating the LGV commuting segment trip productions
     and attractions.
 
