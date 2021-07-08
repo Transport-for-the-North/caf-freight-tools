@@ -303,7 +303,6 @@ def calculate_trip_ends(
     for key in commute_trips:
         commute_trips[key].to_csv(output_folder / Path(f"commute_{key}_trip_ends.csv"))
 
-    # TODO Add commuting trip ends
     return LGVTripEnds(
         service=service.trip_ends,
         delivery_parcel_stem=delivery.parcel_stem_trip_ends,
