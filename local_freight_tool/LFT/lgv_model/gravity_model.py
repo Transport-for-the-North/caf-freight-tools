@@ -275,6 +275,21 @@ def factor_2d(matrix: np.ndarray, col_total: np.ndarray, row_total: np.ndarray):
     return matrix, avg_diff
 
 
+def factor_totals(
+    col_total: np.ndarray, row_total: np.ndarray
+) -> tuple[np.ndarray, np.ndarray]:
+    trip_ends = [col_total, row_total]
+    totals = np.sum(trip_ends, axis=1)
+    if totals[0] == totals[1]:
+        return col_total, row_total
+    mean_tot = np.mean([np.sum(col_total), np.sum(row_total)])
+    print(f"Factoring trip ends sum to mean total: {mean_tot}")
+    new_totals = []
+    for tot, arr in zip(totals, trip_ends):
+        new_totals.append(arr * mean_tot / tot)
+    return tuple(new_totals)
+
+
 def furness_2d(
     matrix: np.ndarray,
     col_total: np.ndarray,
@@ -283,6 +298,7 @@ def furness_2d(
     max_loops: int = 1000,
     check_diff: int = 10,
 ):
+    col_total, row_total = factor_totals(col_total, row_total)
     loop = 0
     avg_diff = compare_totals(matrix, col_total, row_total)
     differences = [avg_diff]
@@ -328,8 +344,15 @@ def test_gm_func():
     costs = pd.DataFrame(rng.integers(1000, 2000, (3, 3)), index=zones, columns=zones)
     trips = gravity_model_equation(trip_ends, costs, function="tanner", alpha=1, beta=1)
     print("Trip Ends:", trip_ends, "Costs:", costs, "Trips:", trips, sep="\n")
-    trips, _ = furness_2d(trips.values, trip_ends.attractions.values, trip_ends.productions.values)
+    trips, _ = furness_2d(
+        trips.values, trip_ends.attractions.values, trip_ends.productions.values
+    )
     print("Furnessed:", trips, sep="\n")
+    print(
+        f"Total trips: {np.sum(trips):}",
+        f"Trip ends: {np.sum(trip_ends):}",
+        sep="\n",
+    )
 
 
 ##### MAIN #####
