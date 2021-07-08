@@ -661,11 +661,12 @@ class CommuteTripEnds:
         for soc in ["Skilled trades", "Drivers"]:
             self.trip_ends[soc] = pd.concat(
                 [
-                    self.trip_productions[soc].rename(columns={soc: "Productions"}),
-                    self.trip_attractions[soc].rename(columns={soc: "Attractions"}),
+                    self.trip_productions[soc],
+                    self.trip_attractions[soc],
                 ],
                 axis=1,
             )
+            self.trip_ends[soc].columns = ["Productions", "Attractions"]
 
     @property
     def productions(self) -> pd.DataFrame:

@@ -308,7 +308,7 @@ def calculate_trip_ends(
         delivery_parcel_stem=delivery.parcel_stem_trip_ends,
         delivery_parcel_bush=delivery.parcel_bush_trip_ends,
         delivery_grocery=delivery.grocery_bush_trip_ends,
-        commute_drivers=commute_trips["Drivers"],
+        commuting_drivers=commute_trips["Drivers"],
         commuting_skilled_trades=commute_trips["Skilled trades"],
     )
 
