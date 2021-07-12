@@ -258,12 +258,32 @@ def factor_1d(matrix: np.ndarray, total: np.ndarray, axis: int):
     return new_matrix
 
 
-def compare_totals(matrix: np.ndarray, col_total: np.ndarray, row_total: np.ndarray):
+def compare_totals(
+    matrix: np.ndarray, col_total: np.ndarray, row_total: np.ndarray
+) -> float:
+    """Calculates root mean square of differences between matrix and column/row totals.
+
+    Parameters
+    ----------
+    matrix : np.ndarray
+        Square matrix of trips.
+    col_total, row_total : np.ndarray
+        Array of the expected axis totals, should be
+        1D equal to length of single axis of `matrix`.
+
+    Returns
+    -------
+    float
+        The root mean square of the differences
+        between the `matrix` axis totals and the
+        given totals.
+    """
     differences = []
     for i, tot in enumerate((col_total, row_total)):
         curr_tot = np.sum(matrix, axis=i)
         differences.append(np.abs(curr_tot - tot))
-    return np.mean(differences)
+    differences = np.concatenate(differences)
+    return np.sqrt(np.sum(differences ** 2))
 
 
 def factor_2d(matrix: np.ndarray, col_total: np.ndarray, row_total: np.ndarray):
