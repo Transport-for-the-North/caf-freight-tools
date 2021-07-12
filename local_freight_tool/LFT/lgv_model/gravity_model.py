@@ -5,6 +5,9 @@
 
 ##### IMPORTS #####
 # Standard imports
+from dataclasses import dataclass
+from enum import Enum, auto
+from typing import Callable
 
 # Third party imports
 import numpy as np
@@ -12,6 +15,33 @@ import pandas as pd
 
 # Local imports
 from .. import errors
+
+
+##### CLASSES #####
+class FurnessConstraint(Enum):
+    """Types of furnessing/factoring for the gravity model."""
+
+    SINGLE = auto()
+    DOUBLE = auto()
+
+    def __str__(self):
+        return f"{self.__class__.__name__}.{self.name}"
+
+
+@dataclass
+class FurnessResults:
+    """Class to store result statistics from furness/factoring functions."""
+
+    constraint: FurnessConstraint
+    """The furness/factoring process that was used."""
+    message: str
+    """String message about results."""
+    converged: bool = None
+    """If the process converged, only for 2D furness."""
+    loop: int = None
+    """The number of loops taken, only for 2D furness."""
+    difference: float = None
+    """The RMS difference between matrix and row/column totals, only for 2D furness."""
 
 
 ##### FUNCTIONS #####
@@ -102,12 +132,52 @@ def log_normal(cost: np.ndarray, sigma: float, mu: float) -> np.ndarray:
     return frac * exp
 
 
+def _get_cost_function(name: str) -> tuple[Callable, list, tuple[list, list]]:
+    """Returns cost function and intial parameters.
+
+    Parameters
+    ----------
+    name : str
+        Name of the function.
+
+    Returns
+    -------
+    Callable
+        Function with given `name`.
+    list
+        List of initial parameters to use when trying
+        to fit function to data.
+    tuple[list, list]
+        Tuple containing the lower and upper bounds of
+        parameters to try when fitting function to data.
+
+    Raises
+    ------
+    KeyError
+        If the `name` given isn't an allowed cost function.
+    """
+    FUNCTION_LOOKUP = {
+        "log_normal": (log_normal, [1.0, 1.0], ([0, -np.inf], [np.inf, np.inf])),
+        "tanner": (tanner, [1.0, -1.0], ([0, -np.inf], [np.inf, 0])),
+    }
+    try:
+        func, init_params, bounds = FUNCTION_LOOKUP[name.lower().strip()]
+    except KeyError as e:
+        raise KeyError(
+            f"unknown function {name!r}, should be "
+            f"one of {list(FUNCTION_LOOKUP.keys())}"
+        ) from e
+    return func, init_params, bounds
+
+
 def _check_gm_inputs(
     trip_ends: pd.DataFrame, costs: pd.DataFrame, calibration: pd.DataFrame
-) -> None:
-    """Sorts the indices and checks the input DataFrames for `gravity_model_equation`."""
-    args = {"trip_ends": trip_ends, "costs": costs, "calibration": calibration}
-    for nm, df in args.items():
+) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    """Sorts the indices and checks the input DataFrames for `gravity_model`."""
+    # Copy the DataFrames so links to them outside this function aren't edited
+    data = (trip_ends.copy(), costs.copy(), calibration.copy())
+    names = ("trip_ends", "costs", "calibration")
+    for nm, df in zip(names, data):
         df.sort_index(axis=0, inplace=True)
         if df.index.has_duplicates:
             raise ValueError(f"duplicates not allowed in `{nm}` index")
@@ -116,23 +186,27 @@ def _check_gm_inputs(
         if nm == "trip_ends":
             continue
         df.sort_index(axis=1, inplace=True)
-        same = df.index.equals(trip_ends.index) and df.columns.equals(trip_ends.index)
-        if not same:
+        if not (df.index.equals(data[0].index) and df.columns.equals(data[0].index)):
             raise ValueError(
                 f"`{nm}` must be a square matrix with same zones as "
                 "`trip_ends` for gravity model calculations"
             )
+    return data
 
 
-def gravity_model_equation(
+def gravity_model(
     trip_ends: pd.DataFrame,
     costs: pd.DataFrame,
     calibration: pd.DataFrame = None,
-    normalise_costs: bool = True,
     function: str = "tanner",
+    function_args: tuple = (1.0, -1.0),
+    constraint: FurnessConstraint = FurnessConstraint.DOUBLE,
     **kwargs,
-) -> pd.DataFrame:
-    r"""Implementation of the main Gravity Model function, see Notes.
+) -> tuple[pd.DataFrame, FurnessResults]:
+    """Gravity model of trips initialised with given `function`.
+
+    Gravity model can be ran singly or doubly constrained to
+    trip ends.
 
     Parameters
     ----------
@@ -146,15 +220,21 @@ def gravity_model_equation(
     calibration : pd.DataFrame, optional
         Matrix of calibration parameters, should be
         the same shape as costs if given.
-    normalise_costs : bool, default True
-        If costs should be normalised or not.
     function : {'tanner', 'log_normal'}
         Choice of cost function to use.
+    function_args : tuple, default (1.0, 1.0)
+        Arguments to pass to the chose cost `function`.
+    constraint : FurnessConstraint, default FurnessConstraint.DOUBLE
+        Type of furnessing/factoring to use.
 
     Returns
     -------
     pd.DataFrame
-        DataFrame containing trips, same shape as costs.
+        Trip matrix, after furnessing, with the
+        same zones as given in `trip_ends`.
+    FurnessResults
+        Statistics and information from the
+        furness/factoring process.
 
     Raises
     ------
@@ -165,80 +245,77 @@ def gravity_model_equation(
         index or they don't have the same index and columns as
         the `trip_ends` index.
 
-    Notes
-    -----
-    Formula use for this function is:
-
-    .. math::
-
-        T_{ij} = T_i \frac{A_j f(C_{ij}) K_{ij}}
-        {\sum^n_{j'=1} A_{j'} f(C_{ij'}) K_{ij'}}
-
-    where:
-
-    - :math:`T_{ij}`: trips from i to j.
-    - :math:`T_i`: trips from i (productions).
-    - :math:`A_j`: trips attracted to j.
-    - :math:`f(C_{ij})`: travel cost friction factor (see below).
-    - :math:`K_{ij}`: calibration parameter.
-
     See Also
     --------
-    tanner, log_normal
+    tanner, log_normal, factor_1d, furness_2d
     """
-    FUNCTION_LOOKUP = {
-        "log_normal": log_normal,
-        "tanner": tanner,
-    }
-    try:
-        func = FUNCTION_LOOKUP[function.lower().strip()]
-    except KeyError as e:
-        raise KeyError(
-            f"unknown function {function!r}, should be "
-            f"one of {list(FUNCTION_LOOKUP.keys())}"
-        ) from e
-    # Check trip_ends has the correct names
-    trip_ends.rename(columns=lambda nm: nm.strip().lower(), inplace=True)
-    missing = [c for c in ("attractions", "productions") if c not in trip_ends.columns]
-    if missing:
-        errors.MissingColumnsError("gravity model trip ends", missing)
-    # Check costs and calibrations are matrices with same zones as trip_ends
     if calibration is None:
         calibration = pd.DataFrame(1.0, index=trip_ends.index, columns=trip_ends.index)
-    _check_gm_inputs(trip_ends, costs, calibration)
+    trip_ends, costs, calibration = _check_gm_inputs(trip_ends, costs, calibration)
 
-    # Convert vectors of productions and attractions to matrices for calcs
-    matrices = [
-        np.tile(trip_ends.productions, (len(trip_ends.productions), 1)).T,
-        np.tile(trip_ends.attractions, (len(trip_ends.attractions), 1)),
-    ]
-    # TODO Check if the costs should be normalised or not?
-    if normalise_costs:
-        costs = costs / np.sum(costs.values)
-    numerator = pd.DataFrame(
-        matrices[0] * matrices[1] * func(costs.values, **kwargs) * calibration.values,
-        index=trip_ends.index,
-        columns=trip_ends.index,
-    )
-    # Denominator uses the total attractions, and then the sum of
-    # all the columns (j) for costs and calibration factors
-    denominator = (
-        np.sum(trip_ends.attractions.values)
-        * func(np.sum(costs.values, axis=1), **kwargs)
-        * np.sum(calibration.values, axis=1)
-    )
-    # Divide all the columns of the numerator by the 1D denominator array
-    return numerator.divide(denominator, axis=0)
+    # Calculate intial trips matrix and factor with calibration parameters
+    func, _, _ = _get_cost_function(function)
+    init_matrix = func(costs.values, *function_args)
+    init_matrix *= calibration.values
+
+    # Furness trip matrix to trip ends
+    if constraint is FurnessConstraint.SINGLE:
+        matrix = factor_1d(init_matrix, trip_ends.iloc[0], axis=0)
+        results = FurnessResults(constraint, "Matrix factored to trip ends on axis 0")
+    elif constraint is FurnessConstraint.DOUBLE:
+        # Check trip_ends has the correct names
+        trip_ends.rename(columns=lambda nm: nm.strip().lower(), inplace=True)
+        missing = [
+            c for c in ("attractions", "productions") if c not in trip_ends.columns
+        ]
+        if missing:
+            errors.MissingColumnsError("gravity model trip ends", missing)
+        matrix, results = furness_2d(
+            init_matrix,
+            trip_ends.attractions.values,
+            trip_ends.productions.values,
+            **kwargs,
+        )
+    else:
+        options = ", ".join(str(i) for i in FurnessConstraint)
+        options = " or".join(options.rsplit(",", 1))
+        raise ValueError(f"`constraint` should be {options} not {constraint!r}")
+    matrix = pd.DataFrame(matrix, index=trip_ends.index, columns=trip_ends.index)
+    return matrix, results
 
 
 def _check_matrix(matrix: np.ndarray):
+    """Check given `matrix` is square."""
     if matrix.ndim != 2:
         raise ValueError(f"matrix should have 2 dimensions not: {matrix.ndim}")
     if matrix.shape[0] != matrix.shape[1]:
         raise ValueError(f"matrix should be a square not shape: {matrix.shape}")
 
 
-def factor_1d(matrix: np.ndarray, total: np.ndarray, axis: int):
+def factor_1d(matrix: np.ndarray, total: np.ndarray, axis: int) -> np.ndarray:
+    """Factor the given `axis` of `matrix` to match `total`.
+
+    Parameters
+    ----------
+    matrix : np.ndarray
+        Square matrix to be factored.
+    total : np.ndarray
+        The totals that the `matrix` should be
+        factored to match.
+    axis : int
+        The axis of `matrix` which should be factored.
+
+    Returns
+    -------
+    np.ndarray
+        The `matrix` after it has been factored.
+
+    Raises
+    ------
+    ValueError
+        If `total` isn't the correct shape or
+        `axis` isn't 0 or 1.
+    """
     _check_matrix(matrix)
     if total.ndim != 1:
         raise ValueError(f"total should have 1 dimension not: {total.ndim}")
@@ -286,18 +363,37 @@ def compare_totals(
     return np.sqrt(np.sum(differences ** 2))
 
 
-def factor_2d(matrix: np.ndarray, col_total: np.ndarray, row_total: np.ndarray):
-    _check_matrix(matrix)
-    # Factor columns then rows
+def factor_2d(
+    matrix: np.ndarray, col_total: np.ndarray, row_total: np.ndarray
+) -> tuple[np.ndarray, float]:
+    """Factor matrix columns then rows and compare result to totals.
+
+    Parameters
+    ----------
+    matrix : np.ndarray
+        Square matrix of trips.
+    col_total, row_total : np.ndarray
+        Array of the expected axis totals, should be
+        1D equal to length of single axis of `matrix`.
+
+    Returns
+    -------
+    np.ndarray
+        Factored matrix.
+    float
+        Root mean square difference between the matrix
+        row/column totals and those that are given.
+    """
     matrix = factor_1d(matrix, col_total, 0)
     matrix = factor_1d(matrix, row_total, 1)
-    avg_diff = compare_totals(matrix, col_total, row_total)
-    return matrix, avg_diff
+    diff = compare_totals(matrix, col_total, row_total)
+    return matrix, diff
 
 
 def factor_totals(
     col_total: np.ndarray, row_total: np.ndarray
 ) -> tuple[np.ndarray, np.ndarray]:
+    """Factor column/row total arrays so they have the same total."""
     trip_ends = [col_total, row_total]
     totals = np.sum(trip_ends, axis=1)
     if totals[0] == totals[1]:
@@ -317,37 +413,78 @@ def furness_2d(
     diff_cutoff: float = 0.1,
     max_loops: int = 1000,
     check_diff: int = 10,
-):
+) -> tuple[np.ndarray, FurnessResults]:
+    """2D furness `matrix` to match column and row totals.
+
+    Doubly constrained furness of `matrix` to match
+    column and row totals to within a RMS difference
+    of `diff_cutoff`, may stop earlier if `max_loops`
+    is reached or the RMS difference stops improving.
+
+    Parameters
+    ----------
+    matrix : np.ndarray
+        Square matrix of trips to be furnessed.
+    col_total, row_total : np.ndarray
+        Expected totals to be matched to.
+    diff_cutoff : float, default 0.1
+        Furness process will stop as soon as the RMS
+        difference between the totals is less than
+        this value.
+    max_loops : int, default 1000
+        Furness process will stop, without converging,
+        when it reaches this number of loops.
+    check_diff : int, default 10
+        Furness process will stop if the RMS difference
+        stays the same for this number of loops.
+
+    Returns
+    -------
+    np.ndarray
+        The `matrix` after the furness process is finished.
+    FurnessResults
+        The finishing statistics of the furness processing
+        giving information on convergence, number of loops,
+        final RMS difference and message about results.
+    """
     col_total, row_total = factor_totals(col_total, row_total)
     loop = 0
-    avg_diff = compare_totals(matrix, col_total, row_total)
-    differences = [avg_diff]
-    while avg_diff > diff_cutoff:
+    converged = False
+    diff = compare_totals(matrix, col_total, row_total)
+    differences = [diff]
+    while diff > diff_cutoff:
         if loop >= max_loops:
-            print(
+            msg = (
                 f"Reached maximum number of loops ({loop}) "
-                f"with mean row/column difference: {avg_diff:.1e}"
+                f"with RMS row/column difference: {diff:.1e}"
             )
             break
         if len(differences) >= check_diff:
             differences = differences[-check_diff:]
             if np.isclose(differences, differences[0]).all():
                 # If avg_diff hasn't changed for a number of loops then exit early
-                print(
-                    f"Mean row/column difference ({avg_diff:.1e}) has not "
+                msg = (
+                    f"RMS row/column difference ({diff:.1e}) has not "
                     f"improved for {check_diff} loops, ending on loop {loop}"
                 )
                 break
-        matrix, avg_diff = factor_2d(matrix, col_total, row_total)
+        matrix, diff = factor_2d(matrix, col_total, row_total)
         loop += 1
         # Keep last 5 differences for checking
-        differences = differences[-(check_diff - 1) :] + [avg_diff]
+        differences = differences[-(check_diff - 1) :] + [diff]
+        if not np.all(np.isfinite(matrix)):
+            msg = (
+                "Matrix contains non-finite values, "
+                f"stopping furnessing on loop {loop}"
+            )
+            break
     else:
-        print(
+        converged = True
+        msg = (
             f"Furness converged (loop {loop}) "
-            f"with mean row/column difference: {avg_diff:.1e}"
+            f"with RMS row/column difference: {diff:.1e}"
         )
-    return matrix, avg_diff
+    return matrix, FurnessResults(FurnessConstraint.DOUBLE, msg, converged, loop, diff)
 
 
 def main():
@@ -355,21 +492,24 @@ def main():
 
 
 def test_gm_func():
-    """Runs the `gravity_model_equation` with small 3x3 matrix."""
+    """Runs the `gravity_model` with small 3x3 matrix."""
     rng = np.random.default_rng(1)
     zones = [1, 2, 3]
     trip_ends = pd.DataFrame(
         {"attractions": [105, 115, 125], "productions": [110, 120, 130]}, index=zones
     )
     costs = pd.DataFrame(rng.integers(1000, 2000, (3, 3)), index=zones, columns=zones)
-    trips = gravity_model_equation(trip_ends, costs, function="tanner", alpha=1, beta=1)
-    print("Trip Ends:", trip_ends, "Costs:", costs, "Trips:", trips, sep="\n")
-    trips, _ = furness_2d(
-        trips.values, trip_ends.attractions.values, trip_ends.productions.values
-    )
-    print("Furnessed:", trips, sep="\n")
+    trips, results = gravity_model(trip_ends, costs, function="tanner", function_args=(1, -0.01))
     print(
-        f"Total trips: {np.sum(trips):}",
+        "Trip Ends:",
+        trip_ends,
+        "Costs:",
+        costs,
+        "Trips:",
+        trips,
+        "Furness Results",
+        results,
+        f"Total trips: {np.sum(trips.values):}",
         f"Trip ends: {np.sum(trip_ends):}",
         sep="\n",
     )
