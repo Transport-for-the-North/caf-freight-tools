@@ -17,6 +17,8 @@ from typing import Callable
 import numpy as np
 import pandas as pd
 from scipy import optimize
+from matplotlib import pyplot as plt
+from matplotlib.ticker import PercentFormatter
 
 # Local imports
 from .. import errors, utilities
@@ -79,6 +81,11 @@ class CalibrateGravityModel:
         ("start", "end", "average", "observed proportions"), float
     )
     """Names and dtypes of the columns expected in the trip distributions input."""
+    FUNCTION_LABELS = {
+        "log_normal": r"Log Normal: $\sigma={:.2f}$, $\mu={:.2f}$, $R^2={:.2f}$",
+        "tanner": r"Tanner: $\alpha={:.2f}$, $\beta={:.2f}$, $R^2={:.2f}$",
+    }
+    """Legend labels to use for plotting distribution."""
 
     def __init__(
         self,
@@ -281,6 +288,67 @@ class CalibrateGravityModel:
             ),
         )
         return self.results
+
+    def plot_distribution(self, path: Path):
+        """Plot trip matrix cost distribution vs observed.
+
+        Plot is saved to `path`.
+
+        Parameters
+        ----------
+        path : Path
+            Path to file to save the plot as.
+
+        Raises
+        ------
+        ValueError
+            If `calibrate_gravity_model` hasn't been ran
+            yet, because the plot cannot be done without
+            the `results`.
+        """
+        if self.results is None:
+            raise ValueError(
+                "run `calibrate_gravity_model` before attempting to plot results"
+            )
+        fig, ax = plt.subplots(figsize=(15, 10))
+        fig.set_tight_layout(True)
+        # Plot distribution data points
+        for c, nm in enumerate(("observed", "matrix")):
+            ax.plot(
+                self.trip_distribution["average"],
+                self.trip_distribution[f"{nm} proportions"],
+                ":+",
+                ms=10,
+                c=f"C{c}",
+                label=f"{nm.title()} Distribution",
+            )
+        # Plot line for the function
+        func_label = self.FUNCTION_LABELS.get(
+            self.results.cost_function,
+            self.results.cost_function.title()
+            + ": $p_0={:.2f}$, $p_1={:.2f}$, $R^2={:.2f}$",
+        )
+        x_range = np.linspace(0, self.trip_distribution["average"].max())
+        func, _, _ = _get_cost_function(self.results.cost_function)
+        ax.autoscale(False, axis="y")
+        ax.plot(
+            x_range,
+            func(x_range, *self.results.cost_parameters),
+            "--",
+            c="C2",
+            label=func_label.format(
+                *self.results.cost_parameters, self.results.r_squared
+            ),
+        )
+        # Format the plot
+        ax.yaxis.set_major_formatter(PercentFormatter(1.0))
+        ax.set_ylim(0, None)
+        ax.set_xlim(0, None)
+        ax.set_ylabel("Percentage of Trips")
+        ax.set_xlabel(self.distribution_name)
+        ax.set_title("Trip Matrix Cost Distribution Compared to Observed Distribution")
+        ax.legend()
+        plt.savefig(path)
 
 
 ##### FUNCTIONS #####
@@ -566,6 +634,7 @@ def test_gm_func():
         f"Trip ends: {np.sum(calib_gm.trip_ends):}",
         sep="\n",
     )
+    calib_gm.plot_distribution(folder / "tld_plot.pdf")
 
 
 ##### MAIN #####
