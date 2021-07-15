@@ -16,7 +16,7 @@ import pandas as pd
 
 # Local imports
 from ..data_utils import DataPaths
-from .lgv_inputs import lgv_parameters, LGVInputPaths
+from .lgv_inputs import lgv_parameters, LGVInputPaths, read_study_area
 from .service_segment import ServiceTripEnds
 from .delivery_segment import DeliveryTripEnds
 from .commute_segment import CommuteTripEnds
@@ -40,25 +40,26 @@ class LGVConfig(configparser.ConfigParser):
 
     SECTION = "LGV File Paths"
     """Name of the required section."""
-    OPTIONS = (
-        "households data",
-        "households zone correspondence",
-        "bres data",
-        "bres zone correspondence",
-        "voa data",
-        "voa zone correspondence",
-        "lgv parameters",
-        "QS606EW",
-        "QS606SC",
-        "SC&W dwellings",
-        "E dwellings",
-        "NDR floorspace",
-        "LSOA lookup",
-        "MSOA lookup",
-        "LAD lookup",
-        "output folder",
-    )
-    """Names of the expected options."""
+    OPTIONS = {
+        "hh_data": "households data",
+        "hh_zc": "households zone correspondence",
+        "bres_data": "bres data",
+        "bres_zc": "bres zone correspondence",
+        "voa_data": "voa data",
+        "voa_zc": "voa zone correspondence",
+        "parameters_path": "lgv parameters",
+        "qs606ew_path": "QS606EW",
+        "qs606sc_path": "QS606SC",
+        "sc_w_dwellings_path": "SC&W dwellings",
+        "e_dwellings_path": "E dwellings",
+        "ndr_floorspace_path": "NDR floorspace",
+        "lsoa_lookup_path": "LSOA lookup",
+        "msoa_lookup_path": "MSOA lookup",
+        "lad_lookup_path": "LAD lookup",
+        "output_folder": "output folder",
+        "model_study_area": "model study area",
+    }
+    """Names of the expected options in config file (values), keys are for internal use."""
     input_paths: LGVInputPaths = None
     """Paths to all the input files required for the LGV model."""
 
@@ -73,29 +74,25 @@ class LGVConfig(configparser.ConfigParser):
         paths = {}
         paths["household_paths"] = DataPaths(
             "LGV Households",
-            self.getpath(self.SECTION, self.OPTIONS[0]),
-            self.getpath(self.SECTION, self.OPTIONS[1]),
+            self.getpath(self.SECTION, self.OPTIONS["hh_data"]),
+            self.getpath(self.SECTION, self.OPTIONS["hh_zc"]),
         )
         paths["bres_paths"] = DataPaths(
             "LGV BRES",
-            self.getpath(self.SECTION, self.OPTIONS[2]),
-            self.getpath(self.SECTION, self.OPTIONS[3]),
+            self.getpath(self.SECTION, self.OPTIONS["bres_data"]),
+            self.getpath(self.SECTION, self.OPTIONS["bres_zc"]),
         )
         paths["voa_paths"] = DataPaths(
             "LGV VOA",
-            self.getpath(self.SECTION, self.OPTIONS[4]),
-            self.getpath(self.SECTION, self.OPTIONS[5]),
+            self.getpath(self.SECTION, self.OPTIONS["voa_data"]),
+            self.getpath(self.SECTION, self.OPTIONS["voa_zc"]),
         )
-        paths["parameters_path"] = self.getpath(self.SECTION, self.OPTIONS[6])
-        paths["qs606ew_path"] = self.getpath(self.SECTION, self.OPTIONS[7])
-        paths["qs606sc_path"] = self.getpath(self.SECTION, self.OPTIONS[8])
-        paths["sc_w_dwellings_path"] = self.getpath(self.SECTION, self.OPTIONS[9])
-        paths["e_dwellings_path"] = self.getpath(self.SECTION, self.OPTIONS[10])
-        paths["ndr_floorspace_path"] = self.getpath(self.SECTION, self.OPTIONS[11])
-        paths["lsoa_lookup_path"] = self.getpath(self.SECTION, self.OPTIONS[12])
-        paths["msoa_lookup_path"] = self.getpath(self.SECTION, self.OPTIONS[13])
-        paths["lad_lookup_path"] = self.getpath(self.SECTION, self.OPTIONS[14])
-        paths["output_folder"] = self.getpath(self.SECTION, self.OPTIONS[15])
+        # All parameters in ignore are handled separately
+        ignore = ("hh_data", "hh_zc", "bres_data", "bres_zc", "voa_data", "voa_zc")
+        for nm, option_name in self.OPTIONS.items():
+            if nm in ignore:
+                continue
+            paths[nm] = self.getpath(self.SECTION, option_name)
         self.input_paths = LGVInputPaths(**paths)
 
     def getpath(self, section: str, option: str, **kwargs) -> Path:

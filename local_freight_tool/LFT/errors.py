@@ -69,6 +69,7 @@ class MissingColumnsError(BaseLocalFreightError):
     """Raised when columns are missing from input CSV or spreadsheet."""
 
     def __init__(self, name: str, columns: List, *args, **kwargs):
+        self.columns = columns
         cols = " and".join(", ".join(f"'{s}'" for s in columns).rsplit(",", 1))
         msg = f"Columns missing from {name}: {cols}"
         super().__init__(msg, *args, **kwargs)

@@ -120,6 +120,7 @@ LGV_PARAMETERS = {
 }
 """Names of the parameters (values) expected and their internal code name (keys)."""
 
+
 ##### CLASSES #####
 @dataclass(frozen=True)
 class LGVInputPaths:
@@ -152,6 +153,8 @@ class LGVInputPaths:
     lad_lookup_path: Path = None
     """Path to the Local Authority District to NoHAM zone correspondence
     CSV"""
+    model_study_area: Path = None
+    """Path to CSV containing lookup for zones in model study area."""
     output_folder: Path = None
     """Path to folder to save outputs to."""
 
@@ -160,7 +163,7 @@ class LGVInputPaths:
 
     def __post_init__(self):
         # Check if all input files exist
-        for nm, value in self.__dict__().items():
+        for nm, value in self.__dict__().items():  # pylint: disable=not-callable
             if isinstance(value, DataPaths):
                 # DataPaths instances should already have been checked
                 continue
@@ -168,10 +171,10 @@ class LGVInputPaths:
                 utilities.check_folder(value, nm, True)
             else:
                 utilities.check_file_path(value, nm)
-    
+
     def __str__(self) -> str:
         s = [f"{self.__class__.__name__}("]
-        for nm, value in self.__dict__().items():
+        for nm, value in self.__dict__().items():  # pylint: disable=not-callable
             s.append(f"{nm}={value}")
         return "\n\t".join(s) + "\n)"
 
@@ -488,3 +491,35 @@ def lgv_parameters(path: Path) -> dict[str, Any]:
     if missing:
         raise errors.MissingDataError("LGV Parameters", missing)
     return out_params
+
+
+def read_study_area(path: Path) -> pd.DataFrame:
+    """Reads model study area CSV.
+
+    Parameters
+    ----------
+    path : Path
+        Path to CSV containing columns 'zone' and
+        'internal'.
+
+    Returns
+    -------
+    pd.DataFrame
+        DataFrame containing zone numbers (index) and
+        column (internal) of boolean values for whether
+        the zone is within the study area or not.
+
+    Notes
+    -----
+    The CSV should contain two columns:
+    - zone: the zone number
+    - internal: a value of 1 or 0 for whether
+      the zone is in the study area or not
+
+    Any zones not given are assumed to be outside
+    the study area.
+    """
+    columns = {"zone": int, "internal": int}
+    df = utilities.read_csv(path, "Model Study Area CSV", columns)
+    df["internal"] = df["internal"].astype(bool)
+    return df.set_index("zone")
