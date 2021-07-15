@@ -493,7 +493,7 @@ def lgv_parameters(path: Path) -> dict[str, Any]:
     return out_params
 
 
-def read_study_area(path: Path) -> pd.DataFrame:
+def read_study_area(path: Path) -> set:
     """Reads model study area CSV.
 
     Parameters
@@ -504,10 +504,9 @@ def read_study_area(path: Path) -> pd.DataFrame:
 
     Returns
     -------
-    pd.DataFrame
-        DataFrame containing zone numbers (index) and
-        column (internal) of boolean values for whether
-        the zone is within the study area or not.
+    set[int]
+        Set of zone numbers for all zones
+        inside the study area.
 
     Notes
     -----
@@ -522,4 +521,5 @@ def read_study_area(path: Path) -> pd.DataFrame:
     columns = {"zone": int, "internal": int}
     df = utilities.read_csv(path, "Model Study Area CSV", columns)
     df["internal"] = df["internal"].astype(bool)
-    return df.set_index("zone")
+    internal = df.loc[df.internal, "zone"].tolist()
+    return set(internal)

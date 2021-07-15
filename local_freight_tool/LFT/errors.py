@@ -79,6 +79,8 @@ class MissingDataError(BaseLocalFreightError):
     """Raised when data is missing from an input file."""
 
     def __init__(self, name: str, missing: Union[List, str], *args, **kwargs):
+        self.name = name
+        self.missing = missing
         if isinstance(missing, str):
             miss = missing
         else:

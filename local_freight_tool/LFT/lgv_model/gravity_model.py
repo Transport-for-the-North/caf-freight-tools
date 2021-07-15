@@ -18,11 +18,12 @@ import numpy as np
 import pandas as pd
 from scipy import optimize
 from matplotlib import pyplot as plt
-from matplotlib.ticker import PercentFormatter
+from matplotlib.ticker import PercentFormatter, AutoMinorLocator
 
 # Local imports
 from .. import errors, utilities
 from .furnessing import FurnessConstraint, FurnessResults, furness_2d, factor_1d
+from .lgv_inputs import read_study_area
 
 
 ##### CLASSES #####
@@ -61,6 +62,11 @@ class CalibrateGravityModel:
     calibration_path : Path, optional
         Path to a calibration matrix CSV, should be in the
         same format as the cost matrix.
+    internal_zones : set[int], optional
+        Set of all zone numbers inside the study area, only trips
+        between zones inside the study area are included in the
+        trip distribution during calibration. If not given then
+        all zones are used for the trip distribution.
 
     Attributes
     ----------
@@ -82,8 +88,8 @@ class CalibrateGravityModel:
     )
     """Names and dtypes of the columns expected in the trip distributions input."""
     FUNCTION_LABELS = {
-        "log_normal": r"Log Normal: $\sigma={:.2f}$, $\mu={:.2f}$, $R^2={:.2f}$",
-        "tanner": r"Tanner: $\alpha={:.2f}$, $\beta={:.2f}$, $R^2={:.2f}$",
+        "log_normal": r"Log Normal: $\sigma={:.1e}$, $\mu={:.1e}$, $R^2={:.2f}$",
+        "tanner": r"Tanner: $\alpha={:.1e}$, $\beta={:.1e}$, $R^2={:.2f}$",
     }
     """Legend labels to use for plotting distribution."""
 
@@ -93,7 +99,12 @@ class CalibrateGravityModel:
         cost_path: Path,
         trip_distribution_path: tuple[Path, str],
         calibration_path: Path = None,
+        internal_zones: set[int] = None,
     ):
+        if internal_zones is not None:
+            self._internal_zones = set(internal_zones)
+        else:
+            self._internal_zones = None
         self._read(trip_ends_path, cost_path, trip_distribution_path, calibration_path)
         # Get bin edges from trip distribution
         self._bin_edges = np.concatenate(
@@ -194,9 +205,19 @@ class CalibrateGravityModel:
         ss_tot = np.sum((fit_data - np.mean(fit_data)) ** 2)
         return 1 - (ss_res / ss_tot)
 
-    def _normalised_distribution(self, matrix: np.ndarray) -> np.ndarray:
+    def _normalised_distribution(self, matrix: pd.DataFrame) -> np.ndarray:
         """Calculates distribution of costs normalised to sum to 1."""
-        hist, _ = np.histogram(matrix, bins=self._bin_edges, weights=self.costs)
+        if self._internal_zones:
+            # Filters matrix and costs to only include internal-internal trips
+            try:
+                matrix = matrix.loc[self._internal_zones, self._internal_zones]
+                weights = self.costs.loc[self._internal_zones, self._internal_zones]
+            except KeyError as e:
+                missing = [i for i in self._internal_zones if i not in matrix.index]
+                raise errors.MissingDataError("trip matrix zones", missing) from e
+        else:
+            weights = self.costs
+        hist, _ = np.histogram(matrix, bins=self._bin_edges, weights=weights)
         return hist / np.sum(hist)
 
     def _gm_distribution(
@@ -326,7 +347,7 @@ class CalibrateGravityModel:
         func_label = self.FUNCTION_LABELS.get(
             self.results.cost_function,
             self.results.cost_function.title()
-            + ": $p_0={:.2f}$, $p_1={:.2f}$, $R^2={:.2f}$",
+            + ": $p_0={:.1e}$, $p_1={:.1e}$, $R^2={:.2f}$",
         )
         x_range = np.linspace(0, self.trip_distribution["average"].max())
         func, _, _ = _get_cost_function(self.results.cost_function)
@@ -344,6 +365,10 @@ class CalibrateGravityModel:
         ax.yaxis.set_major_formatter(PercentFormatter(1.0))
         ax.set_ylim(0, None)
         ax.set_xlim(0, None)
+        ax.yaxis.set_minor_locator(AutoMinorLocator())
+        ax.xaxis.set_minor_locator(AutoMinorLocator())
+        ax.grid(which="major")
+        ax.grid(which="minor", ls=":")
         ax.set_ylabel("Percentage of Trips")
         ax.set_xlabel(self.distribution_name)
         ax.set_title("Trip Matrix Cost Distribution Compared to Observed Distribution")
@@ -612,7 +637,14 @@ def test_gm_func():
         folder / "LGV_trip_distributions.xlsx",
         "Test Trip Distribution",
     )
-    calib_gm = CalibrateGravityModel(trip_ends_path, costs_path, trip_distribution_path)
+    internals = read_study_area(
+        Path(
+            r"C:\WSP_Projects\TfN Local Freight Model\01 - Delivery\LGV Method\NoHAM_study_area.csv"
+        )
+    )
+    calib_gm = CalibrateGravityModel(
+        trip_ends_path, costs_path, trip_distribution_path, internal_zones=internals
+    )
     calib_gm.calibrate_gravity_model()
 
     print(

@@ -16,7 +16,7 @@ import pandas as pd
 
 # Local imports
 from ..data_utils import DataPaths
-from .lgv_inputs import lgv_parameters, LGVInputPaths, read_study_area
+from .lgv_inputs import lgv_parameters, LGVInputPaths
 from .service_segment import ServiceTripEnds
 from .delivery_segment import DeliveryTripEnds
 from .commute_segment import CommuteTripEnds
