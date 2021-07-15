@@ -9,6 +9,7 @@
 import re
 import string
 import warnings
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Sequence, Any, Union
 
@@ -18,6 +19,7 @@ import pandas as pd
 
 # Local imports
 from .. import utilities, errors
+from ..data_utils import DataPaths
 from ..rezone import Rezone
 
 
@@ -117,6 +119,62 @@ LGV_PARAMETERS = {
     "year": "Model Year",
 }
 """Names of the parameters (values) expected and their internal code name (keys)."""
+
+##### CLASSES #####
+@dataclass(frozen=True)
+class LGVInputPaths:
+    """Dataclass storing paths to all the input files for the LGV model."""
+
+    household_paths: DataPaths = None
+    """Paths for the households data and zone correspondence."""
+    bres_paths: DataPaths = None
+    """Paths for the BRES data and zone correspondence."""
+    voa_paths: DataPaths = None
+    """Paths for the VOA data and zone correspondence."""
+    parameters_path: Path = None
+    """Path to the LGV parameters Excel workbook."""
+    qs606ew_path: Path = None
+    """Path to the England & Wales Census Occupation data CSV."""
+    qs606sc_path: Path = None
+    """Path to the Scottish Census Occupation data CSV."""
+    sc_w_dwellings_path: Path = None
+    """Path to the Scottish and Welsh dwellings data CSV."""
+    e_dwellings_path: Path = None
+    """Path to the English dwellings data XLSX."""
+    ndr_floorspace_path: Path = None
+    """Path to the NDR Business Floorspace CSV."""
+    lsoa_lookup_path: Path = None
+    """Path to the LSOA to NoHAM zone correspondence
+    CSV"""
+    msoa_lookup_path: Path = None
+    """Path to the MSOA to NoHAM zone correspondence
+    CSV"""
+    lad_lookup_path: Path = None
+    """Path to the Local Authority District to NoHAM zone correspondence
+    CSV"""
+    output_folder: Path = None
+    """Path to folder to save outputs to."""
+
+    def __dict__(self) -> dict:
+        return {nm: getattr(self, nm) for nm in dir(self) if not nm.startswith("_")}
+
+    def __post_init__(self):
+        # Check if all input files exist
+        for nm, value in self.__dict__().items():
+            if isinstance(value, DataPaths):
+                # DataPaths instances should already have been checked
+                continue
+            if nm == "output_folder":
+                utilities.check_folder(value, nm, True)
+            else:
+                utilities.check_file_path(value, nm)
+    
+    def __str__(self) -> str:
+        s = [f"{self.__class__.__name__}("]
+        for nm, value in self.__dict__().items():
+            s.append(f"{nm}={value}")
+        return "\n\t".join(s) + "\n)"
+
 
 ##### FUNCTIONS #####
 def household_projections(path: Path, zone_lookup: Path) -> pd.DataFrame:

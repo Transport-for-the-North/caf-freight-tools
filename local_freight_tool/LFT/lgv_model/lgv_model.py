@@ -16,7 +16,7 @@ import pandas as pd
 
 # Local imports
 from ..data_utils import DataPaths
-from .lgv_inputs import lgv_parameters
+from .lgv_inputs import lgv_parameters, LGVInputPaths
 from .service_segment import ServiceTripEnds
 from .delivery_segment import DeliveryTripEnds
 from .commute_segment import CommuteTripEnds
@@ -59,33 +59,8 @@ class LGVConfig(configparser.ConfigParser):
         "output folder",
     )
     """Names of the expected options."""
-    household_paths: DataPaths = None
-    """Paths for the households data and zone correspondence."""
-    bres_paths: DataPaths = None
-    """Paths for the BRES data and zone correspondence."""
-    voa_paths: DataPaths = None
-    """Paths for the VOA data and zone correspondence."""
-    parameters_path: Path = None
-    """Path to the LGV parameters Excel workbook."""
-    qs606ew_path: Path = None
-    """Path to the England & Wales Census Occupation data CSV."""
-    qs606sc_path: Path = None
-    """Path to the Scottish Census Occupation data CSV."""
-    sc_w_dwellings_path: Path = None
-    """Path to the Scottish and Welsh dwellings data CSV."""
-    e_dwellings_path: Path = None
-    """Path to the English dwellings data XLSX."""
-    ndr_floorspace_path: Path = None
-    """Path to the NDR Business Floorspace CSV."""
-    lsoa_lookup_path: Path = None
-    """Path to the LSOA to NoHAM zone correspondence
-    CSV"""
-    msoa_lookup_path: Path = None
-    """Path to the MSOA to NoHAM zone correspondence
-    CSV"""
-    lad_lookup_path: Path = None
-    """Path to the Local Authority District to NoHAM zone correspondence
-    CSV"""
+    input_paths: LGVInputPaths = None
+    """Paths to all the input files required for the LGV model."""
 
     def __init__(self, path: Path):
         """Initialises the class by reading the given file."""
@@ -95,31 +70,33 @@ class LGVConfig(configparser.ConfigParser):
             raise configparser.NoSectionError(
                 f"LGV config ({path.name}) doesn't contain section {self.SECTION!r}"
             )
-        self.household_paths = DataPaths(
+        paths = {}
+        paths["household_paths"] = DataPaths(
             "LGV Households",
             self.getpath(self.SECTION, self.OPTIONS[0]),
             self.getpath(self.SECTION, self.OPTIONS[1]),
         )
-        self.bres_paths = DataPaths(
+        paths["bres_paths"] = DataPaths(
             "LGV BRES",
             self.getpath(self.SECTION, self.OPTIONS[2]),
             self.getpath(self.SECTION, self.OPTIONS[3]),
         )
-        self.voa_paths = DataPaths(
+        paths["voa_paths"] = DataPaths(
             "LGV VOA",
             self.getpath(self.SECTION, self.OPTIONS[4]),
             self.getpath(self.SECTION, self.OPTIONS[5]),
         )
-        self.parameters_path = self.getpath(self.SECTION, self.OPTIONS[6])
-        self.qs606ew_path = self.getpath(self.SECTION, self.OPTIONS[7])
-        self.qs606sc_path = self.getpath(self.SECTION, self.OPTIONS[8])
-        self.sc_w_dwellings_path = self.getpath(self.SECTION, self.OPTIONS[9])
-        self.e_dwellings_path = self.getpath(self.SECTION, self.OPTIONS[10])
-        self.ndr_floorspace_path = self.getpath(self.SECTION, self.OPTIONS[11])
-        self.lsoa_lookup_path = self.getpath(self.SECTION, self.OPTIONS[12])
-        self.msoa_lookup_path = self.getpath(self.SECTION, self.OPTIONS[13])
-        self.lad_lookup_path = self.getpath(self.SECTION, self.OPTIONS[14])
-        self.output_folder = self.getpath(self.SECTION, self.OPTIONS[15])
+        paths["parameters_path"] = self.getpath(self.SECTION, self.OPTIONS[6])
+        paths["qs606ew_path"] = self.getpath(self.SECTION, self.OPTIONS[7])
+        paths["qs606sc_path"] = self.getpath(self.SECTION, self.OPTIONS[8])
+        paths["sc_w_dwellings_path"] = self.getpath(self.SECTION, self.OPTIONS[9])
+        paths["e_dwellings_path"] = self.getpath(self.SECTION, self.OPTIONS[10])
+        paths["ndr_floorspace_path"] = self.getpath(self.SECTION, self.OPTIONS[11])
+        paths["lsoa_lookup_path"] = self.getpath(self.SECTION, self.OPTIONS[12])
+        paths["msoa_lookup_path"] = self.getpath(self.SECTION, self.OPTIONS[13])
+        paths["lad_lookup_path"] = self.getpath(self.SECTION, self.OPTIONS[14])
+        paths["output_folder"] = self.getpath(self.SECTION, self.OPTIONS[15])
+        self.input_paths = LGVInputPaths(**paths)
 
     def getpath(self, section: str, option: str, **kwargs) -> Path:
         """Gets the `option` from `section` and converts it to a Path object.
@@ -154,21 +131,8 @@ class LGVConfig(configparser.ConfigParser):
             config.write(f)
 
     def __str__(self) -> str:
-        return f"""
-        {__name__}.{self.__class__.__name__}
-            {self.household_paths=}
-            {self.bres_paths=}
-            {self.voa_paths=}
-            {self.parameters_path=}
-            {self.qs606ew_path=}
-            {self.qs606sc_path=}
-            {self.sc_w_dwellings_path=}
-            {self.e_dwellings_path=}
-            {self.ndr_floorspace_path=}
-            {self.lsoa_lookup_path=}
-            {self.msoa_lookup_path=}
-            {self.lad_lookup_path=}
-        """
+        paths_str = str(self.input_paths).replace("\n", "\n\t")
+        return f"{self.__class__.__name__}\n\t{self.SECTION} = {paths_str}"
 
 
 @dataclass
@@ -227,14 +191,14 @@ class LGVTripEnds:
 
 ##### FUNCTIONS #####
 def calculate_trip_ends(
-    config: LGVConfig, output_folder: Path, lgv_growth: float, year: int
+    input_paths: LGVInputPaths, output_folder: Path, lgv_growth: float, year: int
 ) -> LGVTripEnds:
     """Calculates the LGV trip ends for all segments.
 
     Parameters
     ----------
-    config : LGVConfig
-        Inputs from the config file.
+    input_paths : LGVInputPaths
+        Paths to all the input files.
     output_folder : Path
         Path to folder to save trip ends to.
     lgv_growth : float
@@ -255,9 +219,9 @@ def calculate_trip_ends(
     """
     # Calculate the service trip ends and save output
     service = ServiceTripEnds(
-        config.household_paths,
-        config.bres_paths,
-        config.parameters_path,
+        input_paths.household_paths,
+        input_paths.bres_paths,
+        input_paths.parameters_path,
         lgv_growth,
     )
     service.read()
@@ -265,10 +229,10 @@ def calculate_trip_ends(
 
     # Calculate the delivery trip ends and save outputs
     delivery = DeliveryTripEnds(
-        config.voa_paths,
-        config.bres_paths,
-        config.household_paths,
-        config.parameters_path,
+        input_paths.voa_paths,
+        input_paths.bres_paths,
+        input_paths.household_paths,
+        input_paths.parameters_path,
         year,
     )
     delivery.read()
@@ -284,19 +248,19 @@ def calculate_trip_ends(
 
     commute = CommuteTripEnds(
         {
-            "commuting tables": config.parameters_path,
-            "household projections": config.household_paths.path,
-            "BRES": config.bres_paths.path,
-            "QS606EW": config.qs606ew_path,
-            "QS606SC": config.qs606sc_path,
-            "SC&W dwellings": config.sc_w_dwellings_path,
-            "E dwellings": config.e_dwellings_path,
-            "NDR floorspace": config.ndr_floorspace_path,
-            "VOA": config.voa_paths.path,
-            "LSOA lookup": config.lsoa_lookup_path,
-            "MSOA lookup": config.msoa_lookup_path,
-            "LAD lookup": config.lad_lookup_path,
-            "Postcodes": config.voa_paths.zc_path,
+            "commuting tables": input_paths.parameters_path,
+            "household projections": input_paths.household_paths.path,
+            "BRES": input_paths.bres_paths.path,
+            "QS606EW": input_paths.qs606ew_path,
+            "QS606SC": input_paths.qs606sc_path,
+            "SC&W dwellings": input_paths.sc_w_dwellings_path,
+            "E dwellings": input_paths.e_dwellings_path,
+            "NDR floorspace": input_paths.ndr_floorspace_path,
+            "VOA": input_paths.voa_paths.path,
+            "LSOA lookup": input_paths.lsoa_lookup_path,
+            "MSOA lookup": input_paths.msoa_lookup_path,
+            "LAD lookup": input_paths.lad_lookup_path,
+            "Postcodes": input_paths.voa_paths.zc_path,
         }
     )
     commute_trips = commute.trips
@@ -313,31 +277,29 @@ def calculate_trip_ends(
     )
 
 
-def main(config_path: Path):
-    config = LGVConfig(config_path)
-    parameters = lgv_parameters(config.parameters_path)
+def main(input_paths: LGVInputPaths):
+    parameters = lgv_parameters(input_paths.parameters_path)
 
     # Create output folder
-    if not config.output_folder.is_dir():
-        raise NotADirectoryError(
-            f"output folder is not a folder, or does not exist: {config.output_folder}"
-        )
     output_folder = (
-        config.output_folder / f"LGV Model Outputs - {datetime.now():%Y-%m-%d %H.%M.%S}"
+        input_paths.output_folder
+        / f"LGV Model Outputs - {datetime.now():%Y-%m-%d %H.%M.%S}"
     )
     output_folder.mkdir(exist_ok=True)
     out_trip_ends = output_folder / "trip ends"
     out_trip_ends.mkdir(exist_ok=True)
 
     trip_ends = calculate_trip_ends(
-        config, out_trip_ends, parameters["lgv_growth"], parameters["year"]
+        input_paths, out_trip_ends, parameters["lgv_growth"], parameters["year"]
     )
     print(trip_ends)
 
 
 # TODO Remove Test Code
 if __name__ == "__main__":
-    config_file = Path(
+    config_path = Path(
         r"C:\WSP_Projects\TfN Local Freight Model\01 - Delivery\LGV Method\LGV_config.ini"
     )
-    main(config_file)
+    config_file = LGVConfig(config_path)
+    print(config_file)
+    main(config_file.input_paths)
