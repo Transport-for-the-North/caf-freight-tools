@@ -11,7 +11,7 @@
 # Standard imports
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable
+from typing import Callable, Union
 
 # Third party imports
 import numpy as np
@@ -95,10 +95,10 @@ class CalibrateGravityModel:
 
     def __init__(
         self,
-        trip_ends_path: Path,
-        cost_path: Path,
+        trip_ends_path: Union[Path, pd.DataFrame],
+        cost_path: Union[Path, pd.DataFrame],
         trip_distribution_path: tuple[Path, str],
-        calibration_path: Path = None,
+        calibration_path: Union[Path, pd.DataFrame] = None,
         internal_zones: set[int] = None,
     ):
         if internal_zones is not None:
@@ -122,20 +122,26 @@ class CalibrateGravityModel:
 
     def _read(
         self,
-        trip_ends_path: Path,
-        cost_path: Path,
+        trip_ends_path: Union[Path, pd.DataFrame],
+        cost_path: Union[Path, pd.DataFrame],
         trip_distribution_path: tuple[Path, str],
-        calibration_path: Path,
+        calibration_path: Union[Path, pd.DataFrame]
     ):
         """Reads and checks input files and performs some pre-processing on them."""
         # Read trip ends, with first column as index and rename
         # to attractions and productions (expected names in gravity_model)
-        self.trip_ends = utilities.read_csv(
-            trip_ends_path, "Trip Ends CSV", {0: int, 1: float, 2: float}, index_col=0
-        )
+        if isinstance(trip_ends_path, pd.DataFrame):
+            self.trip_ends = trip_ends_path.copy()
+        else:
+            self.trip_ends = utilities.read_csv(
+                trip_ends_path, "Trip Ends CSV", {0: int, 1: float, 2: float}, index_col=0
+            )
         self.trip_ends.columns = ["attractions", "productions"]
         # Read costs and calibration and use first column as index
-        self.costs = utilities.read_csv(cost_path, "Cost matrix", index_col=0)
+        if isinstance(cost_path, pd.DataFrame):
+            self.costs = cost_path.copy()
+        else:
+            self.costs = utilities.read_csv(cost_path, "Cost matrix", index_col=0)
         self.costs.columns = pd.to_numeric(self.costs.columns, downcast="integer")
         zero_cost = self.costs.values == 0
         if np.any(zero_cost):
@@ -143,9 +149,12 @@ class CalibrateGravityModel:
         if calibration_path is None:
             self.calibration = None
         else:
-            self.calibration = utilities.read_csv(
-                calibration_path, "Gravity model calibration matrix", index_col=0
-            )
+            if isinstance(calibration_path, pd.DataFrame):
+                self.calibration = calibration_path.copy()
+            else:
+                self.calibration = utilities.read_csv(
+                    calibration_path, "Gravity model calibration matrix", index_col=0
+                )
             self.calibration.columns = pd.to_numeric(
                 self.calibration.columns, downcast="integer"
             )

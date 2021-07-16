@@ -155,16 +155,32 @@ class LGVInputPaths:
     CSV"""
     model_study_area: Path = None
     """Path to CSV containing lookup for zones in model study area."""
+    cost_matrix_path: Path = None
+    """Path to CSV containing cost matrix, should be square matrix with
+    zone numbers as column names and indices."""
+    calibration_matrix_path: Path = None
+    """Path to CSV containing calibration matrix, should be square matrix
+    with zone numbers as column names and indices."""
+    trip_distributions_path: Path = None
+    """Path to Excel Workbook containing all the trip cost distributions."""
     output_folder: Path = None
     """Path to folder to save outputs to."""
 
-    def __dict__(self) -> dict:
-        return {nm: getattr(self, nm) for nm in dir(self) if not nm.startswith("_")}
+    def asdict(self) -> dict[str, Path]:
+        """Return class attributes as a dictionary."""
+        attrs = {}
+        for nm in dir(self):
+            if nm.startswith("_"):
+                continue
+            a = getattr(self, nm)
+            if not callable(a):
+                attrs[nm] = a
+        return attrs
 
     def __post_init__(self):
         # Check if all input files exist
-        for nm, value in self.__dict__().items():  # pylint: disable=not-callable
-            if isinstance(value, DataPaths):
+        for nm, value in self.asdict().items():
+            if isinstance(value, DataPaths) or value is None:
                 # DataPaths instances should already have been checked
                 continue
             if nm == "output_folder":
@@ -174,7 +190,7 @@ class LGVInputPaths:
 
     def __str__(self) -> str:
         s = [f"{self.__class__.__name__}("]
-        for nm, value in self.__dict__().items():  # pylint: disable=not-callable
+        for nm, value in self.asdict().items():
             s.append(f"{nm}={value}")
         return "\n\t".join(s) + "\n)"
 

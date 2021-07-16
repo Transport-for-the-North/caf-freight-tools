@@ -58,6 +58,9 @@ class LGVConfig(configparser.ConfigParser):
         "lad_lookup_path": "LAD lookup",
         "output_folder": "output folder",
         "model_study_area": "model study area",
+        "cost_matrix_path": "Cost Matrix",
+        "calibration_matrix_path": "Calibration Matrix",
+        "trip_distributions_path": "Trip Distributions Spreadsheet",
     }
     """Names of the expected options in config file (values), keys are for internal use."""
     input_paths: LGVInputPaths = None
@@ -89,10 +92,14 @@ class LGVConfig(configparser.ConfigParser):
         )
         # All parameters in ignore are handled separately
         ignore = ("hh_data", "hh_zc", "bres_data", "bres_zc", "voa_data", "voa_zc")
+        optional = ("calibration_matrix_path",)
         for nm, option_name in self.OPTIONS.items():
             if nm in ignore:
                 continue
-            paths[nm] = self.getpath(self.SECTION, option_name)
+            if nm in optional:
+                paths[nm] = self.getpath(self.SECTION, option_name, fallback=None)
+            else:
+                paths[nm] = self.getpath(self.SECTION, option_name)
         self.input_paths = LGVInputPaths(**paths)
 
     def getpath(self, section: str, option: str, **kwargs) -> Path:
@@ -110,7 +117,10 @@ class LGVConfig(configparser.ConfigParser):
         Path
             Path object for the given `option`.
         """
-        return Path(self.get(section, option, **kwargs))
+        item = self.get(section, option, **kwargs)
+        if item:
+            return Path(item)
+        return item
 
     @classmethod
     def write_example(cls, path: Path):
@@ -161,8 +171,9 @@ class LGVTripEnds:
     trades (SOCs 51, 52, 53) for all zones (index).
     """
 
-    def __dir__(self) -> tuple[str]:
-        return (
+    def asdict(self) -> dict[str, pd.DataFrame]:
+        """Return copies of class attributes as a dictionary."""
+        attrs = (
             "service",
             "delivery_parcel_stem",
             "delivery_parcel_bush",
@@ -170,13 +181,11 @@ class LGVTripEnds:
             "commuting_drivers",
             "commuting_skilled_trades",
         )
-
-    def __dict__(self) -> dict[str, pd.DataFrame]:
-        return {a: getattr(self, a).copy() for a in self.__dir__()}
+        return {a: getattr(self, a).copy() for a in attrs}
 
     def __str__(self) -> str:
         msg = [f"{self.__class__.__name__}("]
-        for attr in self.__dir__():
+        for attr in self.asdict():
             buf = io.StringIO()
             getattr(self, attr).info(buf=buf)
             msg.append(f"{attr}=" + buf.getvalue().replace("\n", "\n\t\t").strip())
