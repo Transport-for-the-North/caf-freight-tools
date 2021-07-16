@@ -44,6 +44,17 @@ class FurnessResults:
     difference: float = None
     """The RMS difference between matrix and row/column totals, only for 2D furness."""
 
+    def asdict(self) -> dict:
+        """Return class attributes as a dictionary."""
+        attrs = {}
+        for nm in dir(self):
+            if nm.startswith("_"):
+                continue
+            a = getattr(self, nm)
+            if not callable(a):
+                attrs[nm] = a
+        return attrs
+
 
 ##### FUNCTIONS #####
 def _check_matrix(matrix: np.ndarray):

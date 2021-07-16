@@ -16,11 +16,33 @@ import pandas as pd
 
 # Local imports
 from ..data_utils import DataPaths
-from .lgv_inputs import lgv_parameters, LGVInputPaths
+from .lgv_inputs import lgv_parameters, LGVInputPaths, read_study_area
 from .service_segment import ServiceTripEnds
 from .delivery_segment import DeliveryTripEnds
 from .commute_segment import CommuteTripEnds
+from .gravity_model import CalibrateGravityModel
+from .furnessing import FurnessConstraint
 
+
+##### CONSTANTS #####
+CONSTRAINTS_BY_SEGMENT = {
+    "service": FurnessConstraint.DOUBLE,
+    "delivery_parcel_stem": FurnessConstraint.DOUBLE,
+    "delivery_parcel_bush": FurnessConstraint.SINGLE,
+    "delivery_grocery": FurnessConstraint.SINGLE,
+    "commuting_drivers": FurnessConstraint.DOUBLE,
+    "commuting_skilled_trades": FurnessConstraint.DOUBLE,
+}
+"""Constraint type for each trip ends segment."""
+TRIP_DISTRIBUTION_SHEETS = {
+    "service": "Service",
+    "delivery_parcel_stem": "Delivery",
+    "delivery_parcel_bush": "Delivery Bush",
+    "delivery_grocery": "Delivery Bush",
+    "commuting_drivers": "Commuting",
+    "commuting_skilled_trades": "Commuting",
+}
+"""Name of sheet in trip distributions file for each segment."""
 
 ##### CLASSES #####
 class LGVConfig(configparser.ConfigParser):
@@ -223,6 +245,8 @@ def calculate_trip_ends(
     .delivery_segment.DeliveryTripEnds: Calculates delivery trip ends.
     LGVTripEnds: Stores all trip end DataFrames.
     """
+    print("Calculating Trip Ends")
+    output_folder.mkdir(exist_ok=True)
     # Calculate the service trip ends and save output
     service = ServiceTripEnds(
         input_paths.household_paths,
@@ -273,6 +297,7 @@ def calculate_trip_ends(
     for key in commute_trips:
         commute_trips[key].to_csv(output_folder / Path(f"commute_{key}_trip_ends.csv"))
 
+    print("\tDone")
     return LGVTripEnds(
         service=service.trip_ends,
         delivery_parcel_stem=delivery.parcel_stem_trip_ends,
@@ -283,7 +308,56 @@ def calculate_trip_ends(
     )
 
 
+def run_gravity_model(
+    input_paths: LGVInputPaths, trip_ends: LGVTripEnds, output_folder: Path
+):
+    """Run the gravity model calibration for each segment.
+
+    Parameters
+    ----------
+    input_paths : LGVInputPaths
+        Paths to all inputs files.
+    trip_ends : LGVTripEnds
+        Trip ends for each segment.
+    output_folder : Path
+        Path to folder to save outputs.
+    """
+    internals = read_study_area(input_paths.model_study_area)
+    for name, te in trip_ends.asdict().items():
+        print(f"Running Gravity Model: {name}")
+        calib_gm = CalibrateGravityModel(
+            te,
+            input_paths.cost_matrix_path,
+            (input_paths.trip_distributions_path, TRIP_DISTRIBUTION_SHEETS[name]),
+            input_paths.calibration_matrix_path,
+            internal_zones=internals,
+        )
+        calib_gm.calibrate_gravity_model(constraint=CONSTRAINTS_BY_SEGMENT[name])
+        print("\tFinished, now writing outputs")
+        output_folder.mkdir(exist_ok=True)
+        calib_gm.plot_distribution(output_folder / (name + "-distribution.pdf"))
+        calib_gm.trip_matrix.to_csv(output_folder / (name + "-trip_matrix.csv"))
+        with pd.ExcelWriter(output_folder / (name + "-GM_log.xlsx")) as writer:
+            df = pd.DataFrame.from_dict(calib_gm.results.asdict(), orient="index")
+            df.to_excel(writer, sheet_name="Calibration Results", header=False)
+            df = pd.DataFrame.from_dict(
+                calib_gm.furness_results.asdict(), orient="index"
+            )
+            df.to_excel(writer, sheet_name="Furnessing Results", header=False)
+            calib_gm.trip_distribution.to_excel(
+                writer, sheet_name="Trip Distribution", index=False
+            )
+        print("\tFinished writing")
+
+
 def main(input_paths: LGVInputPaths):
+    """Runs the LGV model.
+
+    Parameters
+    ----------
+    input_paths : LGVInputPaths
+        Paths to all the input files for the LGV model.
+    """
     parameters = lgv_parameters(input_paths.parameters_path)
 
     # Create output folder
@@ -291,14 +365,15 @@ def main(input_paths: LGVInputPaths):
         input_paths.output_folder
         / f"LGV Model Outputs - {datetime.now():%Y-%m-%d %H.%M.%S}"
     )
-    output_folder.mkdir(exist_ok=True)
-    out_trip_ends = output_folder / "trip ends"
-    out_trip_ends.mkdir(exist_ok=True)
+    output_folder.mkdir(exist_ok=True, parents=True)
 
     trip_ends = calculate_trip_ends(
-        input_paths, out_trip_ends, parameters["lgv_growth"], parameters["year"]
+        input_paths,
+        output_folder / "trip ends",
+        parameters["lgv_growth"],
+        parameters["year"],
     )
-    print(trip_ends)
+    run_gravity_model(input_paths, trip_ends, output_folder / "trip matrices")
 
 
 # TODO Remove Test Code
@@ -307,5 +382,4 @@ if __name__ == "__main__":
         r"C:\WSP_Projects\TfN Local Freight Model\01 - Delivery\LGV Method\LGV_config.ini"
     )
     config_file = LGVConfig(config_path)
-    print(config_file)
     main(config_file.input_paths)

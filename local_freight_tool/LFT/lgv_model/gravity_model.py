@@ -43,6 +43,17 @@ class CalibrationResults:
     """R squared value between the observed and trip matrix
     cost distributions."""
 
+    def asdict(self) -> dict:
+        """Return class attributes as a dictionary."""
+        attrs = {}
+        for nm in dir(self):
+            if nm.startswith("_"):
+                continue
+            a = getattr(self, nm)
+            if not callable(a):
+                attrs[nm] = a
+        return attrs
+
 
 class CalibrateGravityModel:
     """Calibrates the gravity model using least squares fit to find optimal parameters.
@@ -607,7 +618,7 @@ def gravity_model(
 
     # Furness trip matrix to trip ends
     if constraint is FurnessConstraint.SINGLE:
-        matrix = factor_1d(init_matrix, trip_ends.iloc[0], axis=0)
+        matrix = factor_1d(init_matrix, trip_ends.iloc[:, 0].values, axis=0)
         results = FurnessResults(constraint, "Matrix factored to trip ends on axis 0")
     elif constraint is FurnessConstraint.DOUBLE:
         # Check trip_ends has the correct names
@@ -629,10 +640,6 @@ def gravity_model(
         raise ValueError(f"`constraint` should be {options} not {constraint!r}")
     matrix = pd.DataFrame(matrix, index=trip_ends.index, columns=trip_ends.index)
     return matrix, results
-
-
-def main():
-    pass
 
 
 def test_gm_func():
