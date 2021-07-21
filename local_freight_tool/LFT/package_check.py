@@ -92,7 +92,8 @@ class PackageChecker:
             r"(\w+)"  # package name
             # optional comparator and version number
             r"(?:([>=<]{1,2})"  # comparator
-            r"(\d+(?:\.\d+){0,2}))?"  # version number string
+            r"(\d+(?:\.\d+){0,2})(\.\*)?)?"  # version number string
+            # optionally ending in *
         )
         expected_versions = {}
         invalid = []
@@ -105,7 +106,13 @@ class PackageChecker:
                     ver = None
                 else:
                     ver = packaging.version.parse(match.group(3))
-                expected_versions[match.group(1)] = (match.group(2), ver)
+                comp = match.group(2)
+                try:
+                    if match.group(4) == ".*" and comp == "=":
+                        comp = "~="
+                except IndexError:
+                    pass  # Do nothing if no group 4 exists
+                expected_versions[match.group(1)] = (comp, ver)
         return expected_versions
 
     @property
@@ -188,6 +195,13 @@ class PackageChecker:
             elif comp == "<=":
                 if ver > exp:
                     incorrect.append(msg)
+            elif comp == "~=":
+                if exp != ver:
+                    # Compare only those given in expected
+                    exp_ls = exp.base_version.split(".")
+                    ver_ls = ver.base_version.split(".")
+                    if exp_ls != ver_ls[: len(exp_ls)]:
+                        incorrect.append(msg)
             else:
                 incorrect.append(f"unknown version comparison ({comp}) for {k}")
 
