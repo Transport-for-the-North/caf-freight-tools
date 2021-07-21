@@ -335,7 +335,7 @@ class CalibrateGravityModel:
                 self.trip_distribution["observed proportions"],
                 self.trip_distribution["matrix proportions"],
             ),
-            timedelta(seconds=round(time.perf_counter() - start, 3)),
+            timedelta(seconds=time.perf_counter() - start),
         )
         return self.results
 

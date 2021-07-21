@@ -323,6 +323,7 @@ class LGVMatrices:
             "delivery_grocery",
             "commuting_drivers",
             "commuting_skilled_trades",
+            "combined"
             "zones",
         )
         return {a: getattr(self, a).copy() for a in attrs}
@@ -485,6 +486,35 @@ def run_gravity_model(
     return LGVMatrices(**matrices)
 
 
+def matrix_time_periods(matrices: LGVMatrices, factors: dict[str, float], output_folder: Path):
+    """Converts all matrices to time periods based on given `factors`.
+
+    Saves all matrices to sub-folder inside
+    `output_folder`, the sub-folders have
+    the same names as the keys in `factors`.
+
+    Parameters
+    ----------
+    matrices : LGVMatrices
+        The trip matrices to be converted.
+    factors : dict[str, float]
+        The time period names (keys) and factors (values).
+    output_folder : Path
+        Path to the folder where outputs are saved.
+    """
+    output_folder.mkdir(exist_ok=True)
+    df = pd.DataFrame.from_dict(factors, orient="index", columns=["Factor"])
+    df.to_csv(output_folder / "time_period_factors.csv", index_label="Time Periods")
+    for tp, fac in factors.items():
+        folder = output_folder / tp
+        folder.mkdir(exist_ok=True)
+        for name, mat in matrices.asdict().items():
+            if name == "zones":
+                continue
+            mat = mat * fac
+            mat.to_csv(folder / f"{tp}_{name}-trip_matrix.csv")
+
+
 def main(input_paths: LGVInputPaths):
     """Runs the LGV model.
 
@@ -509,9 +539,16 @@ def main(input_paths: LGVInputPaths):
         parameters["year"],
     )
     matrices = run_gravity_model(
-        input_paths, trip_ends, output_folder / "trip matrices"
+        input_paths, trip_ends, output_folder / "annual trip matrices"
     )
-
+    # TODO Remove hardcoded time period factors
+    FACTORS = {
+        "AM": 9.22036e-06,
+        "IP": 8.15102E-06,
+        "PM": 6.27451E-06,
+    }
+    matrix_time_periods(matrices, FACTORS, output_folder / "time period matrices")
+    print("Done")
 
 # TODO Remove Test Code
 if __name__ == "__main__":
