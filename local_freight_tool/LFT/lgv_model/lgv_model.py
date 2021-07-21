@@ -216,7 +216,7 @@ class LGVTripEnds:
             index = index.union(getattr(self, nm).index)
         self.zones = index.values
         for nm in dataframes:
-            df = getattr(self, nm).reindex(index, fill_value=0.0)
+            df = getattr(self, nm).reindex(index, fill_value=0)
             # Fill any other NaNs with 0s
             df.fillna(0, inplace=True)
             setattr(self, nm, df)
@@ -241,6 +241,98 @@ class LGVTripEnds:
             getattr(self, attr).info(buf=buf)
             msg.append(f"{attr}=" + buf.getvalue().replace("\n", "\n\t\t").strip())
         return "\n\t".join(msg) + "\n)"
+
+    def __repr__(self) -> str:
+        return str(self)
+
+
+@dataclass
+class LGVMatrices:
+    """Dataclass to store the trip matrices for all segments.
+
+    Aligns all the trip end matrices to include all zones
+    present in at least one DataFrame, any missing zones
+    are filled with 0 trip ends for that DataFrame.
+    Calculates `combined` matrix by summing the individual
+    segment matrices.
+    """
+
+    service: pd.DataFrame
+    """Service trips matrix, with zone numbers
+    for columns and indices."""
+    delivery_parcel_stem: pd.DataFrame
+    """Delivery parcel stem trips matrix, with zone numbers
+    for columns and indices."""
+    delivery_parcel_bush: pd.DataFrame
+    """Delivery parcel bush trips matrix, with zone numbers
+    for columns and indices."""
+    delivery_grocery: pd.DataFrame
+    """Delivery grocery bush trips matrix, with zone numbers
+    for columns and indices."""
+    commuting_drivers: pd.DataFrame
+    """Commuting drivers (SOC821) trips matrix, with zone numbers
+    for columns and indices."""
+    commuting_skilled_trades: pd.DataFrame
+    """Commuting skilled trades (SOCs 51, 52, 53) trips matrix,
+    with zone numbers for columns and indices."""
+    combined: pd.DataFrame = field(init=False)
+    """Trips matrix for all combined segments, with zone numbers
+    for columns and indices."""
+    zones: np.ndarray = field(init=False)
+    """Array of all zones, used as index for all trip end dataframes."""
+
+    def __post_init__(self):
+        """Reindex all trip end dataframes to contain all zones.
+
+        Sum invidual matrices together to get `combined` matrix.
+        """
+        dataframes = (
+            "service",
+            "delivery_parcel_stem",
+            "delivery_parcel_bush",
+            "delivery_grocery",
+            "commuting_drivers",
+            "commuting_skilled_trades",
+        )
+        index = pd.Int64Index([])
+        for nm in dataframes:
+            index = index.union(getattr(self, nm).index)
+            index = index.union(getattr(self, nm).columns)
+        self.zones = index.values
+        for nm in dataframes:
+            df = getattr(self, nm).reindex(index, fill_value=0)
+            df = df.reindex(index, axis=1, fill_value=0)
+            # Fill any other NaNs with 0s
+            df.fillna(0, inplace=True)
+            setattr(self, nm, df)
+        self.combined = (
+            self.service
+            + self.delivery_parcel_stem
+            + self.delivery_parcel_bush
+            + self.delivery_grocery
+            + self.commuting_drivers
+            + self.commuting_skilled_trades
+        )
+
+    def asdict(self) -> dict[str, pd.DataFrame]:
+        """Return copies of class attributes as a dictionary."""
+        attrs = (
+            "service",
+            "delivery_parcel_stem",
+            "delivery_parcel_bush",
+            "delivery_grocery",
+            "commuting_drivers",
+            "commuting_skilled_trades",
+            "zones",
+        )
+        return {a: getattr(self, a).copy() for a in attrs}
+
+    def __str__(self) -> str:
+        msg = f"{self.__class__.__name__}("
+        for nm, df in self.asdict().items():
+            msg += f"{nm}=Matrix{df.values.shape}"
+        msg += ")"
+        return msg
 
     def __repr__(self) -> str:
         return str(self)
@@ -339,7 +431,7 @@ def calculate_trip_ends(
 
 def run_gravity_model(
     input_paths: LGVInputPaths, trip_ends: LGVTripEnds, output_folder: Path
-):
+) -> LGVMatrices:
     """Run the gravity model calibration for each segment.
 
     Parameters
@@ -350,8 +442,14 @@ def run_gravity_model(
         Trip ends for each segment.
     output_folder : Path
         Path to folder to save outputs.
+
+    Returns
+    -------
+    LgvMatrices
+        Trip matrices for each segment and combined.
     """
     internals = read_study_area(input_paths.model_study_area)
+    matrices = {}
     for name, te in trip_ends.asdict().items():
         if name == "zones":
             continue
@@ -367,6 +465,7 @@ def run_gravity_model(
         print("\tFinished, now writing outputs")
         output_folder.mkdir(exist_ok=True)
         calib_gm.plot_distribution(output_folder / (name + "-distribution.pdf"))
+        matrices[name] = calib_gm.trip_matrix
         calib_gm.trip_matrix.to_csv(output_folder / (name + "-trip_matrix.csv"))
         with pd.ExcelWriter(output_folder / (name + "-GM_log.xlsx")) as writer:
             df = pd.DataFrame.from_dict(calib_gm.results.asdict(), orient="index")
@@ -383,6 +482,7 @@ def run_gravity_model(
             )
             vehicle_kms.to_excel(writer, sheet_name="Vehicle Kilometres")
         print("\tFinished writing")
+    return LGVMatrices(**matrices)
 
 
 def main(input_paths: LGVInputPaths):
@@ -408,7 +508,9 @@ def main(input_paths: LGVInputPaths):
         parameters["lgv_growth"],
         parameters["year"],
     )
-    run_gravity_model(input_paths, trip_ends, output_folder / "trip matrices")
+    matrices = run_gravity_model(
+        input_paths, trip_ends, output_folder / "trip matrices"
+    )
 
 
 # TODO Remove Test Code
