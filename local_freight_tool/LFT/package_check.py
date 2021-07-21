@@ -16,6 +16,8 @@ import yaml
 import packaging.version
 import numpy as np
 import pandas as pd
+import matplotlib
+import scipy
 import openpyxl
 import geopandas as gpd
 import jinja2
@@ -140,10 +142,12 @@ class PackageChecker:
                 "pandas": pd.__version__,
                 "geopandas": gpd.__version__,
                 "jinja2": jinja2.__version__,
+                "matplotlib": matplotlib.__version__,
                 "markdown": markdown.__version__,
                 "numpy": np.__version__,
                 "packaging": packaging.__version__,
                 "pyyaml": yaml.__version__,
+                "scipy": scipy.__version__,
             }
         return self._versions
 
