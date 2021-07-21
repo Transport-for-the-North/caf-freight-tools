@@ -21,7 +21,7 @@ from .lgv_inputs import lgv_parameters, LGVInputPaths, read_study_area
 from .service_segment import ServiceTripEnds
 from .delivery_segment import DeliveryTripEnds
 from .commute_segment import CommuteTripEnds
-from .gravity_model import CalibrateGravityModel
+from .gravity_model import CalibrateGravityModel, calculate_vehicle_kms
 from .furnessing import FurnessConstraint
 
 
@@ -378,6 +378,10 @@ def run_gravity_model(
             calib_gm.trip_distribution.to_excel(
                 writer, sheet_name="Trip Distribution", index=False
             )
+            vehicle_kms = calculate_vehicle_kms(
+                calib_gm.trip_matrix, calib_gm.costs, internals
+            )
+            vehicle_kms.to_excel(writer, sheet_name="Vehicle Kilometres")
         print("\tFinished writing")
 
 

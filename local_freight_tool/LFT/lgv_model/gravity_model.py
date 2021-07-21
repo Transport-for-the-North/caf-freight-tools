@@ -9,6 +9,8 @@
 
 ##### IMPORTS #####
 # Standard imports
+import time
+from datetime import timedelta
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable, Union
@@ -42,6 +44,8 @@ class CalibrationResults:
     r_squared: float
     """R squared value between the observed and trip matrix
     cost distributions."""
+    time_taken: timedelta
+    """Time taken to calibrate the gravity model."""
 
     def asdict(self) -> dict:
         """Return class attributes as a dictionary."""
@@ -136,7 +140,7 @@ class CalibrateGravityModel:
         trip_ends_path: Union[Path, pd.DataFrame],
         cost_path: Union[Path, pd.DataFrame],
         trip_distribution_path: tuple[Path, str],
-        calibration_path: Union[Path, pd.DataFrame]
+        calibration_path: Union[Path, pd.DataFrame],
     ):
         """Reads and checks input files and performs some pre-processing on them."""
         # Read trip ends, with first column as index and rename
@@ -145,7 +149,10 @@ class CalibrateGravityModel:
             self.trip_ends = trip_ends_path.copy()
         else:
             self.trip_ends = utilities.read_csv(
-                trip_ends_path, "Trip Ends CSV", {0: int, 1: float, 2: float}, index_col=0
+                trip_ends_path,
+                "Trip Ends CSV",
+                {0: int, 1: float, 2: float},
+                index_col=0,
             )
         self.trip_ends.columns = ["attractions", "productions"]
         # Read costs and calibration and use first column as index
@@ -296,6 +303,7 @@ class CalibrateGravityModel:
         --------
         gravity_model
         """
+        start = time.perf_counter()
         self._call_count = 0
         self._function_name = function
         self._function_kwargs = kwargs
@@ -327,6 +335,7 @@ class CalibrateGravityModel:
                 self.trip_distribution["observed proportions"],
                 self.trip_distribution["matrix proportions"],
             ),
+            timedelta(seconds=round(time.perf_counter() - start, 3)),
         )
         return self.results
 
@@ -523,12 +532,15 @@ def _get_cost_function(name: str) -> tuple[Callable, list, tuple[list, list]]:
 
 
 def _check_gm_inputs(
-    trip_ends: pd.DataFrame, costs: pd.DataFrame, calibration: pd.DataFrame
-) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    trip_ends: pd.DataFrame, costs: pd.DataFrame, calibration: pd.DataFrame = None
+) -> tuple[pd.DataFrame]:
     """Sorts the indices and checks the input DataFrames for `gravity_model`."""
     # Copy the DataFrames so links to them outside this function aren't edited
-    data = (trip_ends.copy(), costs.copy(), calibration.copy())
-    names = ("trip_ends", "costs", "calibration")
+    data = [trip_ends.copy(), costs.copy()]
+    names = ["trip_ends", "costs"]
+    if calibration is not None:
+        data.append(calibration.copy())
+        names.append("calibration")
     for nm, df in zip(names, data):
         df.sort_index(axis=0, inplace=True)
         if df.index.has_duplicates:
@@ -640,6 +652,58 @@ def gravity_model(
         raise ValueError(f"`constraint` should be {options} not {constraint!r}")
     matrix = pd.DataFrame(matrix, index=trip_ends.index, columns=trip_ends.index)
     return matrix, results
+
+
+def calculate_vehicle_kms(
+    matrix: pd.DataFrame, distances: pd.DataFrame, internals: set[int] = None
+) -> pd.DataFrame:
+    """Summarise number of trips and vehicle kilometres by internal/external.
+
+    Parameters
+    ----------
+    matrix : pd.DataFrame
+        Square trip matrix, indices and columns should be
+        zone numbers.
+    distances : pd.DataFrame
+        Square matrix of distances with the same indices
+        and columns as `matrix`
+    internals : set[int], optional
+        Set of all internal zone numbers.
+
+    Returns
+    -------
+    pd.DataFrame
+        The number of trips and vehicle kilometres in the
+        matrix, if `internals` is given then splits the totals
+        into II, IE, EI and EE.
+    """
+    matrix, distances = _check_gm_inputs(matrix, distances)
+    trips = {"All Trips": np.sum(matrix.values)}
+    vehicle_kms = {"All Trips": np.sum((matrix * distances).values)}
+    if internals:
+        internals = set(internals)
+        externals = set(matrix.index) - internals
+        filters = {
+            "Internal-Internal": (internals, internals),
+            "Internal-External": (internals, externals),
+            "External-Internal": (externals, internals),
+            "External-External": (externals, externals),
+        }
+        for nm, (index, cols) in filters.items():
+            trips[nm] = np.sum(matrix.loc[index, cols].values)
+            vehicle_kms[nm] = np.sum(
+                (matrix.loc[index, cols] * distances.loc[index, cols]).values
+            )
+    df = pd.DataFrame(
+        {("Trips", "Value"): trips, ("Vehicle Kilometers", "Value"): vehicle_kms}
+    )
+    if internals:
+        for c in df.columns.get_level_values(0):
+            df.loc[:, (c, "Percentage")] = (
+                df[(c, "Value")] / df.loc["All Trips", (c, "Value")]
+            )
+        df.sort_index(axis=1, level=0, sort_remaining=False, inplace=True)
+    return df
 
 
 def test_gm_func():
