@@ -9,9 +9,10 @@ import configparser
 import io
 from pathlib import Path
 from datetime import datetime
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 # Third party imports
+import numpy as np
 import pandas as pd
 
 # Local imports
@@ -166,7 +167,12 @@ class LGVConfig(configparser.ConfigParser):
 
 @dataclass
 class LGVTripEnds:
-    """Dataclass to store the trip end data for all segments."""
+    """Dataclass to store the trip end data for all segments.
+
+    Aligns all the trip end matrices to include all zones
+    present in at least one DataFrame, any missing zones
+    are filled with 0 trip ends for that DataFrame.
+    """
 
     service: pd.DataFrame
     """Service Productions and Attractions trip ends
@@ -192,6 +198,28 @@ class LGVTripEnds:
     """Commuting Productions and Attractions trip ends (columns) for Skilled
     trades (SOCs 51, 52, 53) for all zones (index).
     """
+    zones: np.ndarray = field(init=False)
+    """Array of all zones, used as index for all trip end dataframes."""
+
+    def __post_init__(self):
+        """Reindex all trip end dataframes to contain all zones."""
+        dataframes = (
+            "service",
+            "delivery_parcel_stem",
+            "delivery_parcel_bush",
+            "delivery_grocery",
+            "commuting_drivers",
+            "commuting_skilled_trades",
+        )
+        index = pd.Int64Index([])
+        for nm in dataframes:
+            index = index.union(getattr(self, nm).index)
+        self.zones = index.values
+        for nm in dataframes:
+            df = getattr(self, nm).reindex(index, fill_value=0.0)
+            # Fill any other NaNs with 0s
+            df.fillna(0, inplace=True)
+            setattr(self, nm, df)
 
     def asdict(self) -> dict[str, pd.DataFrame]:
         """Return copies of class attributes as a dictionary."""
@@ -202,6 +230,7 @@ class LGVTripEnds:
             "delivery_grocery",
             "commuting_drivers",
             "commuting_skilled_trades",
+            "zones",
         )
         return {a: getattr(self, a).copy() for a in attrs}
 
@@ -324,6 +353,8 @@ def run_gravity_model(
     """
     internals = read_study_area(input_paths.model_study_area)
     for name, te in trip_ends.asdict().items():
+        if name == "zones":
+            continue
         print(f"Running Gravity Model: {name}")
         calib_gm = CalibrateGravityModel(
             te,
