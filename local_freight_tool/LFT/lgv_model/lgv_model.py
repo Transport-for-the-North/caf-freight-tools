@@ -17,7 +17,12 @@ import pandas as pd
 
 # Local imports
 from ..data_utils import DataPaths
-from .lgv_inputs import lgv_parameters, LGVInputPaths, read_study_area
+from .lgv_inputs import (
+    lgv_parameters,
+    LGVInputPaths,
+    read_study_area,
+    read_time_factors,
+)
 from .service_segment import ServiceTripEnds
 from .delivery_segment import DeliveryTripEnds
 from .commute_segment import CommuteTripEnds
@@ -250,11 +255,10 @@ class LGVTripEnds:
 class LGVMatrices:
     """Dataclass to store the trip matrices for all segments.
 
-    Aligns all the trip end matrices to include all zones
-    present in at least one DataFrame, any missing zones
-    are filled with 0 trip ends for that DataFrame.
-    Calculates `combined` matrix by summing the individual
-    segment matrices.
+    Aligns all the trip matrices to include all zones present
+    in at least one DataFrame, any missing zones are filled
+    with 0 trips for that DataFrame. Calculates `combined`
+    matrix by summing the individual segment matrices.
     """
 
     service: pd.DataFrame
@@ -323,15 +327,17 @@ class LGVMatrices:
             "delivery_grocery",
             "commuting_drivers",
             "commuting_skilled_trades",
-            "combined"
+            "combined",
             "zones",
         )
         return {a: getattr(self, a).copy() for a in attrs}
 
     def __str__(self) -> str:
         msg = f"{self.__class__.__name__}("
+        ls = []
         for nm, df in self.asdict().items():
-            msg += f"{nm}=Matrix{df.values.shape}"
+            ls.append(f"{nm}=Matrix{df.shape}")
+        msg += ", ".join(ls)
         msg += ")"
         return msg
 
@@ -486,33 +492,55 @@ def run_gravity_model(
     return LGVMatrices(**matrices)
 
 
-def matrix_time_periods(matrices: LGVMatrices, factors: dict[str, float], output_folder: Path):
-    """Converts all matrices to time periods based on given `factors`.
+def matrix_time_periods(
+    matrices: LGVMatrices, factors_path: Path, output_folder: Path
+) -> dict[str, LGVMatrices]:
+    """Converts all matrices to time periods based on factors in `factors_path`.
 
-    Saves all matrices to sub-folder inside
-    `output_folder`, the sub-folders have
-    the same names as the keys in `factors`.
+    Saves all matrices to sub-folder inside `output_folder`,
+    the sub-folders have the same names as the time periods
+    given.
 
     Parameters
     ----------
     matrices : LGVMatrices
         The trip matrices to be converted.
-    factors : dict[str, float]
-        The time period names (keys) and factors (values).
+    factors_path : Path
+        Path to Excel workbook containing time period
+        factors.
     output_folder : Path
         Path to the folder where outputs are saved.
+
+    Returns
+    -------
+    dict[str, LGVMatrices]
+        Dictionary containing all matrices (values) for
+        each time period (keys), contains the same time
+        periods as given in the input table.
+
+    See Also
+    --------
+    read_time_factors
+        Function to read time period factors from `factors_path`.
     """
+    factors = read_time_factors(factors_path)
     output_folder.mkdir(exist_ok=True)
-    df = pd.DataFrame.from_dict(factors, orient="index", columns=["Factor"])
+    df = pd.DataFrame.from_dict(factors, orient="index")
     df.to_csv(output_folder / "time_period_factors.csv", index_label="Time Periods")
+    tp_matrices = {}
     for tp, fac in factors.items():
         folder = output_folder / tp
         folder.mkdir(exist_ok=True)
+        tmp_matrices = {}
         for name, mat in matrices.asdict().items():
-            if name == "zones":
+            if name in ("zones", "combined"):
                 continue
-            mat = mat * fac
+            mat = mat * fac.get(name)
             mat.to_csv(folder / f"{tp}_{name}-trip_matrix.csv")
+            tmp_matrices[name] = mat
+        tp_matrices[tp] = LGVMatrices(**tmp_matrices)
+        tp_matrices[tp].combined.to_csv(folder / f"{tp}_combined-trip_matrix.csv")
+    return tp_matrices
 
 
 def main(input_paths: LGVInputPaths):
@@ -538,17 +566,16 @@ def main(input_paths: LGVInputPaths):
         parameters["lgv_growth"],
         parameters["year"],
     )
-    matrices = run_gravity_model(
+    annual_matrices = run_gravity_model(
         input_paths, trip_ends, output_folder / "annual trip matrices"
     )
-    # TODO Remove hardcoded time period factors
-    FACTORS = {
-        "AM": 9.22036e-06,
-        "IP": 8.15102E-06,
-        "PM": 6.27451E-06,
-    }
-    matrix_time_periods(matrices, FACTORS, output_folder / "time period matrices")
+    matrix_time_periods(
+        annual_matrices,
+        input_paths.parameters_path,
+        output_folder / "time period matrices",
+    )
     print("Done")
+
 
 # TODO Remove Test Code
 if __name__ == "__main__":

@@ -119,7 +119,18 @@ LGV_PARAMETERS = {
     "year": "Model Year",
 }
 """Names of the parameters (values) expected and their internal code name (keys)."""
-
+TIME_PERIOD_SHEET = "Time Period Factors"
+"""Name of the Excel Worksheet containing the time period factors."""
+TIME_PERIOD_COLUMNS = {
+    "time_period": ("Time Period", str),
+    "service": ("Service", float),
+    "delivery_parcel_stem": ("Delivery Parcel Stem", float),
+    "delivery_parcel_bush": ("Delivery Parcel Bush", float),
+    "delivery_grocery": ("Delivery Grocery", float),
+    "commuting_drivers": ("Commuting Drivers", float),
+    "commuting_skilled_trades": ("Commuting Skilled Trades", float),
+}
+"""Name and dtype of the expected columns in the time period table."""
 
 ##### CLASSES #####
 @dataclass(frozen=True)
@@ -539,3 +550,34 @@ def read_study_area(path: Path) -> set:
     df["internal"] = df["internal"].astype(bool)
     internal = df.loc[df.internal, "zone"].tolist()
     return set(internal)
+
+
+def read_time_factors(path: Path) -> dict[str, dict[str, float]]:
+    """Read time period factors from Excel Worksheet.
+
+    Expected worksheet name given by `TIME_PERIOD_SHEET`
+    and expected columns given in `TIME_PERIOD_COLUMNS`.
+
+    Parameters
+    ----------
+    path : Path
+        Path to the Excel workbook containing the factors.
+
+    Returns
+    -------
+    dict[str, dict[str, float]]
+        Dictionary of all given time periods which contains
+        dictionaries for the factor (value) for each segment
+        (key). Keys for the internal dictionary are the same
+        as the keys in `TIME_PERIOD_COLUMNS`.
+    """
+    df = utilities.read_excel(
+        path,
+        "Time Period Table",
+        columns=dict(TIME_PERIOD_COLUMNS.values()),
+        sheet_name=TIME_PERIOD_SHEET,
+        index_col=0,
+    )
+    rename = {v[0]: k for k, v in TIME_PERIOD_COLUMNS.items()}
+    df.rename(columns=rename, inplace=True)
+    return df.to_dict(orient="index")
