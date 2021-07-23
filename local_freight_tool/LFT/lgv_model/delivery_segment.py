@@ -85,12 +85,6 @@ class DeliveryTripEnds:
         "trips_parcel_bush": ("Annual Trips - Parcel Bush", float),
         "trips_grocery": ("Annual Trips - Grocery Bush", float),
         "b2c": ("B2C vs B2B Weighting", float),
-        "length_parcel_stem": ("Annual Trip Length - Parcel Stem (kms)", float),
-        "length_parcel_bush": ("Annual Trip Length - Parcel Bush (kms)", float),
-        "length_grocery": ("Annual Trip Length - Grocery (kms)", float),
-        "intra_parcel": ("Intra-Zonal Proportions - Parcel", float),
-        "intra_grocery": ("Intra-Zonal Proportions - Grocery", float),
-        "bush_cut_off": ("Bush Cut-off (kms)", float),
         "voa_fill_func": ("VOA Infill Function", str),
         "depots_infill": ("Depots Infill Zones", zone_list),
     }
