@@ -247,11 +247,7 @@ class CalibrateGravityModel:
         hist, _ = np.histogram(matrix, bins=self._bin_edges, weights=weights)
         return hist / np.sum(hist)
 
-    def _gm_distribution(
-        self,
-        _,
-        *args: float,
-    ) -> np.ndarray:
+    def _gm_distribution(self, _, *args: float) -> np.ndarray:
         """Runs gravity model with given parameters and returns distribution.
 
         Used by the `optimize.curve_fit` function.
@@ -319,6 +315,16 @@ class CalibrateGravityModel:
             verbose=2,
             diff_step=1,
         )
+        # Calculate final matrix with optimum parameters
+        self.trip_matrix, self.furness_results = gravity_model(
+            self.trip_ends,
+            self.costs,
+            self.calibration,
+            self._function_name,
+            function_args=popt,
+            **self._function_kwargs,
+        )
+
         non_finite = ~np.isfinite(self.trip_matrix.values)
         if np.any(non_finite):
             raise ValueError(
