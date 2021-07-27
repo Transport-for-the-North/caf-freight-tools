@@ -12,6 +12,7 @@ from .profile_builder import Profile_Builder
 from .hgv_annual_tonne_to_pcu_ui import TonneToPCUInterface
 from .matrix_utilities_ui import MatrixUtilities
 from .lgvprocessing import LGVProcessing
+from .lgv_model.lgv_model_ui import LGVModelUI
 from .combine_shapefiles import CombineShapefiles
 from .zone_correspondence_ui import ZoneCorrespondenceUi
 from .forecast_ui import ForecastUI
@@ -160,7 +161,7 @@ class tier_converter(QtWidgets.QWidget):
 
     @pyqtSlot()
     def on_click_LGVProcessing(self):
-        self.selections_window = LGVProcessing(self)
+        self.selections_window = LGVModelUI(self)
         self.hide()
         self.selections_window.show()
 
