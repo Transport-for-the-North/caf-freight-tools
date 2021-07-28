@@ -451,7 +451,7 @@ Table: Outputs from the HGV annual PCU to model time period PCU module
 | `{time period}_intermediate/{time period}_HGV_rigid-{rezoned zone system name}`  |      CSV       | Time period PCUs matrix for rigid HGVs **after** rezoning to new zone system, contains origin, destination and trips columns.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
 | `{time period}_HGV_combined-{rezoned zone system name}`                          |      CSV       | Time period PCUs matrix for **both vehicle types** (articulated + rigid) **after** rezoning to the new zone system, contains origin, destination and trips columns.                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
 
-## 5: LGV Processing
+## 5: LGV Model
 
 This module contains three separate functionalities for LGV matrix processing. These functionalities
 are present in a more generalised form in module 6: [Matrix Utilities](#6-matrix-utilities). The

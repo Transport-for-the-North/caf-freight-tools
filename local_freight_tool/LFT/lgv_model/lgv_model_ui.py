@@ -4,6 +4,7 @@
 
 ##### IMPORTS #####
 # Standard imports
+from LFT import tc_main_menu
 import pprint
 import traceback
 from pathlib import Path
@@ -26,11 +27,11 @@ class LGVModelUI(QtWidgets.QWidget):
 
     Parameters
     ----------
-    tier_converter : tc_main_menu.tier_converter
-        Local Freight Tool main menu instance.
+    tier_converter : tc_main_menu.tier_converter, optional
+        Local Freight Tool main menu instance, default is None
     """
 
-    def __init__(self, tier_converter):
+    def __init__(self, tier_converter=None):
         super().__init__()
         self.name = "LGV Model"
         self.tier_converter = tier_converter
@@ -128,9 +129,12 @@ class LGVModelUI(QtWidgets.QWidget):
                 j = 0
 
         row = len(self.input_widgets) + 2
-        grid.addWidget(back_button, row, 0, 1, 1, Qt.AlignLeft)
+        if self.tier_converter:
+            grid.addWidget(back_button, row, 0, 1, 1, Qt.AlignLeft)
         grid.addWidget(run_button, row, 2, 1, 1, Qt.AlignRight)
         self.setLayout(grid)
+        if not self.tier_converter:
+            self.show()
 
     def get(self) -> Dict[str, Union[Path, int]]:
         """Get all the parameters provided in the UI.
@@ -196,11 +200,19 @@ class LGVModelUI(QtWidgets.QWidget):
         """Closes the time period conversion window."""
         close = Utilities.closeEvent(self, event)
         if close:
-            self.tier_converter.show()
+            if self.tier_converter:
+                self.tier_converter.show()
 
     def on_click_info(self):
         """Display help menu."""
-        self.info_window = InfoWindow(self, "README.md")
+        if not self.tier_converter:
+            self.info_window = InfoWindow(
+                self,
+                "README.md",
+                include=[("## 5: LGV Model\n", "## 6: Matrix Utilities\n")],
+            )
+        else:
+            self.info_window = InfoWindow(self, "README.md")
         self.info_window.show()
 
     def show_error(self, msg: str, details: str = None):
@@ -232,7 +244,7 @@ class Worker(QThread):
         `main` function.
     """
 
-    LINE_LIMIT = 10
+    LINE_LIMIT = 1
     PROGRESS_WIDTH = 800
     error = pyqtSignal(str, str)
 
