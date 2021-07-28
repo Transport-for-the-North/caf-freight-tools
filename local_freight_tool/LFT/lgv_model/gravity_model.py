@@ -247,11 +247,7 @@ class CalibrateGravityModel:
         hist, _ = np.histogram(matrix, bins=self._bin_edges, weights=weights)
         return hist / np.sum(hist)
 
-    def _gm_distribution(
-        self,
-        _,
-        *args: float,
-    ) -> np.ndarray:
+    def _gm_distribution(self, _, *args: float) -> np.ndarray:
         """Runs gravity model with given parameters and returns distribution.
 
         Used by the `optimize.curve_fit` function.
@@ -317,8 +313,18 @@ class CalibrateGravityModel:
             bounds=bounds,
             method="dogbox",
             verbose=2,
-            diff_step=1,
+            diff_step=0.1,
         )
+        # Calculate final matrix with optimum parameters
+        self.trip_matrix, self.furness_results = gravity_model(
+            self.trip_ends,
+            self.costs,
+            self.calibration,
+            self._function_name,
+            function_args=popt,
+            **self._function_kwargs,
+        )
+
         non_finite = ~np.isfinite(self.trip_matrix.values)
         if np.any(non_finite):
             raise ValueError(
@@ -518,8 +524,8 @@ def _get_cost_function(name: str) -> tuple[Callable, list, tuple[list, list]]:
         If the `name` given isn't an allowed cost function.
     """
     FUNCTION_LOOKUP = {
-        "log_normal": (log_normal, [1.0, 1.0], ([0, -100], [100, 100])),
-        "tanner": (tanner, [1.0, -1.0], ([0, -100], [100, 0])),
+        "log_normal": (log_normal, [1.0, 1.0], ([0, -10], [10, 10])),
+        "tanner": (tanner, [1.0, -1.0], ([-10, -10], [10, 0])),
     }
     try:
         func, init_params, bounds = FUNCTION_LOOKUP[name.lower().strip()]

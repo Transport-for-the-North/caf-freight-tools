@@ -294,6 +294,10 @@ class LGVTripEnds:
     def __str__(self) -> str:
         msg = [f"{self.__class__.__name__}("]
         for attr in self.asdict():
+            if attr == "zones":
+                val = getattr(self, attr)
+                msg.append(f"{attr}={type(val)}<length {len(val)}><dtype {val.dtype}>")
+                continue
             buf = io.StringIO()
             getattr(self, attr).info(buf=buf)
             msg.append(f"{attr}=" + buf.getvalue().replace("\n", "\n\t\t").strip())
