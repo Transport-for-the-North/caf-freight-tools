@@ -99,7 +99,7 @@ def factor_1d(matrix: np.ndarray, total: np.ndarray, axis: int) -> np.ndarray:
 
     curr_tot = np.sum(matrix, axis=axis)
     # Set factor to 0 wherever curr_tot is zero
-    factor = np.divide(total, curr_tot, out=np.zeros_like(total), where=curr_tot != 0)
+    factor = np.divide(total, curr_tot, out=np.ones_like(total), where=curr_tot != 0)
     if axis == 0:
         # Factoring column totals so multiplying factor by each row
         new_matrix = matrix * factor
