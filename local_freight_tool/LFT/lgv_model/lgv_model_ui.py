@@ -18,7 +18,8 @@ from .. import ui_widgets as ui
 from .. import errors
 from ..utilities import Utilities, progress_window
 from ..info_window import InfoWindow
-from .lgv_model import main
+from .lgv_model import main, LGVInputsUI
+
 
 class LGVModelUI(QtWidgets.QWidget):
     """The user interface for the LGV model functionality.
@@ -37,10 +38,10 @@ class LGVModelUI(QtWidgets.QWidget):
         self.worker = None
         self.info_window = None
         self.init_ui()
-    
+
     def init_ui(self):
         """Initilises the UI window and all the widgets."""
-        self.setGeometry(500, 150, 700, 600)
+        self.setGeometry(500, 120, 700, 550)
         self.setWindowTitle(self.name)
         self.setWindowIcon(QtGui.QIcon("icon.png"))
 
@@ -64,36 +65,30 @@ class LGVModelUI(QtWidgets.QWidget):
         run_button.clicked.connect(self.on_click_run)
 
         self.input_widgets = {
-            "hh_data": ui.FileInput(
-                "Household projections CSV", filetype="CSV"
-            ),
+            "hh_data": ui.FileInput("Household projections CSV", filetype="CSV"),
             "hh_zc": ui.FileInput(
                 "Household projections zone correspondence CSV", filetype="CSV"
-                ),
-            "bres_data": ui.FileInput(
-                "BRES data CSV", filetype="CSV"
             ),
-            "bres_zc": ui.FileInput(
-                "BRES zone correspondence CSV", filetype="CSV"
-            ),
-            "voa_data": ui.FileInput(
-                "VOA non domestic ratings CSV", filetype="CSV"
-            ),
-            "voa_zc": ui.FileInput(
-                "VOA zone correspondence CSV", filetype="CSV"
-            ),
+            "bres_data": ui.FileInput("BRES data CSV", filetype="CSV"),
+            "bres_zc": ui.FileInput("BRES zone correspondence CSV", filetype="CSV"),
+            "voa_data": ui.FileInput("VOA non domestic ratings CSV", filetype="CSV"),
+            "voa_zc": ui.FileInput("VOA zone correspondence CSV", filetype="CSV"),
             "parameters_path": ui.FileInput(
                 "LGV parameters spreadsheet", filetype="excel"
             ),
             "trip_distributions_path": ui.FileInput(
-                "Trip distributions spreadsheet", filetype="excel"    
+                "Trip distributions spreadsheet", filetype="excel"
             ),
             "qs606ew_path": ui.FileInput(
-                "Census Occupation data for England and Wales (QS606EW) CSV", filetype="CSV"),
+                "Census Occupation data for England and Wales (QS606EW) CSV",
+                filetype="CSV",
+            ),
             "qs606sc_path": ui.FileInput(
-                "Census Occupation data for Scotland (QS606SC) CSV", filetype="CSV"),
+                "Census Occupation data for Scotland (QS606SC) CSV", filetype="CSV"
+            ),
             "sc_w_dwellings_path": ui.FileInput(
-                "Dwellings data for Wales and Scotland CSV", filetype="CSV"),
+                "Dwellings data for Wales and Scotland CSV", filetype="CSV"
+            ),
             "e_dwellings_path": ui.FileInput(
                 "Dwellings data for England spreadsheet", filetype="excel"
             ),
@@ -112,11 +107,9 @@ class LGVModelUI(QtWidgets.QWidget):
             "model_study_area": ui.FileInput(
                 "Lookup for zones in model  study area CSV", filetype="CSV"
             ),
-            "cost_matrix_path": ui.FileInput(
-                "Cost matrix CSV", filetype="CSV"
-            ),
+            "cost_matrix_path": ui.FileInput("Cost matrix CSV", filetype="CSV"),
             "calibration_matrix_path": ui.FileInput(
-                "Calibration matrix CSV", filetype="CSV"
+                "Calibration matrix CSV (optional)", filetype="CSV"
             ),
             "output_folder": ui.FileInput("Output Folder", directory=True),
         }
@@ -128,12 +121,12 @@ class LGVModelUI(QtWidgets.QWidget):
         j = 0
         for w in self.input_widgets.values():
             grid.addWidget(w, i, j, 1, 1)
-            if j==0:
+            if j == 0:
                 j = 2
             else:
                 i += 1
                 j = 0
-            
+
         row = len(self.input_widgets) + 2
         grid.addWidget(back_button, row, 0, 1, 1, Qt.AlignLeft)
         grid.addWidget(run_button, row, 2, 1, 1, Qt.AlignRight)
@@ -162,9 +155,13 @@ class LGVModelUI(QtWidgets.QWidget):
         params = {}
         missing = []
         for nm, widget in self.input_widgets.items():
-            params[nm] = widget.get()
-            if params[nm] is None:
+            val = widget.get()
+            if val is None and nm != "calibration_matrix_path":
                 missing.append(widget.label_text)
+            elif nm == "calibration_matrix_path" and val is None:
+                pass
+            else:
+                params[nm] = val
         if missing:
             raise errors.MissingDataError("input parameters", missing)
         return params
@@ -220,7 +217,8 @@ class LGVModelUI(QtWidgets.QWidget):
         self.error_dialog.setText(msg)
         self.error_dialog.setDetailedText(details)
         self.error_dialog.show()
-    
+
+
 class Worker(QThread):
     """Worker thread for running the `main` function from `lgv_model`.
 
@@ -234,7 +232,7 @@ class Worker(QThread):
         `main` function.
     """
 
-    LINE_LIMIT = 20
+    LINE_LIMIT = 10
     PROGRESS_WIDTH = 800
     error = pyqtSignal(str, str)
 
@@ -257,15 +255,14 @@ class Worker(QThread):
         Catches any exceptions produced by the function and displays them
         in the progress window and emits them to the `error` signal.
         """
-        print(self.parameters)
-        # try:
-            
-        #     main(**self.parameters, message_hook=self.update_progress)
-        # except Exception as e:
-        #     tb = traceback.format_exc()
-        #     msg = f"Critical error - {e.__class__.__name__}: {e}"
-        #     self.update_progress(msg)
-        #     self.error.emit(msg, tb)
+        try:
+            ui_inputs = LGVInputsUI(self.parameters)
+            main(ui_inputs.input_paths, message_hook=self.update_progress)
+        except Exception as e:
+            tb = traceback.format_exc()
+            msg = f"Critical error - {e.__class__.__name__}: {e}"
+            self.update_progress(msg)
+            self.error.emit(msg, tb)
 
     def update_progress(self, text: str):
         """Update progress window label with given `text`.
