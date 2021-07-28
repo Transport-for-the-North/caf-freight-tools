@@ -10,6 +10,7 @@ import io
 from pathlib import Path
 from datetime import datetime
 from dataclasses import dataclass, field
+from typing import Callable
 
 # Third party imports
 import numpy as np
@@ -168,6 +169,57 @@ class LGVConfig(configparser.ConfigParser):
     def __str__(self) -> str:
         paths_str = str(self.input_paths).replace("\n", "\n\t")
         return f"{self.__class__.__name__}\n\t{self.SECTION} = {paths_str}"
+
+
+class LGVInputsUI:
+    """Handles reading UI inputs for the LGV Model.
+
+    Parameters
+    ----------
+    Dict[str, Path]
+        Dictionary containing all the parameters (keys)
+        and their values, contains the following keys:
+        hh_data, hh_zc, bres_data, bres_zc, voa_data,
+        voa_zc, parameters_path, trip_distributions_path,
+        qs606ew_path, qs606sc_path, sc_w_dwellings_path,
+        e_dwellings_path, ndr_floorspace_path, lsoa_lookup_path,
+        msoa_lookup_path, lad_lookup_path, model_study_area,
+        cost_matrix_path, calibration_matrix_path and output_folder.
+    """
+
+    input_paths: LGVInputPaths = None
+    """Paths to all the input files required for the LGV model."""
+
+    def __init__(self, parameters: dict):
+        """Initialises the class by creating LGVInputsPaths instance
+        from parameters dictionary."""
+        paths = {}
+        paths["household_paths"] = DataPaths(
+            "LGV Households",
+            parameters["hh_data"],
+            parameters["hh_zc"],
+        )
+        paths["bres_paths"] = DataPaths(
+            "LGV BRES",
+            parameters["bres_data"],
+            parameters["bres_zc"],
+        )
+        paths["voa_paths"] = DataPaths(
+            "LGV VOA",
+            parameters["voa_data"],
+            parameters["voa_zc"],
+        )
+        # All parameters in ignore are handled separately
+        ignore = ("hh_data", "hh_zc", "bres_data", "bres_zc", "voa_data", "voa_zc")
+        optional = ("calibration_matrix_path",)
+        for key in parameters:
+            if key in ignore:
+                continue
+            if key in optional:
+                paths[key] = parameters[key]
+            else:
+                paths[key] = parameters[key]
+        self.input_paths = LGVInputPaths(**paths)
 
 
 @dataclass
@@ -351,7 +403,11 @@ class LGVMatrices:
 
 ##### FUNCTIONS #####
 def calculate_trip_ends(
-    input_paths: LGVInputPaths, output_folder: Path, lgv_growth: float, year: int
+    input_paths: LGVInputPaths,
+    output_folder: Path,
+    lgv_growth: float,
+    year: int,
+    message_hook: Callable = print,
 ) -> LGVTripEnds:
     """Calculates the LGV trip ends for all segments.
 
@@ -365,6 +421,8 @@ def calculate_trip_ends(
         Model year LGV growth factor.
     year : int
         Model year.
+    message_hook : Callable, optional
+        Function for writing messages, by default print
 
     Returns
     -------
@@ -377,9 +435,9 @@ def calculate_trip_ends(
     .delivery_segment.DeliveryTripEnds: Calculates delivery trip ends.
     LGVTripEnds: Stores all trip end DataFrames.
     """
-    print("Calculating Trip Ends")
     output_folder.mkdir(exist_ok=True)
     # Calculate the service trip ends and save output
+    message_hook("Calculating Service trip ends")
     service = ServiceTripEnds(
         input_paths.household_paths,
         input_paths.bres_paths,
@@ -390,6 +448,7 @@ def calculate_trip_ends(
     service.trip_ends.to_csv(output_folder / "service_trip_ends.csv")
 
     # Calculate the delivery trip ends and save outputs
+    message_hook("Calculating Delivery trip ends")
     delivery = DeliveryTripEnds(
         input_paths.voa_paths,
         input_paths.bres_paths,
@@ -408,6 +467,8 @@ def calculate_trip_ends(
         output_folder / "delivery_grocery_trip_ends.csv"
     )
 
+    # Calculate commuting trip ends and save output
+    message_hook("Calculating Commuting trip ends")
     commute = CommuteTripEnds(
         {
             "commuting tables": input_paths.parameters_path,
@@ -429,7 +490,7 @@ def calculate_trip_ends(
     for key in commute_trips:
         commute_trips[key].to_csv(output_folder / Path(f"commute_{key}_trip_ends.csv"))
 
-    print("\tDone")
+    message_hook("\tDone with trip ends")
     return LGVTripEnds(
         service=service.trip_ends,
         delivery_parcel_stem=delivery.parcel_stem_trip_ends,
@@ -441,7 +502,10 @@ def calculate_trip_ends(
 
 
 def run_gravity_model(
-    input_paths: LGVInputPaths, trip_ends: LGVTripEnds, output_folder: Path
+    input_paths: LGVInputPaths,
+    trip_ends: LGVTripEnds,
+    output_folder: Path,
+    message_hook: Callable = print,
 ) -> LGVMatrices:
     """Run the gravity model calibration for each segment.
 
@@ -453,6 +517,8 @@ def run_gravity_model(
         Trip ends for each segment.
     output_folder : Path
         Path to folder to save outputs.
+    message_hook : Callable, optional
+        Function for writing messages, by default print
 
     Returns
     -------
@@ -464,7 +530,7 @@ def run_gravity_model(
     for name, te in trip_ends.asdict().items():
         if name == "zones":
             continue
-        print(f"Running Gravity Model: {name}")
+        message_hook(f"Running Gravity Model: {name}")
         calib_gm = CalibrateGravityModel(
             te,
             input_paths.cost_matrix_path,
@@ -473,7 +539,7 @@ def run_gravity_model(
             internal_zones=internals,
         )
         calib_gm.calibrate_gravity_model(constraint=CONSTRAINTS_BY_SEGMENT[name])
-        print("\tFinished, now writing outputs")
+        message_hook("\tFinished, now writing outputs")
         output_folder.mkdir(exist_ok=True)
         calib_gm.plot_distribution(output_folder / (name + "-distribution.pdf"))
         matrices[name] = calib_gm.trip_matrix
@@ -492,7 +558,7 @@ def run_gravity_model(
                 calib_gm.trip_matrix, calib_gm.costs, internals
             )
             vehicle_kms.to_excel(writer, sheet_name="Vehicle Kilometres")
-        print("\tFinished writing")
+        message_hook("\tFinished writing")
     return LGVMatrices(**matrices)
 
 
@@ -547,38 +613,49 @@ def matrix_time_periods(
     return tp_matrices
 
 
-def main(input_paths: LGVInputPaths):
+def main(input_paths: LGVInputPaths, message_hook: Callable = print):
     """Runs the LGV model.
 
     Parameters
     ----------
     input_paths : LGVInputPaths
         Paths to all the input files for the LGV model.
+    message_hook : Callable, optional
+        Function for writing messages, by default print
     """
+    message_hook("Getting model parameters")
     parameters = lgv_parameters(input_paths.parameters_path)
 
     # Create output folder
+    message_hook("Creating output folder")
     output_folder = (
         input_paths.output_folder
         / f"LGV Model Outputs - {datetime.now():%Y-%m-%d %H.%M.%S}"
     )
     output_folder.mkdir(exist_ok=True, parents=True)
 
+    message_hook("Calculating trip ends")
     trip_ends = calculate_trip_ends(
         input_paths,
         output_folder / "trip ends",
         parameters["lgv_growth"],
         parameters["year"],
+        message_hook=message_hook,
     )
+    message_hook("Running gravity model to get annual matrices")
     annual_matrices = run_gravity_model(
-        input_paths, trip_ends, output_folder / "annual trip matrices"
+        input_paths,
+        trip_ends,
+        output_folder / "annual trip matrices",
+        message_hook=message_hook,
     )
+    message_hook("Calculating matrices by time period")
     matrix_time_periods(
         annual_matrices,
         input_paths.parameters_path,
         output_folder / "time period matrices",
     )
-    print("Done")
+    message_hook("Done")
 
 
 # TODO Remove Test Code

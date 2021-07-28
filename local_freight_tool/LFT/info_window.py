@@ -71,6 +71,7 @@ STYLESHEET = (
 )
 """HTML stylesheet for display in the info window"""
 
+
 class InfoWindow(QtWidgets.QWidget):
     """Local Freight Tool Information window.
     Parameters
@@ -79,16 +80,34 @@ class InfoWindow(QtWidgets.QWidget):
         Base class for user interface objects.
     """
 
-    def __init__(self, tier_converter, readme="README.md"):
+    def __init__(
+        self,
+        tier_converter,
+        readme="README.md",
+        include=[
+            (
+                "## 0: Combine Point and Polygon Shapefiles\n",
+                "### Zone Correspondence Calculations\n",
+            ),
+            ("#### Missing Zones\n", "end"),
+        ],
+    ):
         """Initialises class
         Parameters
         ----------
         tier_converter : Class
             Tier converter class in tc_main_menu
+        readme : string
+            Readme filename
+        include : list, optional
+            List of tuples with start and end lines as strings to include in
+            info window. Default is everything is included except the
+            Introduction and Zone Correspondence Calculations.
         """
         super().__init__()
         self.tier_converter = tier_converter
         self.readme = readme
+        self.include = include
         self.initUI()
 
     def initUI(self):
@@ -119,18 +138,28 @@ class InfoWindow(QtWidgets.QWidget):
         """
         with open(self.readme, "r") as f:
             lines = f.readlines()
-        try:
-            intro_end = lines.index("## 0: Combine Point and Polygon Shapefiles\n")
-        except:
-            intro_end = 0
-        try:
-            calcs_start = lines.index("### Zone Correspondence Calculations\n") + 1
-            calcs_end = lines.index("#### Missing Zones\n")
-        except:
-            calcs_start = 0
-            calcs_end = 0
+        starts = []
+        ends = []
+        for elements in self.include:
+            if elements[0] == "start":
+                starts.append(0)
+            else:
+                try:
+                    starts.append(lines.index(elements[0]))
+                except:
+                    starts.append(0)
+            if elements[1] == "end":
+                ends.append(len(lines))
+            else:
+                try:
+                    ends.append(lines.index(elements[1]))
+                except:
+                    ends.append(len(lines))
+        include_lines = []
+        for i in range(len(starts)):
+            include_lines += lines[starts[i] : ends[i]]
         text = "[TOC]\n"
-        for line in lines[intro_end:calcs_start] + lines[calcs_end:]:
+        for line in include_lines:
             if not ((line.startswith("![")) | (line.startswith("<!"))):
                 text += line
             if line == "### Zone Correspondence Calculations\n":

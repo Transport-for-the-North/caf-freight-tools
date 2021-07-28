@@ -100,7 +100,7 @@ class tier_converter(QtWidgets.QWidget):
 
         y += sep
         next_button = QtWidgets.QPushButton(self)
-        next_button.setText("5: LGV Processing")
+        next_button.setText("5: LGV Model")
         next_button.setGeometry(10, y, 480, 30)
         next_button.clicked.connect(self.on_click_LGVProcessing)
 
