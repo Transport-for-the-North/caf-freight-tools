@@ -313,7 +313,7 @@ class CalibrateGravityModel:
             bounds=bounds,
             method="dogbox",
             verbose=2,
-            diff_step=1,
+            diff_step=0.1,
         )
         # Calculate final matrix with optimum parameters
         self.trip_matrix, self.furness_results = gravity_model(
