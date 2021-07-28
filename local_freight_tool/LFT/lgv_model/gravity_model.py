@@ -524,8 +524,8 @@ def _get_cost_function(name: str) -> tuple[Callable, list, tuple[list, list]]:
         If the `name` given isn't an allowed cost function.
     """
     FUNCTION_LOOKUP = {
-        "log_normal": (log_normal, [1.0, 1.0], ([0, -100], [100, 100])),
-        "tanner": (tanner, [1.0, -1.0], ([0, -100], [100, 0])),
+        "log_normal": (log_normal, [1.0, 1.0], ([0, -10], [10, 10])),
+        "tanner": (tanner, [1.0, -1.0], ([-10, -10], [10, 0])),
     }
     try:
         func, init_params, bounds = FUNCTION_LOOKUP[name.lower().strip()]
