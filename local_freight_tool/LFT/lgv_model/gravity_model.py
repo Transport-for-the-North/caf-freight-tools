@@ -238,13 +238,13 @@ class CalibrateGravityModel:
             # Filters matrix and costs to only include internal-internal trips
             try:
                 matrix = matrix.loc[self._internal_zones, self._internal_zones]
-                weights = self.costs.loc[self._internal_zones, self._internal_zones]
+                costs = self.costs.loc[self._internal_zones, self._internal_zones]
             except KeyError as e:
                 missing = [i for i in self._internal_zones if i not in matrix.index]
                 raise errors.MissingDataError("trip matrix zones", missing) from e
         else:
-            weights = self.costs
-        hist, _ = np.histogram(matrix, bins=self._bin_edges, weights=weights)
+            costs = self.costs
+        hist, _ = np.histogram(costs, bins=self._bin_edges, weights=matrix)
         return hist / np.sum(hist)
 
     def _gm_distribution(self, _, *args: float) -> np.ndarray:
@@ -311,7 +311,6 @@ class CalibrateGravityModel:
             self.trip_distribution["observed proportions"].values,
             p0=init_params,
             bounds=bounds,
-            method="dogbox",
             verbose=2,
             diff_step=0.1,
         )
@@ -524,8 +523,8 @@ def _get_cost_function(name: str) -> tuple[Callable, list, tuple[list, list]]:
         If the `name` given isn't an allowed cost function.
     """
     FUNCTION_LOOKUP = {
-        "log_normal": (log_normal, [1.0, 1.0], ([0, -10], [10, 10])),
-        "tanner": (tanner, [1.0, -1.0], ([-10, -10], [10, 0])),
+        "log_normal": (log_normal, [0.5, 0.5], ([0, -10], [10, 10])),
+        "tanner": (tanner, [-0.5, -0.1], ([-10, -10], [10, 0])),
     }
     try:
         func, init_params, bounds = FUNCTION_LOOKUP[name.lower().strip()]
