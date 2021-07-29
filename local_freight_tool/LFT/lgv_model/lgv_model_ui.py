@@ -4,7 +4,6 @@
 
 ##### IMPORTS #####
 # Standard imports
-from LFT import tc_main_menu
 import pprint
 import traceback
 from pathlib import Path

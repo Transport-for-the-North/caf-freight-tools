@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
 """
-    Module containing the high level functions for running the LGV model.
+    Module for running the LGV model.
 """
 
 ##### IMPORTS #####
 # Standard imports
+import argparse
 import configparser
 import io
 from pathlib import Path
@@ -94,6 +95,8 @@ class LGVConfig(configparser.ConfigParser):
     """Names of the expected options in config file (values), keys are for internal use."""
     input_paths: LGVInputPaths = None
     """Paths to all the input files required for the LGV model."""
+    EXAMPLE_NAME: str = "LGV_config_example.ini"
+    """Name of the example config file which is written, if path isn't given."""
 
     def __init__(self, path: Path):
         """Initialises the class by reading the given file."""
@@ -152,7 +155,7 @@ class LGVConfig(configparser.ConfigParser):
         return item
 
     @classmethod
-    def write_example(cls, path: Path):
+    def write_example(cls, path: Path = None):
         """Write example of the config file, with no values.
 
         Parameters
@@ -161,10 +164,15 @@ class LGVConfig(configparser.ConfigParser):
             Path to write the example config file too,
             will be overwritten if already exists.
         """
+        if path is None:
+            path = Path(cls.EXAMPLE_NAME)
+        elif path.is_dir():
+            path = path / cls.EXAMPLE_NAME
         config = configparser.ConfigParser()
         config[cls.SECTION] = {k: "" for k in cls.OPTIONS}
         with open(path, "wt") as f:
             config.write(f)
+        print(f"Example config written: {path}")
 
     def __str__(self) -> str:
         paths_str = str(self.input_paths).replace("\n", "\n\t")
@@ -658,10 +666,35 @@ def main(input_paths: LGVInputPaths, message_hook: Callable = print):
     message_hook("Done")
 
 
-# TODO Remove Test Code
-if __name__ == "__main__":
-    config_path = Path(
-        r"C:\WSP_Projects\TfN Local Freight Model\01 - Delivery\LGV Method\LGV_config.ini"
+def lgv_arg_parser() -> argparse.ArgumentParser:
+    """Creates `ArgumentParser` for the LGV model.
+
+    Returns
+    -------
+    argparse.ArgumentParser
+        ArgumentParser which accepts the path to the
+        config file, a flag to create an example file
+        or nothing.
+    """
+
+    def file_path(path) -> Path:
+        path = Path(path)
+        if not path.is_file():
+            raise ValueError("file doesn't exist")
+        return path
+
+    parser = argparse.ArgumentParser(prog=__package__, description=__doc__)
+    parser.add_argument(
+        "-c",
+        "--config_file",
+        type=file_path,
+        help="Path to configuration file containing all LGV model inputs",
     )
-    config_file = LGVConfig(config_path)
-    main(config_file.input_paths)
+    parser.add_argument(
+        "-e",
+        "--example",
+        action="store_true",
+        help="If given will write an example config "
+        "file to the current working directory",
+    )
+    return parser
