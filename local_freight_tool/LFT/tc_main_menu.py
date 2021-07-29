@@ -11,7 +11,6 @@ from PyQt5.QtCore import pyqtSlot, Qt
 from .profile_builder import Profile_Builder
 from .hgv_annual_tonne_to_pcu_ui import TonneToPCUInterface
 from .matrix_utilities_ui import MatrixUtilities
-from .lgvprocessing import LGVProcessing
 from .lgv_model.lgv_model_ui import LGVModelUI
 from .combine_shapefiles import CombineShapefiles
 from .zone_correspondence_ui import ZoneCorrespondenceUi
