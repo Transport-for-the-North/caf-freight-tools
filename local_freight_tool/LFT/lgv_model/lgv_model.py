@@ -24,33 +24,15 @@ from .lgv_inputs import (
     LGVInputPaths,
     read_study_area,
     read_time_factors,
+    read_gm_params,
 )
 from .service_segment import ServiceTripEnds
 from .delivery_segment import DeliveryTripEnds
 from .commute_segment import CommuteTripEnds
 from .gravity_model import CalibrateGravityModel, calculate_vehicle_kms
-from .furnessing import FurnessConstraint
 
 
 ##### CONSTANTS #####
-CONSTRAINTS_BY_SEGMENT = {
-    "service": FurnessConstraint.DOUBLE,
-    "delivery_parcel_stem": FurnessConstraint.DOUBLE,
-    "delivery_parcel_bush": FurnessConstraint.SINGLE,
-    "delivery_grocery": FurnessConstraint.SINGLE,
-    "commuting_drivers": FurnessConstraint.DOUBLE,
-    "commuting_skilled_trades": FurnessConstraint.DOUBLE,
-}
-"""Constraint type for each trip ends segment."""
-FUNCTIONS_BY_SEGMENT = {
-    "service": "tanner",
-    "delivery_parcel_stem": "tanner",
-    "delivery_parcel_bush": "log_normal",
-    "delivery_grocery": "log_normal",
-    "commuting_drivers": "tanner",
-    "commuting_skilled_trades": "tanner",
-}
-"""Cost function used for each trip ends segment."""
 TRIP_DISTRIBUTION_SHEETS = {
     "service": "Service",
     "delivery_parcel_stem": "Delivery",
@@ -543,11 +525,13 @@ def run_gravity_model(
         Trip matrices for each segment and combined.
     """
     internals = read_study_area(input_paths.model_study_area)
+    gm_params = read_gm_params(input_paths.parameters_path)
     matrices = {}
     for name, te in trip_ends.asdict().items():
         if name == "zones":
             continue
-        message_hook(f"Running Gravity Model: {name}")
+        calibrate = gm_params.loc[name, "calibrate"]
+        message_hook(f"Running Gravity Model: {name}, with calibration {calibrate}")
         try:
             calib_gm = CalibrateGravityModel(
                 te,
@@ -557,7 +541,10 @@ def run_gravity_model(
                 internal_zones=internals,
             )
             calib_gm.calibrate_gravity_model(
-                function=FUNCTIONS_BY_SEGMENT[name], constraint=CONSTRAINTS_BY_SEGMENT[name]
+                function=gm_params.loc[name, "function"],
+                init_params=tuple(gm_params.loc[name, ["param1", "param2"]]),
+                calibrate=calibrate,
+                constraint=gm_params.loc[name, "furness_type"],
             )
         except Exception as e:
             message_hook(f"\t{e.__class__.__name__}: {e}")

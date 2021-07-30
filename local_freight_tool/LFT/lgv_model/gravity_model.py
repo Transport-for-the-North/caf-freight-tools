@@ -46,6 +46,8 @@ class CalibrationResults:
     cost distributions."""
     time_taken: timedelta
     """Time taken to calibrate the gravity model."""
+    ran_calibration: bool
+    """If calibration was ran (True) or not."""
 
     def asdict(self) -> dict:
         """Return class attributes as a dictionary."""
@@ -268,6 +270,8 @@ class CalibrateGravityModel:
     def calibrate_gravity_model(
         self,
         function: str = "tanner",
+        init_params: tuple[float, float] = (1.0, -1.0),
+        calibrate: bool = True,
         **kwargs,
     ) -> CalibrationResults:
         """Finds the optimal parameters for the cost function.
@@ -280,6 +284,12 @@ class CalibrateGravityModel:
         function : str, default "tanner"
             The name of the cost function to use,
             passed to `gravity_model`.
+        init_params : tuple[float, float], default (1.0, -1.0)
+            Initial parameters for the cost function.
+        calibrate : bool, default True
+            Whether or not to find optimal parameters, if False
+            runs GM with `init_params` otherwise uses `scipy.curve_fit`
+            to find optimum parameters.
         kwargs : Keyword arguments, optional
             Keyword arguments to pass to `gravity_model`.
 
@@ -304,16 +314,19 @@ class CalibrateGravityModel:
         self._function_name = function
         self._function_kwargs = kwargs
         # Find optimum parameters for cost function
-        _, init_params, bounds = _get_cost_function(function)
-        popt, _ = optimize.curve_fit(
-            self._gm_distribution,
-            self.trip_distribution.average.values,
-            self.trip_distribution["observed proportions"].values,
-            p0=init_params,
-            bounds=bounds,
-            verbose=2,
-            diff_step=0.1,
-        )
+        if calibrate:
+            _, bounds = _get_cost_function(function)
+            popt, _ = optimize.curve_fit(
+                self._gm_distribution,
+                self.trip_distribution.average.values,
+                self.trip_distribution["observed proportions"].values,
+                p0=init_params,
+                bounds=bounds,
+                verbose=2,
+                diff_step=0.1,
+            )
+        else:
+            popt = init_params
         # Calculate final matrix with optimum parameters
         self.trip_matrix, self.furness_results = gravity_model(
             self.trip_ends,
@@ -341,6 +354,7 @@ class CalibrateGravityModel:
                 self.trip_distribution["matrix proportions"],
             ),
             timedelta(seconds=time.perf_counter() - start),
+            calibrate,
         )
         return self.results
 
@@ -383,8 +397,9 @@ class CalibrateGravityModel:
             self.results.cost_function.title()
             + ": $p_0={:.1e}$, $p_1={:.1e}$, $R^2={:.2f}$",
         )
-        x_range = np.linspace(0, self.trip_distribution["average"].max())
-        func, _, _ = _get_cost_function(self.results.cost_function)
+        # Cost functions are undefined for 0 so start x from small +ve number
+        x_range = np.linspace(1e-5, self.trip_distribution["average"].max())
+        func, _ = _get_cost_function(self.results.cost_function)
         ax.autoscale(False, axis="y")
         ax.plot(
             x_range,
@@ -502,8 +517,8 @@ def log_normal(cost: np.ndarray, sigma: float, mu: float) -> np.ndarray:
     return frac * exp
 
 
-def _get_cost_function(name: str) -> tuple[Callable, list, tuple[list, list]]:
-    """Returns cost function and intial parameters.
+def _get_cost_function(name: str) -> tuple[Callable, tuple[list, list]]:
+    """Returns cost function and parameter bounds.
 
     Parameters
     ----------
@@ -514,9 +529,6 @@ def _get_cost_function(name: str) -> tuple[Callable, list, tuple[list, list]]:
     -------
     Callable
         Function with given `name`.
-    list
-        List of initial parameters to use when trying
-        to fit function to data.
     tuple[list, list]
         Tuple containing the lower and upper bounds of
         parameters to try when fitting function to data.
@@ -527,17 +539,17 @@ def _get_cost_function(name: str) -> tuple[Callable, list, tuple[list, list]]:
         If the `name` given isn't an allowed cost function.
     """
     FUNCTION_LOOKUP = {
-        "log_normal": (log_normal, [0.5, 0.5], ([0, -10], [10, 10])),
-        "tanner": (tanner, [-0.5, -0.1], ([-10, -10], [10, 0])),
+        "log_normal": (log_normal, ([0, -10], [10, 10])),
+        "tanner": (tanner, ([-10, -10], [10, 0])),
     }
     try:
-        func, init_params, bounds = FUNCTION_LOOKUP[name.lower().strip()]
+        func, bounds = FUNCTION_LOOKUP[name.lower().strip()]
     except KeyError as e:
         raise KeyError(
             f"unknown function {name!r}, should be "
             f"one of {list(FUNCTION_LOOKUP.keys())}"
         ) from e
-    return func, init_params, bounds
+    return func, bounds
 
 
 def _check_gm_inputs(
@@ -637,7 +649,7 @@ def gravity_model(
     trip_ends, costs, calibration = _check_gm_inputs(trip_ends, costs, calibration)
 
     # Calculate intial trips matrix and factor with calibration parameters
-    func, _, _ = _get_cost_function(function)
+    func, _ = _get_cost_function(function)
     init_matrix = func(costs.values, *function_args)
     init_matrix *= calibration.values
 

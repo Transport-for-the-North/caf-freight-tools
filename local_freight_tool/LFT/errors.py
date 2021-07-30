@@ -34,8 +34,7 @@ class IncorrectParameterError(BaseLocalFreightError):
     """Raised when parameter given is an unaccepted value."""
 
     def __init__(self, value, parameter=None, expected=None, *args, **kwargs):
-        # Create message
-        msg = f"Incorrect value of {value!r}"
+        msg = f"Incorrect value(s) of {value!r}"
         if not parameter is None:
             msg += f" for parameter {parameter}"
         if not expected is None:

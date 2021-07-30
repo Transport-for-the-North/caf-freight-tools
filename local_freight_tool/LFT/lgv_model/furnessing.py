@@ -43,6 +43,8 @@ class FurnessResults:
     """The number of loops taken, only for 2D furness."""
     difference: float = None
     """The RMS difference between matrix and row/column totals, only for 2D furness."""
+    previous_differences: list[float] = None
+    """The RMS difference for previous loops."""
 
     def asdict(self) -> dict:
         """Return class attributes as a dictionary."""
@@ -260,4 +262,6 @@ def furness_2d(
             f"Furness converged (loop {loop}) "
             f"with RMS row/column difference: {diff:.1e}"
         )
-    return matrix, FurnessResults(FurnessConstraint.DOUBLE, msg, converged, loop, diff)
+    return matrix, FurnessResults(
+        FurnessConstraint.DOUBLE, msg, converged, loop, diff, differences
+    )

@@ -21,6 +21,7 @@ import pandas as pd
 from .. import utilities, errors
 from ..data_utils import DataPaths
 from ..rezone import Rezone
+from .furnessing import FurnessConstraint
 
 
 ##### CONSTANTS #####
@@ -131,6 +132,27 @@ TIME_PERIOD_COLUMNS = {
     "commuting_skilled_trades": ("Commuting Skilled Trades", float),
 }
 """Name and dtype of the expected columns in the time period table."""
+GM_PARAMS_SHEET = "Gravity Model Parameters"
+"""Name of the Excel Worksheet containing the gravity model parameters."""
+GM_PARAMS_COLUMNS = {
+    "segment": ("Segment", str),
+    "furness_type": ("Furness Constraint Type", str),
+    "function": ("Cost Function", str),
+    "param1": ("Cost Function Parameter 1", float),
+    "param2": ("Cost Function Parameter 2", float),
+    "calibrate": ("Run Calibration", str),
+}
+"""Name and dtype of the expected columns in the gravity model parameters table."""
+LGV_SEGMENTS = [
+    "service",
+    "delivery_parcel_stem",
+    "delivery_parcel_bush",
+    "delivery_grocery",
+    "commuting_drivers",
+    "commuting_skilled_trades",
+]
+"Names of the LGV segments."
+
 
 ##### CLASSES #####
 @dataclass(frozen=True)
@@ -581,3 +603,75 @@ def read_time_factors(path: Path) -> dict[str, dict[str, float]]:
     rename = {v[0]: k for k, v in TIME_PERIOD_COLUMNS.items()}
     df.rename(columns=rename, inplace=True)
     return df.to_dict(orient="index")
+
+
+def read_gm_params(path: Path) -> pd.DataFrame:
+    """Reads the Gravity Model input parameters from Excel Worksheet.
+
+    Parameters
+    ----------
+    path : Path
+        Path to Excel workbook containing sheet with name
+        `GM_PARAMS_SHEET`.
+
+    Returns
+    -------
+    pd.DataFrame
+        DataFrame with LGV segment as the index and the following
+        columns:
+        - furness_type: FurnessConstraint value,
+        - function: name of cost function,
+        - param1, param2: value for cost function parameters,
+        - calibrate: boolean for whether or not to run calibration.
+
+    Raises
+    ------
+    errors.MissingDataError
+        If any of the gravity model segments are missing.
+    errors.IncorrectParameterError
+        If any of the columns in the table have values
+        which are expected.
+    """
+    df = utilities.read_excel(
+        path,
+        "Gravity Model Parameters",
+        columns=dict(GM_PARAMS_COLUMNS.values()),
+        sheet_name=GM_PARAMS_SHEET,
+        index_col=0,
+    )
+    rename = {v[0]: k for k, v in GM_PARAMS_COLUMNS.items()}
+    df.rename(columns=rename, inplace=True)
+    df.index = df.index.str.lower().str.strip().str.replace(r"\s+", "_", regex=True)
+    # Check all segments are given
+    missing = [s for s in LGV_SEGMENTS if s not in df.index]
+    if missing:
+        missing = [s.replace("_", " ").title() for s in missing]
+        raise errors.MissingDataError("Gravity model parameters segments", missing)
+
+    df.loc[:, "furness_type"] = df["furness_type"].str.strip().str.upper()
+    df.loc[:, "function"] = (
+        df["function"].str.strip().str.lower().str.replace(r"\s+", "_", regex=True)
+    )
+    df.loc[:, "calibrate"] = df["calibrate"].str.strip().str.lower()
+
+    # Check parameters are allowed
+    furn_rep = {c.name: c for c in FurnessConstraint}
+    exp_funcs = ["tanner", "log_normal"]
+    calib_true = ["yes", "y", "true"]
+    calib_false = ["no", "n", "false"]
+    checks = (
+        ("furness_type", furn_rep),
+        ("function", exp_funcs),
+        ("calibrate", calib_true + calib_false),
+    )
+    for col, exp in checks:
+        incorrect = list(df.loc[~df[col].isin(exp).values, col].unique())
+        if incorrect:
+            name = GM_PARAMS_COLUMNS[col][0]
+            raise errors.IncorrectParameterError(
+                incorrect, f"Gravity model {name}", expected=list(exp)
+            )
+    # Change strings to FurnessConstraint and bool
+    df.loc[:, "furness_type"] = df["furness_type"].replace(furn_rep)
+    df.loc[:, "calibrate"] = df["calibrate"].isin(calib_true)
+    return df
