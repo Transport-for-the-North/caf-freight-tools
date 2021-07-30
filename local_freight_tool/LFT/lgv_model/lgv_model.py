@@ -42,6 +42,15 @@ CONSTRAINTS_BY_SEGMENT = {
     "commuting_skilled_trades": FurnessConstraint.DOUBLE,
 }
 """Constraint type for each trip ends segment."""
+FUNCTIONS_BY_SEGMENT = {
+    "service": "tanner",
+    "delivery_parcel_stem": "tanner",
+    "delivery_parcel_bush": "log_normal",
+    "delivery_grocery": "log_normal",
+    "commuting_drivers": "tanner",
+    "commuting_skilled_trades": "tanner",
+}
+"""Cost function used for each trip ends segment."""
 TRIP_DISTRIBUTION_SHEETS = {
     "service": "Service",
     "delivery_parcel_stem": "Delivery",
@@ -539,14 +548,20 @@ def run_gravity_model(
         if name == "zones":
             continue
         message_hook(f"Running Gravity Model: {name}")
-        calib_gm = CalibrateGravityModel(
-            te,
-            input_paths.cost_matrix_path,
-            (input_paths.trip_distributions_path, TRIP_DISTRIBUTION_SHEETS[name]),
-            input_paths.calibration_matrix_path,
-            internal_zones=internals,
-        )
-        calib_gm.calibrate_gravity_model(constraint=CONSTRAINTS_BY_SEGMENT[name])
+        try:
+            calib_gm = CalibrateGravityModel(
+                te,
+                input_paths.cost_matrix_path,
+                (input_paths.trip_distributions_path, TRIP_DISTRIBUTION_SHEETS[name]),
+                input_paths.calibration_matrix_path,
+                internal_zones=internals,
+            )
+            calib_gm.calibrate_gravity_model(
+                function=FUNCTIONS_BY_SEGMENT[name], constraint=CONSTRAINTS_BY_SEGMENT[name]
+            )
+        except Exception as e:
+            message_hook(f"\t{e.__class__.__name__}: {e}")
+            continue
         message_hook("\tFinished, now writing outputs")
         output_folder.mkdir(exist_ok=True)
         calib_gm.plot_distribution(output_folder / (name + "-distribution.pdf"))

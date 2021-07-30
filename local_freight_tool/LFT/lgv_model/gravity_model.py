@@ -455,7 +455,11 @@ def tanner(cost: np.ndarray, alpha: float, beta: float) -> np.ndarray:
     - :math:`\alpha, \beta`: calibration parameters.
     """
     _check_numeric(alpha=alpha, beta=beta)
-    power = np.float_power(cost, alpha)
+    # Don't do 0 to the power in case alpha is negative
+    # 0^x where x is anything (other than 0) is always 0
+    power = np.float_power(
+        cost, alpha, out=np.zeros_like(cost, dtype=float), where=cost != 0
+    )
     exp = np.exp(beta * cost)
     return power * exp
 
@@ -491,8 +495,8 @@ def log_normal(cost: np.ndarray, sigma: float, mu: float) -> np.ndarray:
     - :math:`\sigma, \mu`: calibration parameters.
     """
     _check_numeric(sigma=sigma, mu=mu)
-    frac = 1 / (cost * sigma * np.sqrt(2 * np.PI))
-    exp_numerator = (np.ln(cost) - mu) ** 2
+    frac = 1 / (cost * sigma * np.sqrt(2 * np.pi))
+    exp_numerator = (np.log(cost) - mu) ** 2
     exp_denominator = 2 * sigma ** 2
     exp = np.exp(-exp_numerator / exp_denominator)
     return frac * exp
@@ -560,6 +564,10 @@ def _check_gm_inputs(
                 f"`{nm}` must be a square matrix with same zones as "
                 "`trip_ends` for gravity model calculations"
             )
+    # Raise error if costs contains zeros
+    zero_costs = np.sum((costs == 0).values)
+    if zero_costs > 0:
+        raise ValueError(f"{zero_costs} zeros in cost matrix")
     return data
 
 
