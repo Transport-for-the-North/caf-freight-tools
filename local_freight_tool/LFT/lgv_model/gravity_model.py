@@ -41,9 +41,12 @@ class CalibrationResults:
     """The number of calls to `gravity_model` before optimum
     parameters were found.
     """
-    r_squared: float
+    cal_area_r_squared: float
     """R squared value between the observed and trip matrix
-    cost distributions."""
+    (internal area) cost distributions."""
+    whole_r_squared: float
+    """R squared value between the observed and trip matrix
+    (whole area) cost distributions."""
     time_taken: timedelta
     """Time taken to calibrate the gravity model."""
     ran_calibration: bool
@@ -105,8 +108,8 @@ class CalibrateGravityModel:
     )
     """Names and dtypes of the columns expected in the trip distributions input."""
     FUNCTION_LABELS = {
-        "log_normal": r"Log Normal: $\sigma={:.1e}$, $\mu={:.1e}$, $R^2={:.2f}$",
-        "tanner": r"Tanner: $\alpha={:.1e}$, $\beta={:.1e}$, $R^2={:.2f}$",
+        "log_normal": r"Log Normal: $\sigma={:.1e}$, $\mu={:.1e}$",
+        "tanner": r"Tanner: $\alpha={:.1e}$, $\beta={:.1e}$",
     }
     """Legend labels to use for plotting distribution."""
 
@@ -234,9 +237,11 @@ class CalibrateGravityModel:
         ss_tot = np.sum((fit_data - np.mean(fit_data)) ** 2)
         return 1 - (ss_res / ss_tot)
 
-    def _normalised_distribution(self, matrix: pd.DataFrame) -> np.ndarray:
+    def _normalised_distribution(
+        self, matrix: pd.DataFrame, internal_area: bool = True
+    ) -> np.ndarray:
         """Calculates distribution of costs normalised to sum to 1."""
-        if self._internal_zones:
+        if self._internal_zones and internal_area:
             # Filters matrix and costs to only include internal-internal trips
             try:
                 matrix = matrix.loc[self._internal_zones, self._internal_zones]
@@ -342,19 +347,24 @@ class CalibrateGravityModel:
             raise ValueError(
                 f"Final trip matrix has {np.sum(non_finite)} non-finite values"
             )
-        self.trip_distribution["matrix proportions"] = self._normalised_distribution(
-            self.trip_matrix
-        )
+        for col, int_area in (("calibration area", True), ("whole matrix", False)):
+            self.trip_distribution[
+                f"{col} proportions"
+            ] = self._normalised_distribution(self.trip_matrix, internal_area=int_area)
         self.results = CalibrationResults(
             function,
             popt,
             self._call_count,
-            self.r_squared(
+            cal_area_r_squared=self.r_squared(
                 self.trip_distribution["observed proportions"],
-                self.trip_distribution["matrix proportions"],
+                self.trip_distribution["calibration area proportions"],
             ),
-            timedelta(seconds=time.perf_counter() - start),
-            calibrate,
+            whole_r_squared=self.r_squared(
+                self.trip_distribution["observed proportions"],
+                self.trip_distribution["whole matrix proportions"],
+            ),
+            time_taken=timedelta(seconds=time.perf_counter() - start),
+            ran_calibration=calibrate,
         )
         return self.results
 
@@ -382,33 +392,40 @@ class CalibrateGravityModel:
         fig, ax = plt.subplots(figsize=(15, 10))
         fig.set_tight_layout(True)
         # Plot distribution data points
-        for c, nm in enumerate(("observed", "matrix")):
+        distributions = ("observed", "calibration area", "whole matrix")
+        for c, nm in enumerate(distributions):
+            label = f"{nm.title()} Distribution"
+            if nm == "calibration area":
+                label += f", $R^2={self.results.cal_area_r_squared:.3f}$"
+            elif nm == "whole matrix":
+                label += f", $R^2={self.results.whole_r_squared:.3f}$"
+
             ax.plot(
                 self.trip_distribution["average"],
                 self.trip_distribution[f"{nm} proportions"],
                 ":+",
                 ms=10,
                 c=f"C{c}",
-                label=f"{nm.title()} Distribution",
+                label=label,
             )
         # Plot line for the function
         func_label = self.FUNCTION_LABELS.get(
             self.results.cost_function,
-            self.results.cost_function.title()
-            + ": $p_0={:.1e}$, $p_1={:.1e}$, $R^2={:.2f}$",
+            self.results.cost_function.title() + ": $p_0={:.1e}$, $p_1={:.1e}$",
         )
         # Cost functions are undefined for 0 so start x from small +ve number
-        x_range = np.linspace(1e-5, self.trip_distribution["average"].max())
+        x_range = np.linspace(
+            self.trip_distribution["average"].min(),
+            self.trip_distribution["average"].max(),
+        )
         func, _ = _get_cost_function(self.results.cost_function)
         ax.autoscale(False, axis="y")
         ax.plot(
             x_range,
             func(x_range, *self.results.cost_parameters),
             "--",
-            c="C2",
-            label=func_label.format(
-                *self.results.cost_parameters, self.results.r_squared
-            ),
+            c=f"C{len(distributions)}",
+            label=func_label.format(*self.results.cost_parameters),
         )
         # Format the plot
         ax.yaxis.set_major_formatter(PercentFormatter(1.0))
