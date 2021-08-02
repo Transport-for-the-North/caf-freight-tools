@@ -265,3 +265,33 @@ def furness_2d(
     return matrix, FurnessResults(
         FurnessConstraint.DOUBLE, msg, converged, loop, diff, differences
     )
+
+
+def annual_pa_to_od(matrix: np.ndarray, col_total: np.ndarray, row_total: np.ndarray) -> np.ndarray:
+    r"""Convert annual PA matrix to OD by adding on the transpose after factoring to totals.
+
+    Simple PA to OD conversion by factoring the `matrix` up to
+    the `row_total` and factoring the transposed `matrix` to
+    the `col_total`, then adding the transposed to `matrix`.
+    If the totals are the same then the matrices don't need
+    to be factored.
+
+    Parameters
+    ----------
+    matrix : np.ndarray
+        Square annual PA trip matrix/
+    col_total : np.ndarray
+        Expected column totals.
+    row_total : np.ndarray
+        Expected row totals.
+
+    Returns
+    -------
+    np.ndarray
+        Matrix after conversion to OD.
+    """
+    if np.allclose(col_total, row_total):
+        return matrix + matrix.T
+    matrix = factor_1d(matrix, row_total, 1)
+    matrix_t = factor_1d(matrix, col_total, 0).T
+    return matrix + matrix_t

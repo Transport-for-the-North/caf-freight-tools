@@ -391,18 +391,23 @@ class CalibrateGravityModel:
             )
         fig, ax = plt.subplots(figsize=(15, 10))
         fig.set_tight_layout(True)
-        # Plot distribution data points
-        distributions = ("observed", "calibration area", "whole matrix")
+        # Plot distribution data points for any proportions columns
+        end_str = "proportions"
+        distributions = self.trip_distribution.columns[
+            self.trip_distribution.columns.str.endswith(end_str)
+        ].tolist()
         for c, nm in enumerate(distributions):
-            label = f"{nm.title()} Distribution"
-            if nm == "calibration area":
-                label += f", $R^2={self.results.cal_area_r_squared:.3f}$"
-            elif nm == "whole matrix":
-                label += f", $R^2={self.results.whole_r_squared:.3f}$"
+            label = f"{nm.replace(end_str, '').strip().title()} Distribution"
+            if nm != "observed proportions":
+                r_sq = self.r_squared(
+                    self.trip_distribution["observed proportions"],
+                    self.trip_distribution[nm],
+                )
+                label += f", $R^2={r_sq:.3f}$"
 
             ax.plot(
                 self.trip_distribution["average"],
-                self.trip_distribution[f"{nm} proportions"],
+                self.trip_distribution[nm],
                 ":+",
                 ms=10,
                 c=f"C{c}",

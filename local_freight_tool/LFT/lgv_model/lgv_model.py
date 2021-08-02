@@ -30,6 +30,7 @@ from .service_segment import ServiceTripEnds
 from .delivery_segment import DeliveryTripEnds
 from .commute_segment import CommuteTripEnds
 from .gravity_model import CalibrateGravityModel, calculate_vehicle_kms
+from .furnessing import annual_pa_to_od
 
 
 ##### CONSTANTS #####
@@ -42,6 +43,13 @@ TRIP_DISTRIBUTION_SHEETS = {
     "commuting_skilled_trades": "Commuting",
 }
 """Name of sheet in trip distributions file for each segment."""
+PA_MATRICES = [
+    "service",
+    "delivery_parcel_stem",
+    "commuting_drivers",
+    "commuting_skilled_trades",
+]
+"""List of matrices which are in PA format and will be converted to OD."""
 
 ##### CLASSES #####
 class LGVConfig(configparser.ConfigParser):
@@ -500,6 +508,34 @@ def calculate_trip_ends(
     )
 
 
+def _calibrate_gm(
+    trip_ends: pd.DataFrame,
+    name: str,
+    input_paths: LGVInputPaths,
+    gm_params: pd.DataFrame,
+    internals: set,
+    message_hook: Callable = print,
+) -> CalibrateGravityModel:
+    """Internal function used in `run_gravity_model` for running the GM with calibration."""
+    calibrate = gm_params.loc[name, "calibrate"]
+    message_hook(f"Running Gravity Model: {name}, with calibration {calibrate}")
+    calib_gm = CalibrateGravityModel(
+        trip_ends,
+        input_paths.cost_matrix_path,
+        (input_paths.trip_distributions_path, TRIP_DISTRIBUTION_SHEETS[name]),
+        input_paths.calibration_matrix_path,
+        internal_zones=internals,
+    )
+    calib_gm.calibrate_gravity_model(
+        function=gm_params.loc[name, "function"],
+        init_params=tuple(gm_params.loc[name, ["param1", "param2"]]),
+        calibrate=calibrate,
+        constraint=gm_params.loc[name, "furness_type"],
+    )
+    message_hook("\tFinished, now writing outputs")
+    return calib_gm
+
+
 def run_gravity_model(
     input_paths: LGVInputPaths,
     trip_ends: LGVTripEnds,
@@ -530,30 +566,41 @@ def run_gravity_model(
     for name, te in trip_ends.asdict().items():
         if name == "zones":
             continue
-        calibrate = gm_params.loc[name, "calibrate"]
-        message_hook(f"Running Gravity Model: {name}, with calibration {calibrate}")
         try:
-            calib_gm = CalibrateGravityModel(
-                te,
-                input_paths.cost_matrix_path,
-                (input_paths.trip_distributions_path, TRIP_DISTRIBUTION_SHEETS[name]),
-                input_paths.calibration_matrix_path,
-                internal_zones=internals,
-            )
-            calib_gm.calibrate_gravity_model(
-                function=gm_params.loc[name, "function"],
-                init_params=tuple(gm_params.loc[name, ["param1", "param2"]]),
-                calibrate=calibrate,
-                constraint=gm_params.loc[name, "furness_type"],
+            calib_gm = _calibrate_gm(
+                te, name, input_paths, gm_params, internals, message_hook
             )
         except Exception as e:
             message_hook(f"\t{e.__class__.__name__}: {e}")
             continue
-        message_hook("\tFinished, now writing outputs")
+
         output_folder.mkdir(exist_ok=True)
+        # Check if segment outputs a PA matrix which needs to be converted
+        if name in PA_MATRICES:
+            # Save PA matrix to CSV and convert to OD dataframe
+            message_hook("\tConverting PA to OD")
+            calib_gm.trip_matrix.to_csv(output_folder / (name + "-trip_matrix-PA.csv"))
+            matrices[name] = annual_pa_to_od(
+                calib_gm.trip_matrix.values,
+                calib_gm.trip_ends.attractions.values,
+                calib_gm.trip_ends.productions.values,
+            )
+            matrices[name] = pd.DataFrame(
+                matrices[name],
+                index=calib_gm.trip_matrix.index,
+                columns=calib_gm.trip_matrix.columns,
+            )
+            # Calculate trip distributions for OD
+            col = "OD whole matrix proportions"
+            calib_gm.trip_distribution[col] = calib_gm._normalised_distribution(
+                matrices[name], internal_area=False
+            )
+        else:
+            matrices[name] = calib_gm.trip_matrix
+
+        # Save the annual matrix, TLD graph and Excel summary file
         calib_gm.plot_distribution(output_folder / (name + "-distribution.pdf"))
-        matrices[name] = calib_gm.trip_matrix
-        calib_gm.trip_matrix.to_csv(output_folder / (name + "-trip_matrix.csv"))
+        matrices[name].to_csv(output_folder / (name + "-trip_matrix-OD.csv"))
         with pd.ExcelWriter(output_folder / (name + "-GM_log.xlsx")) as writer:
             df = pd.DataFrame.from_dict(calib_gm.results.asdict(), orient="index")
             df.to_excel(writer, sheet_name="Calibration Results", header=False)
@@ -564,11 +611,17 @@ def run_gravity_model(
             calib_gm.trip_distribution.to_excel(
                 writer, sheet_name="Trip Distribution", index=False
             )
+            if name in PA_MATRICES:
+                vehicle_kms = calculate_vehicle_kms(
+                    calib_gm.trip_matrix, calib_gm.costs, internals
+                )
+                vehicle_kms.to_excel(writer, sheet_name="Vehicle Kilometres (PA)")
             vehicle_kms = calculate_vehicle_kms(
-                calib_gm.trip_matrix, calib_gm.costs, internals
+                matrices[name], calib_gm.costs, internals
             )
             vehicle_kms.to_excel(writer, sheet_name="Vehicle Kilometres")
         message_hook("\tFinished writing")
+
     return LGVMatrices(**matrices)
 
 
