@@ -292,6 +292,7 @@ def annual_pa_to_od(matrix: np.ndarray, col_total: np.ndarray, row_total: np.nda
     """
     if np.allclose(col_total, row_total):
         return matrix + matrix.T
+    col_total, row_total = factor_totals(col_total, row_total)
     matrix = factor_1d(matrix, row_total, 1)
     matrix_t = factor_1d(matrix, col_total, 0).T
     return matrix + matrix_t
