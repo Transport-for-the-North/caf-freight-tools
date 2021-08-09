@@ -304,11 +304,15 @@ class CommuteTripEnds:
         """
 
         # Read in additional dwellings data for England
+        if not self.params:
+            self._read_commute_tables()
+        sheet = f"{self.params['Model Year']}-{self.params['Model Year'] - 2000 + 1}"
         e_dwellings = (
             utilities.read_excel(
                 self.paths["E dwellings"],
                 columns=self.E_DWELLINGS_HEADER,
                 skiprows=3,
+                sheet_name=sheet,
             )
             .dropna(axis=1, how="all")
             .dropna(axis=0, how="any")
@@ -341,8 +345,6 @@ class CommuteTripEnds:
         )
 
         # Read in Welsh and Scottish dwellings data
-        if not self.params:
-            self._read_commute_tables()
         sc_w_header = {
             "zone": str,
             str(self.params["Model Year"]): int,
