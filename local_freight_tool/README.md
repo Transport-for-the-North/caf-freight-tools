@@ -453,38 +453,530 @@ Table: Outputs from the HGV annual PCU to model time period PCU module
 
 ## 5: LGV Model
 
-This module contains three separate functionalities for LGV matrix processing. These functionalities
-are present in a more generalised form in module 6: [Matrix Utilities](#6-matrix-utilities). The
-interface is shown below.
+This module contains the functionality for running the LGV model which includes calculating trip
+ends, using a gravity model to generate annual trip matrices and converting the annual matrices to
+time periods. The interface is shown below.
 
-![LGV Processing GUI](doc/images/lgv_processing_menu.PNG "LGV Processing GUI")
+![LGV Model GUI](doc/images/lgv_model_menu.PNG "LGV Model GUI")
 
-All O-D freight matrices used as inputs in the functionalities of this module must contain three
-columns only and the header row must be of the form 'origin', 'destination' and either 'annual_pcus'
-or 'trips'.
+The following sections contain detailed information on the expected inputs and outputs, as well as
+some information on the methodology for the LGV model.
 
-### LGV Processing Tool
-This function displays the total size of two selected O-D freight matrices for comparison purposes.
-The user must input two O-D freight matrices. Once 'Run' is clicked, the total trips/PCUs of both
-matrices are summed across all O-D zone pairs and the totals are displayed in the interface. This is
-a less detailed version of the Matrix Utilities summary function.
+### Inputs
 
-### Apply Global Factors
+The LGV model has a number of input files which can be provided in the GUI, or via a configuration
+file (example below). This section details all of the input files which are needed in order to run
+the LGV model.
 
-This allows up to two O-D freight matrices to be multiplied by a global factor. The user must input
-two O-D freight matrices and select the global factors to be applied for both the freight and
-non-freight matrices respectively in number format. Decimals are permitted. Once 'Run' is clicked, a
-progress window will update the user on the factoring process. Once complete, two CSVs are output to
-the Local Freight Tool directory, named 'Output_Freight_Global_Factor_Applied' and
-'Output_Non_Freight_Global_Factor_Applied'. This is a less general version of the Matrix Utilities
-Matrix Factoring function.
+Example of the configuration file:
 
-### Aggregation
+```
+[LGV File Paths]
+households data = \path\to\households data.csv
+households zone correspondence = \path\to\households zone correspondence.csv
+bres data = \path\to\bres data.csv
+bres zone correspondence = \path\to\bres zone correspondence.csv
+voa data = \path\to\voa data.csv
+voa zone correspondence = \path\to\voa zone correspondence.csv
+lgv parameters = \path\to\LGV_input_tables.xlsx
+qs606ew = \path\to\QS606EW.csv
+qs606sc = \path\to\QS606UK.csv
+sc&w dwellings = \path\to\scotland_wales_dwellings.csv
+e dwellings = \path\to\england dwellings.xlsx
+ndr floorspace = \path\to\NDR_business_floorspace.csv
+lsoa lookup = \path\to\LSOA lookup.csv
+msoa lookup = \path\to\msoa lookup.csv
+lad lookup = \path\to\LAD lookup.csv
+model study area = \path\to\model study area.csv
+cost matrix = \path\to\LGV_distance_matrix.csv
+trip distributions spreadsheet = \path\to\LGV_trip_distributions.xlsx
+calibration matrix = \path\to\LGV_GM_calibration_matrix.csv
+output folder = \path\to\outputs\folder
+```
 
-This aggregates two freight O-D matrices. Once 'Run' is clicked, a progress window will update the
-user on the aggregation process. Once complete, the aggregated matrix is saved to a CSV names
-'Output_Aggregated_Matrix' in the Local Freight Tool directory. This is a less general version of
-the Matrix Utilities Matrix Addition function.
+#### Household Projections & Zone Correspondence
+
+UK households projections for the model year at MSOA level, data can be extracted from TEMPro. This
+data should contain the number of households per MSOA for the model year. The data extracted from
+TEMPro contains a number of columns only two of which are required for the model, these are
+summarised in the table below, any additional columns are ignored. This data should be provided in
+a comma-separated values (CSV) file.
+
+Table: Required columns for the UK household projections data
+
+|   Column Name    | Data Type | Description                                                |
+| :--------------: | :-------: | :--------------------------------------------------------- |
+| Area Description |   Text    | MSOA area code e.g. E02003616                              |
+|       HHs        |   Real    | The number of households projected to be in that MSOA zone |
+|       Jobs       |   Real    | The number of jobs projected to be in that MSOA zone       |
+
+In addition to the households data the model also requires a zone correspondence file which provides
+the lookup between the MSOA and the model zones, the correspondence file requires three columns which
+are summarised in the table below. The zone correspondence file can be created using module
+[1: Produce Zone Correspondence](#1-produce-zone-correspondence).
+
+Table: Required columns for the UK household zone correspondence, column names are ignored the
+columns just need to be in the correct order.
+
+| Column | Data Type | Description                         |
+| :----: | :-------: | :---------------------------------- |
+|   1    |   Text    | MSOA area code e.g. E02003616       |
+|   2    |  Integer  | Corresponding model zone ID         |
+|   3    |   Real    | Splitting factor for correspondence |
+
+#### BRES Data & Zone Correspondence
+
+The Business Register and Employment Survey (BRES) is available from [NOMIS](https://www.nomisweb.co.uk/datasets/newbres6pub)
+and contains the number of employees for different industrial sectors at LSOA (Scottish data zone)
+level, at time of writing the data is provided up to 2019. The LGV model requires the data to be
+extracted for all LSOAs (England and Wales) and data zones (Scotland) at the model year, all broad
+industrial groups and all employees should be included in the output.
+
+The model expects the file to be saved as a comma-separated values (CSV) file with the first eight
+rows used for meta data and the column names on row nine, all required columns are listed in the
+table below.
+
+Table: Required columns for the BRES data, column names must be exactly as listed. Any columns not
+listed will be ignored.
+
+| Column Name                                                                                                                  | Data Type | Description                                |
+| :--------------------------------------------------------------------------------------------------------------------------- | :-------: | :----------------------------------------- |
+| Area                                                                                                                         |   Text    | Description/name of area type              |
+| mnemonic                                                                                                                     |   Text    | Data zone or LSOA area code                |
+| A : Agriculture, forestry and fishing                                                                                        |   Real    | Number of employees for this industry type |
+| B : Mining and quarrying                                                                                                     |   Real    | Number of employees for this industry type |
+| C : Manufacturing                                                                                                            |   Real    | Number of employees for this industry type |
+| D : Electricity, gas, steam and air conditioning supply                                                                      |   Real    | Number of employees for this industry type |
+| E : Water supply; sewerage, waste management and remediation activities                                                      |   Real    | Number of employees for this industry type |
+| F : Construction                                                                                                             |   Real    | Number of employees for this industry type |
+| G : Wholesale and retail trade; repair of motor vehicles and motorcycles                                                     |   Real    | Number of employees for this industry type |
+| H : Transportation and storage                                                                                               |   Real    | Number of employees for this industry type |
+| I : Accommodation and food service activities                                                                                |   Real    | Number of employees for this industry type |
+| J : Information and communication                                                                                            |   Real    | Number of employees for this industry type |
+| K : Financial and insurance activities                                                                                       |   Real    | Number of employees for this industry type |
+| L : Real estate activities                                                                                                   |   Real    | Number of employees for this industry type |
+| M : Professional, scientific and technical activities                                                                        |   Real    | Number of employees for this industry type |
+| N : Administrative and support service activities                                                                            |   Real    | Number of employees for this industry type |
+| O : Public administration and defence; compulsory social security                                                            |   Real    | Number of employees for this industry type |
+| P : Education                                                                                                                |   Real    | Number of employees for this industry type |
+| Q : Human health and social work activities                                                                                  |   Real    | Number of employees for this industry type |
+| R : Arts, entertainment and recreation                                                                                       |   Real    | Number of employees for this industry type |
+| S : Other service activities                                                                                                 |   Real    | Number of employees for this industry type |
+| T : Activities of households as employers;undifferentiated goods-and services-producing activities of households for own use |   Real    | Number of employees for this industry type |
+| U : Activities of extraterritorial organisations and bodies                                                                  |   Real    | Number of employees for this industry type |
+
+In addition to the BRES data the model also requires a zone correspondence file which provides
+the lookup between the LSOA/data zones and the model zones, the correspondence file requires three
+columns which are summarised in the table below. The zone correspondence file can be created using
+module [1: Produce Zone Correspondence](#1-produce-zone-correspondence).
+
+Table: Required columns for the BRES zone correspondence, column names are ignored the
+columns just need to be in the correct order.
+
+| Column | Data Type | Description                                 |
+| :----: | :-------: | :------------------------------------------ |
+|   1    |   Text    | LSOA or data zones area code e.g. E02003616 |
+|   2    |  Integer  | Corresponding model zone ID                 |
+|   3    |   Real    | Splitting factor for correspondence         |
+
+#### VOA Data & Zone Correspondence
+
+The Valuation Office Agency (VOA) non domestic ratings list contains information regarding business
+premises and valuations across England and Wales, the data is available on [GOV.UK](https://voaratinglists.blob.core.windows.net/html/rlidata.htm).
+The data should be downloaded from the government website and provided as is to the model, the data
+is in a CSV format but the columns are separated with "*" instead of ",".
+
+The model expects the VOA dataset to contain 28 columns but with no column headers, a list of all
+the columns is provided in the table below.
+
+Table: Required columns for the VOA non domestic ratings list data, the file should not contain a
+header column but the column must be in the correct order. More information on the data provided
+by VOA can be found in the [VOA 2017 Compiled Rating List Data Specification](https://voaratinglists.blob.core.windows.net/html/documents/2017%20Compiled%20List%20and%20SMV%20Data%20Specification.pdf),
+column names and descriptions provided in the data specification report.
+
+| Column |          Data Type           | Name                                   | Description                                                                                                                                                                                                                                                                                 |
+| :----: | :--------------------------: | :------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+|   1    |            Number            | Incrementing Entry Number              | Indicates entry number within file.                                                                                                                                                                                                                                                         |
+|   2    |        Character (4)         | Billing Authority Code                 | Code representing Billing Authority (can have a leading zero).  A list of BA codes is provided at Appendix 1                                                                                                                                                                                |
+|   3    |        Character (6)         | NDR Community Code                     | Code specifying any community within a BA, Normally a Parish Council area.  Codes are provided by BAs and details of the areas designated areas are not available from the VOA.                                                                                                             |
+|   4    |        Character (25)        | BA Reference Number                    | Reference number supplied by BA and normally used for billing purposes.                                                                                                                                                                                                                     |
+|   5    |       Character (4,1)        | Primary And Secondary Description Code | Code providing a high level description of the property  A full list of Primary Description Codes and the Standard Text explanation that applies is provided at Appendix 2                                                                                                                  |
+|   6    |        Character (60)        | Primary Description Text               | Explanation of the Primary Description Code above.  A full list of Primary Description Codes and the Standard Text explanation that applies is provided at Appendix 2                                                                                                                       |
+|   7    |         Number (11)          | Unique Address Reference Number UARN   | VOA Internal key used to link information about the same hereditament                                                                                                                                                                                                                       |
+|   8    |       Character (190)        | Full Property Identifier               | Location of property as shown in Rating List (Usually less than 100 characters). Concatenation of (Address Number/Address Name, Sub-Street level 3, Sub-Street level 2, Sub-Street level 1, street, postal district, town and county)                                                       |
+|   9    |        Character (50)        | Firms Name                             | The name of the company  Note: Only a minority of assessments contain this information, often only when no number/ name is available.                                                                                                                                                       |
+|   10   | Number (4) or Character (72) | Number Or Name                         | Number and or name of the hereditament                                                                                                                                                                                                                                                      |
+|   11   |        Character (36)        | Street                                 | Name of Street                                                                                                                                                                                                                                                                              |
+|   12   |        Character (36)        | Town                                   | Name of Town                                                                                                                                                                                                                                                                                |
+|   13   |        Character (36)        | Postal District                        | The Postal District                                                                                                                                                                                                                                                                         |
+|   14   |        Character (36)        | County                                 | Name of County                                                                                                                                                                                                                                                                              |
+|   15   |        Character (8)         | Postcode                               | Postcode of hereditament as recorded by VOA                                                                                                                                                                                                                                                 |
+|   16   |          Date (11)           | Effective Date                         | Format DD-MON-YYYY Date the current assessment came into effect.                                                                                                                                                                                                                            |
+|   17   |        Character (1)         | Composite Indicator                    | Y indicates a composite property - this is one that is part used for domestic purposes and part used for non- domestic purposes (e.g. a shop with living accommodation overhead).  In these cases, the domestic element will be shown separately in the relevant Council Tax Valuation List |
+|   18   |         Number (10)          | Rateable Value                         | Rateable value is an assessment of the open market rental value of the property on the prescribed valuation date.                                                                                                                                                                           |
+|   19   |        Character (8)         | Appeal Settlement Code                 | Code to indicate the method of settlement of a proposal/appeal made by an interested party. See appendix 3.                                                                                                                                                                                 |
+|   20   |         Number (11)          | Assessment Reference                   | Unique numeric key for an assessment, irrespective of the status of the assessment or List Year.  This is a system generated number so can be used to assess sequence of events                                                                                                             |
+|   21   |          Date (11)           | List Alteration Date                   | Format DD-MON-YYYY. Date on which List entry was created or last amended                                                                                                                                                                                                                    |
+|   22   |        Character (4)         | SCAT Code And Suffix                   | Code used by the VOA to group properties together for operational purposes.  A full list of SCAT Codes is provided at Appendix 2                                                                                                                                                            |
+|   23   |        Character (36)        | Sub Street level 3                     | Lowest level of sub-street - (included in "Full Property Identifier" field above).                                                                                                                                                                                                          |
+|   24   |        Character (36)        | Sub Street level 2                     | Middle level of sub-street - (included in "Full Property Identifier" field above)                                                                                                                                                                                                           |
+|   25   |        Character (36)        | Sub Street level 1                     | First level of sub-street - (included in "Full Property Identifier" field above)                                                                                                                                                                                                            |
+|   26   |         Number (11)          | Case Number                            | Number allocated by the Valuation Office to help identify the properties involved in the same change (e.g. properties that are split into more than one property)                                                                                                                           |
+|   27   |          Date (11)           | Current From Date                      | Format DD-MON-YYYY. Date the record became current  Note: This is a system generated date which assists in showing the order changes were made on the VOA IT system. It does not relate to the effective date of the assessment.                                                            |
+|   28   |          Date (11)           | Current To Date                        | Format DD-MON-YYYY. Date the record ceased to be current  Note: This is a system generated date which assists in showing the order changes were made on the VOA IT system. It does not relate to the effective date of the assessment.                                                      |
+
+In addition to the VOA data the model also requires a zone correspondence file which provides
+the lookup between the postcodes and the model zones, the correspondence file requires three
+columns which are summarised in the table below. The zone correspondence file can be created using
+module [1: Produce Zone Correspondence](#1-produce-zone-correspondence).
+
+Table: Required columns for the VOA zone correspondence, column names are ignored the columns just
+need to be in the correct order.
+
+| Column | Data Type | Description                         |
+| :----: | :-------: | :---------------------------------- |
+|   1    |   Text    | UK postcode e.g. AB1 0AA            |
+|   2    |  Integer  | Corresponding model zone ID         |
+|   3    |   Real    | Splitting factor for correspondence |
+
+#### LGV Parameters Spreadsheet
+
+This input should be an Excel spreadsheet containing a variety of sheets with different parameters
+for the LGV model. Each of the required sheets in this input file are discussed in the following
+sections.
+
+##### Parameters
+
+The sheet named "Parameters" should contain two columns with the headers "Parameter" and "Value".
+The following table gives the names of the parameters and a description of what value should be
+provided.
+
+Table: Required parameters for the LGV model, parameters must be labelled exactly as given.
+
+| Parameter              |  Data Type   | Description                                                                   |
+| :--------------------- | :----------: | :---------------------------------------------------------------------------- |
+| LGV growth             |     Real     | A factor to increase the LGV trips from the van survey year to the model year |
+| Average new house size |     Real     | The average new house size in $m^2$                                           |
+| Scotland SOC821/SOC82  | Real (0 - 1) | The proportion of SOC821 occupations in the SOC82 segment                     |
+| Model Year             |   Integer    | The model year e.g. 2018                                                      |
+
+##### Commute Trips by Main Usage
+
+The sheet named "Commute trips by main usage" should contain the annual number of commute van trips
+from the van survey by usage type. The following usage types should be included:
+
+- G: Carryings goods
+- S: Service / trades
+- C: Commuting
+- T: Carrying people
+- O: Other
+
+This sheet should have two columns with the headers in the first row, the table below lists the
+columns.
+
+Table: Required columns for the commute trips by main usage sheet.
+
+| Column Name |   Data Type   | Description                                                  |
+| :---------- | :-----------: | :----------------------------------------------------------- |
+| Main usage  | Character (1) | Usage code for each of the types listed above                |
+| Trips       |     Real      | The annual number of commuting LGV trips for that usage type |
+
+##### Commute Trips by Land Use
+
+The sheet named "Commute trips by land use" should contain the annual number of commute van trips
+from the van survey by land use type. The following land uses should be included:
+
+- Residential
+- Construction
+- Employment
+
+This sheet should have two columns with the headers in the first row, the table below lists the
+columns.
+
+Table: Required columns for the commute trips by land use sheet.
+
+| Column Name          | Data Type | Description                                                |
+| :------------------- | :-------: | :--------------------------------------------------------- |
+| Land use at trip end |   Text    | The name of the land use type e.g. Residential             |
+| Trips                |   Real    | The annual number of commuting LGV trips for that land use |
+
+##### Annual Service Trips
+
+The sheet named "Annual Service Trips" should contain the annual number of LGV service trips by land
+use type from the DfT van survey. The sheet should contain the following land uses:
+
+- Residential
+- Office
+- All Other
+
+This sheet should have two columns with the headers in the first row, the table below lists the
+columns.
+
+Table: Required columns for the annual service trips sheet.
+
+| Column Name          | Data Type | Description                                              |
+| :------------------- | :-------: | :------------------------------------------------------- |
+| Segment              |   Text    | The name of the land use type e.g. Residential           |
+| Annual Service Trips |   Real    | The annual number of LGV service trips for that land use |
+
+##### Delivery Segment Parameters
+
+The sheet name "Delivery Segment Parameters" contains various mandatory parameters, listed in the
+table below. The sheet should have the column headers "Parameter" and "Value" on the first row.
+
+Table: Required parameters for the delivery segment sheet, parameters should be named exactly as
+written.
+
+| Parameter                             |      Data Type       | Description                                                                                                                                                   |
+| :------------------------------------ | :------------------: | :------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Annual Trip Productions - Parcel Stem |       Integer        | The total annual trip productions for the delivery parcel stem segment from the DfT van survey                                                                |
+| Annual Trips - Parcel Bush            |       Integer        | The total annual trips for the delivery parcel bush segment from the DfT van survey                                                                           |
+| Annual Trips - Grocery Bush           |       Integer        | The total annual trips for the delivery grocery bush segment from the DfT van survey                                                                          |
+| B2C vs B2B Weighting                  |     Real (0 - 1)     | The ratio of business-to-customer vs business-to-business delivery trips                                                                                      |
+| VOA Infill Function                   |         Text         | The function used to infill the VOA dataset when the rateable value is missing, the following are allowed: "minimum", "mean", "median" and "non-zero minimum" |
+| Depots Infill Zones                   | Comma-separated list | List of all zones in areas that aren't covered by the VOA dataset (e.g. Scotland), these zones will have depots allocated based on number of households       |
+
+##### Commute VOA Property Weightings
+
+The sheet named "Commute VOA property weightings" should contain a list of all the business types
+that should be filtered from the VOA dataset and used for calculating the commuting trip ends. The
+sheet should contain column headers on the first row, required columns are listed below any others
+are ignored.
+
+Table: Required columns for the commute VOA property weightings sheet.
+
+| Column Name | Data Type | Description                                                 |
+| :---------: | :-------: | :---------------------------------------------------------- |
+|   Weight    |   Real    | The weighting to use for these business types               |
+|  SCat code  |  Integer  | The SCat code to select business types from the VOA dataset |
+
+##### Gravity Model Parameters
+
+The sheet named "Gravity Model Parameters" should contains parameters for the gravity model for each
+of the six LGV model segments (Service, Delivery Parcel Stem, Delivery Parcel Bush, Delivery
+Grocery, Commuting Drivers and Commuting Skilled Trades). The sheet contains six columns, listed in
+the table below, with the headers on the first row.
+
+Table: Required columns for the gravity model parameters sheet.
+
+| Column Name               |          Data Type          | Description                                                                                                             |
+| :------------------------ | :-------------------------: | :---------------------------------------------------------------------------------------------------------------------- |
+| Segment                   |            Text             | The name of the LGV model segment e.g. Service                                                                          |
+| Furness Constraint Type   |   Text (DOUBLE or SINGLE)   | The type of furnessing to do, see [Gravity Model](#gravity-model) for more details                                      |
+| Cost Function             | Text (tanner or log normal) | The cost function to use, see [Gravity Model](#gravity-model) for more details                                          |
+| Cost Function Parameter 1 |            Real             | The first variable for the cost function, $\alpha$ for tanner and $\sigma$ for log normal                               |
+| Cost Function Parameter 2 |            Real             | The second variable for the cost function, $\beta$ for tanner and $\mu$ for log normal                                  |
+| Run Calibration           |      Text (Yes or No)       | Whether or not to calibrate the gravity model to the trip distribution, uses cost function parameters as starting point |
+
+##### Time Period Factors
+
+The sheet named "Time Period Factors" should contain all the factors for converting from the annual
+matrices to the time periods for each model segment. The table should contain one factor for each
+time period / segment combination, a list of the required columns is given below.
+
+Table: Required columns for the time period factors sheet.
+
+| Column Names             | Data Type | Description                                                                         |
+| :----------------------- | :-------: | :---------------------------------------------------------------------------------- |
+| Time Period              |   Text    | The name of the time period, will be used for naming the outputs                    |
+| Service                  |   Real    | The factor to multiply the annual matrix by to get the time period for this segment |
+| Delivery Parcel Stem     |   Real    | The factor to multiply the annual matrix by to get the time period for this segment |
+| Delivery Parcel Bush     |   Real    | The factor to multiply the annual matrix by to get the time period for this segment |
+| Delivery Grocery         |   Real    | The factor to multiply the annual matrix by to get the time period for this segment |
+| Commuting Drivers        |   Real    | The factor to multiply the annual matrix by to get the time period for this segment |
+| Commuting Skilled Trades |   Real    | The factor to multiply the annual matrix by to get the time period for this segment |
+
+#### LGV Trip Distributions Spreadsheet
+
+The trip distributions spreadsheet should contain a sheets with distributions for the different
+segments. The worksheets should be named "Commuting", "Service", "Delivery" and "Delivery Bush" and
+will be used for the relevant segment. Each worksheet should have the name of the cost distribution
+and it's units in cell A1, e.g. "Average Length (km)", and the column headers for the distribution
+table in row two. The distribution tables require four columns which are listed in the table below.
+
+Table: Required columns for the trip distribution tables, column headers should be on row two of
+each sheet.
+
+| Column Name | Data Type | Description                                                                                               |
+| :---------: | :-------: | :-------------------------------------------------------------------------------------------------------- |
+|  observed   |   Real    | The number of observed trips in this bin                                                                  |
+|    start    |   Real    | The start (inclusive) of the bin in the same units as the [Cost Matrix](#cost-matrix)                     |
+|     end     |   Real    | The end (exclusive) of the bin in the same units as the [Cost Matrix](#cost-matrix)                       |
+|   average   |   Real    | The weighted average of the cost value for this bin, in the same units as the [Cost Matrix](#cost-matrix) |
+
+#### Census Occupation Data
+
+The census occupation data is provided to the tool in two separate comma-separated values (CSV)
+files, both of which are available on the [NOMIS website](https://www.nomisweb.co.uk/). The census
+tables required are QS606EW and QS606UK, both tables contain meta data in the first eight rows and
+the column names on row nine.
+
+The QS606EW census table contains occupation data for England and Wales at LSOA level, and more
+occupation categories, a list of the expected columns is given in the table below. The table should
+be provided with the units persons.
+
+Table: Required columns for the QS606EW occupation data CSV.
+
+| Column Name                                         | Data Type | Description                         |
+| :-------------------------------------------------- | :-------: | :---------------------------------- |
+| 2011 super output area - lower layer                |   Text    | LSOA name                           |
+| mnemonic                                            |   Text    | LSOA area code                      |
+| All categories: Occupation                          |  Integer  | Total occupation                    |
+| 51. Skilled agricultural and related trades         |  Integer  | Occupation numbers for this segment |
+| 52. Skilled metal, electrical and electronic trades |  Integer  | Occupation numbers for this segment |
+| 53. Skilled construction and building trades        |  Integer  | Occupation numbers for this segment |
+| 821. Road Transport Drivers                         |  Integer  | Occupation numbers for this segment |
+
+The QS606UK census table should contain the occupation data extracted for Scotland only at datazone
+level and should be provided with the units persons. The expected columns for this input are shown
+in the table below.
+
+Table: Required columns for the QS606UK occupation data CSV.
+
+| Column Name                                             | Data Type | Description                         |
+| :------------------------------------------------------ | :-------: | :---------------------------------- |
+| 2011 scottish datazone                                  |   Text    | Datazone name                       |
+| mnemonic                                                |   Text    | Datazone area code                  |
+| All categories: Occupation                              |  Integer  | Total occupation                    |
+| 51. Skilled agricultural and related trades             |  Integer  | Occupation numbers for this segment |
+| 52. Skilled metal, electrical and electronic trades     |  Integer  | Occupation numbers for this segment |
+| 53. Skilled construction and building trades            |  Integer  | Occupation numbers for this segment |
+| 82. Transport and mobile machine drivers and operatives |  Integer  | Occupation numbers for this segment |
+
+#### Dwellings Data
+
+The dwellings data is provided to the tool in two separate files, an Excel Workbook containing the
+English data and a CSV containing the Scottish and Welsh data.
+
+The English dwellings data is provided, at Local Authority District (LAD), in Table 123 on the
+[Live tables on housing supply: net additional dwellings](https://www.gov.uk/government/statistical-data-sets/live-tables-on-net-supply-of-housing)
+page of the UK government website. The data is expected to be converted to an Excel workbook before
+providing to the tool but no changes to the formatting should be made, the workbook should have
+sheets labelled with the year of the data (e.g. 2018-19) and should contain the model year. The
+worksheet is expected to have the column names on row 4, a list of the required columns is given in
+the table below
+
+Table: English dwellings data required columns, names of columns should be exactly as listed any
+other columns are ignored.
+
+| Column Name                          | Data Type | Description                                      |
+| :----------------------------------- | :-------: | :----------------------------------------------- |
+| Current<br>ONS code                  |   Text    | LAD area code e.g. E06000055                     |
+| Lower and Single Tier Authority Data |   Text    | Name of the LAD                                  |
+| Demolitions                          |  Integer  | Number of building demolitions during the year   |
+| Net Additions                        |  Integer  | Net number of building additions during the year |
+
+The Scottish and Welsh dwellings data should be input as one CSV containing the values for both
+countries, both datasets can be downloaded off the internet separately. The Scottish data is
+available within [National Records of Scotland Household Estimates](https://www.nrscotland.gov.uk/statistics-and-data/statistics/statistics-by-theme/households/household-estimates/2019)
+dataset, table 2 contains the number of dwellings by council area for recent years. The Welsh data
+is available on the [Dwelling stock estimates page](https://statswales.gov.wales/Catalogue/Housing/Dwelling-Stock-Estimates/dwellingstockestimates-by-localauthority-tenure)
+of the StatsWales website and should be obtained for the model year and the model year plus one. The
+data should be combined and provided to the tool as a CSV, the required columns are given in the
+table below.
+
+Table: Scottish and Welsh dwellings data required columns.
+
+| Column Name                | Data Type | Description                                            |
+| :------------------------- | :-------: | :----------------------------------------------------- |
+| zone                       |   Text    | The LAD area code e.g. W06000013                       |
+| lad19nm                    |   Text    | The name of the LAD e.g. Bridgend                      |
+| model year (e.g. 2018)     |  Integer  | The number of dwellings in each LAD for the model year |
+| model year + 1 (e.g. 2019) |  Integer  | The number of dwellings in each LAD for the next year  |
+
+#### NDR Business Data
+
+The non-domestic rating business floorspace data is available in the NDR Business Floorspace tables
+Excel spreadsheet on [GOV.UK](https://www.gov.uk/government/statistics/non-domestic-rating-stock-of-properties-including-business-floorspace-2019)
+for the whole UK. The tables provide the business floorspace by administrative area for various
+years and different sectors, the tool requires the data from the various tables to be compiled into
+a single CSV which contains different columns for the different sectors (Retail, Office, Industrial
+and Other) and years. The table below details the columns required in the input CSV file.
+
+Table: NDR business floorspace CSV required columns.
+
+| Column Name                   | Data Type | Description                                                                  |
+| :---------------------------- | :-------: | :--------------------------------------------------------------------------- |
+| AREA_CODE                     |   Text    | Area code e.g. E92000001                                                     |
+| AREA                          |   Text    | Name of area e.g. ENGLAND                                                    |
+| Floorspace_2017-18_Retail     |  Integer  | Floorspace in $1000m^2$ for the retail sector ending in the model year       |
+| Floorspace_2018-19_Retail     |  Integer  | Floorspace in $1000m^2$ for the retail sector starting in the model year     |
+| Floorspace_2017-18_Office     |  Integer  | Floorspace in $1000m^2$ for the office sector ending in the model year       |
+| Floorspace_2018-19_Office     |  Integer  | Floorspace in $1000m^2$ for the office sector starting in the model year     |
+| Floorspace_2017-18_Industrial |  Integer  | Floorspace in $1000m^2$ for the industrial sector ending in the model year   |
+| Floorspace_2018-19_Industrial |  Integer  | Floorspace in $1000m^2$ for the industrial sector starting in the model year |
+| Floorspace_2017-18_Other      |  Integer  | Floorspace in $1000m^2$ for the other sectors ending in the model year       |
+| Floorspace_2018-19_Other      |  Integer  | Floorspace in $1000m^2$ for the other sectors starting in the model year     |
+
+**Note:** The column names should include the actual model year (and the years before and after)
+instead of 2018.
+
+#### Other Zone Correspondences
+
+Three other more generic zone correspondence CSVs are required for converting LSOAs, MSOAs and LADs
+to the model zone system. These correspondence files are used for converting the
+[Census Occupation Data](#census-occupation-data), [Dwellings Data](#dwellings-data) and
+[NDR Business Data](#ndr-business-data). All zone correspondence CSV files have the same format
+with column names on the first row and three required columns, listed in the table below.
+
+Table: Required columns for the zone correspondence CSVs, column names are ignored the columns just
+need to be in the correct order.
+
+| Column | Data Type | Description                         |
+| :----: | :-------: | :---------------------------------- |
+|   1    |   Text    | Area code e.g. E01000001            |
+|   2    |  Integer  | Corresponding model zone ID         |
+|   3    |   Real    | Splitting factor for correspondence |
+
+#### Study Area Lookup
+
+The study area lookup should be a file containing a list of all the model zones with a second column
+to flag whether or not they're inside the model study area. A list of the required columns is given
+in the table below.
+
+Table: Required columns for the study area lookup CSV, column names must be exactly as listed any
+other columns are ignored.
+
+| Column Name |    Data Type     | Description                                             |
+| :---------: | :--------------: | :------------------------------------------------------ |
+|    zone     |     Integer      | The model zone number                                   |
+|  internal   | Integer (1 or 0) | If the zone is inside (1) or outside (0) the study area |
+
+**Note:** Any zones not given will be assumed to be outside the study area.
+
+#### Cost Matrix
+
+Matrix CSV containing the cost values for all zones in the model, the units of the costs should be
+the same as the units in the [LGV Trip Distributions Spreadsheet](#lgv-trip-distributions-spreadsheet).
+The CSV file should be in square matrix format where the first column and row contains all the zone
+numbers, an example of a three by three matrix with the same costs for all zones is shown below.
+
+|       | **1** | **2** | **3** |
+| :---: | :---: | :---: | :---: |
+| **1** | *10*  | *10*  | *10*  |
+| **2** | *10*  | *10*  | *10*  |
+| **3** | *10*  | *10*  | *10*  |
+
+#### Calibration Matrix
+
+The calibration matrix should be a CSV in the same format as [Cost Matrix](#cost-matrix). This
+matrix is used during the gravity model process to adjust the impact of trips between certain zone
+pairs and should have positive values around 0 - 2. The [Gravity Model](#gravity-model) section
+outlines the methodology where this input is used.
+
+#### Output Folder
+
+The parent directory where all the outputs will be saved. A new sub-folder will be created with the
+name convention "LGV Model Outputs - {date} {time}" (e.g. "LGV Model Outputs - 2021-08-05 19.15.32")
+will be created to store the outputs for a single run of the LGV model.
+
+### Outputs
+
+### Methodology
+
+#### Trip End Generation
+
+#### Gravity Model
 
 ## 6: Matrix Utilities
 The matrix utilities module provides functionality for a variety of different operations which can
