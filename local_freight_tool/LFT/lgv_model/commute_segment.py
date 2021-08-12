@@ -10,11 +10,13 @@ import re
 
 # Third party imports
 import pandas as pd
+import numpy as np
 
 # Local imports
 from .. import utilities, errors
 from ..rezone import Rezone
 from . import lgv_inputs
+from .delivery_segment import zone_list
 
 
 ##### CLASSES #####
@@ -83,7 +85,9 @@ class CommuteTripEnds:
             "Weight": float,
             "SCat code": int,
         },
+        "Delivery Segment Parameters": {"Parameter": str, "Value": str},
     }
+
     BRES_AGGREGATION = {
         "Non-Construction": list(
             chain(
@@ -151,6 +155,7 @@ class CommuteTripEnds:
         }
         self.trip_attractions = None
         self.trip_ends = {}
+        self.infill_zones = []
 
     def _check_paths(self, input_paths):
         """Checks the input file paths are of expected type.
@@ -205,6 +210,15 @@ class CommuteTripEnds:
             commute_tables["Parameters"], "Parameter", ("Value", float)
         )
         self.params["Model Year"] = int(self.params["Model Year"])
+
+        # Find list of Scottish zones to infill for VOA data
+        infill_zone_row = commute_tables["Delivery Segment Parameters"].loc[
+            commute_tables["Delivery Segment Parameters"]["Parameter"]
+            == "Depots Infill Zones",
+            "Value",
+        ]
+        infill_zone_str = infill_zone_row[infill_zone_row.index[0]]
+        self.infill_zones = zone_list(infill_zone_str)
 
         # assign VOA weightings
         voa_weightings = commute_tables["Commute VOA property weightings"]
@@ -621,11 +635,75 @@ class CommuteTripEnds:
         )
         voa_data.index = voa_data["zone"]
         voa_data.drop(axis=1, labels=["zone"], inplace=True)
+        voa_data = self._infill_missing_depots(voa_data)
         voa_data["trips"] = (voa_data / voa_data.sum()) * self.commute_trips_land_use[
             "Employment"
         ]
 
         return voa_data[["trips"]]
+
+    def _infill_missing_depots(self, voa_data: pd.DataFrame):
+        """Infill depot data for any zones in `infill_zones` parameter.
+
+        Rateable value of depots is infilled by calculating rateable value
+        of depots per household in all zones not in `depots_infill` and
+        multiplying that by the number of households for each zone in
+        `depots_infill`.
+
+        Parameters
+        ----------
+        voa_data: pd.DataFrame
+            Dataframe with VOA data in model zone system with zones as index
+
+        Returns
+        -------
+        pd.DataFrame
+            DataFrame with original and infilled VOA data
+
+        Raises
+        ------
+        errors.MissingDataError
+            If any zones in `depots_infill` aren't present in the
+            households data.
+        ValueError
+            If any zones in `depots_infill` already have depot
+            data.
+        """
+        if self.infill_zones is None:
+            return
+        if not self.TEMPro_data:
+            self._read_household_projections()
+        missing = [
+            i for i in self.infill_zones if i not in self.TEMPro_data["households"].zone
+        ]
+        if missing:
+            raise errors.MissingDataError("Households for zones", missing)
+        already = [i for i in self.infill_zones if i in voa_data.index]
+        if already:
+            raise ValueError(
+                f"{len(already)} zones ({already}) already have depot data."
+            )
+        # Calculate rateable value of depots per households and
+        # then calculate rateable value for all infill zones
+        depots_per_hh = np.sum(
+            voa_data.loc[~voa_data.index.isin(self.infill_zones)].values
+        ) / np.sum(
+            self.TEMPro_data["households"]
+            .loc[~self.TEMPro_data["households"].zone.isin(self.infill_zones)]
+            .values
+        )
+        new_depots = (
+            self.TEMPro_data["households"]
+            .loc[self.TEMPro_data["households"].zone.isin(self.infill_zones)]
+            .copy()
+        )
+        new_depots.index = new_depots.zone
+        new_depots.drop(columns=["zone"], inplace=True)
+        new_depots = new_depots * depots_per_hh
+
+        # Add additional depot data to original dataframe
+        new_depots.columns = voa_data.columns
+        return pd.concat([voa_data, new_depots])
 
     def estimate_attractions(self):
         """Estimates trip attractions"""
