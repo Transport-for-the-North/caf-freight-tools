@@ -972,6 +972,89 @@ will be created to store the outputs for a single run of the LGV model.
 
 ### Outputs
 
+The LGV creates a new folder for each run to store all outputs inside, this folder follows the name
+convention of "LGV Model Outputs - {date} {time}" (e.g. "LGV Model Outputs - 2021-08-05 19.15.32").
+The LGV model outputs are split into three sub-folders "trip ends", "annual trip matrices" and
+"time period matrices", the outputs for each are discussed in the next sections.
+
+#### Trip Ends
+
+The trip ends folder contains six CSVs, which each contain the trip end values for each of the
+following model segments:
+
+- Service
+- Delivery Grocery
+- Delivery Parcel Bush
+- Delivery Parcel Stem
+- Commute Drivers
+- Commute Skilled Trades
+
+The output files are named after the segments e.g. `service_trip_ends.csv` and they're all saved in
+the CSV format with column headers on the first row and three columns. All outputs are given as
+production and attraction trip ends, except delivery grocery and delivery parcel bush which are
+origin and destinations.
+
+Table: Trip ends outputs CSV columns.
+
+| Column Name                   | Data Type | Description                                                       |
+| :---------------------------- | :-------: | :---------------------------------------------------------------- |
+| Zone                          |  Integer  | The model zone number                                             |
+| Productions (or Origins)      |   Real    | The number of production (or origin) trip ends for this zone      |
+| Attractions (or Destinations) |   Real    | The number of attraction (or destination) trip ends for this zone |
+
+#### Annual Trip Matrices
+
+The annual trip matrices folder contains the following three or four files for each of the model
+segments:
+
+- Annual trip matrix in productions / attractions format (if the model segment is in that format)
+- Annual trip matrix in origin / destination format
+- Excel log file
+- PDF trip distributions graph
+
+The following sections discuss each of the above files in more detail.
+
+##### Annual Trip Matrix
+
+The annual trip matrix files (both OD and PA) are provided as CSVs in the square matrix format i.e.
+the first row and column contain all the zone numbers and the remaining cells contain the values.
+All LGV model segments have an OD matrix and all, except delivery grocery and delivery parcel bush,
+have a PA matrix too. The naming conventions for the two matrices are as follows:
+
+- PA: `{segment_name}-trip_matrix-PA.csv`
+- OD: `{segment_name}-trip_matrix-OD.csv`
+
+##### Excel Log File
+
+The Excel log spreadsheet that is created contains various statistics and results from the LGV model
+process. The spreadsheet is named `{segment_name}-GM_log.xlsx` and contains the following worksheets:
+
+- Calibration Results: This sheet lists the calibration parameters used for the final run of the
+  gravity model and the $R^2$ values when the matrix is compared against the trip distributions.
+- Furnessing Results: This sheet provides the results of the furnessing process on the final run of
+  the gravity model.
+- Trip Distribution: This sheet is a table containing the observed trip distribution compared to
+  the matrix distribution.
+- Vehicle Kilometres: This sheet is a table of the total trips and vehicle kilometres in the annual
+  OD matrix.
+- Vehicle Kilometres (PA): This sheet contains the same information as above but for the PA matrix,
+  if this model segment is PA.
+
+##### Trip Distributions Graph
+
+The PDF contains a graph of the observed trip distributions compared to the output annual trip
+matrix distributions. The file is named `{segment_name}-distribution.pdf` and contains the
+distributions plotted for the observed data, the calibration area of the matrix, the whole matrix
+and the whole OD matrix. All the data used to produce these graphs is given in the Trip Distribution
+sheet of the [Excel Log File](#excel-log-file).
+
+#### Time Period Matrices
+
+The time period matrices folder contains a CSV with all the input time period factors listed and
+sub-folders for each time period. Each time period sub-folder contains square matrix CSVs for each
+of the six model segments, all matrices have the zones in the first column and row and have the time
+period name as a prefix e.g. `AM_service-trip_matrix.csv`.
+
 ### Methodology
 
 #### Trip End Generation
