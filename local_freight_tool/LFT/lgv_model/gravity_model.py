@@ -755,20 +755,16 @@ def calculate_vehicle_kms(
 
 def test_gm_func():
     """Runs the `gravity_model` with small 3x3 matrix."""
-    folder = Path(
-        r"C:\WSP_Projects\TfN Local Freight Model\01 - Delivery\LGV Method\GM Test Inputs"
-    )
+    folder = Path(input("Enter path to test folder: "))
+    if not folder.is_dir():
+        raise NotADirectoryError(folder)
     trip_ends_path = folder / "trip_ends.csv"
     costs_path = folder / "costs.csv"
     trip_distribution_path = (
         folder / "LGV_trip_distributions.xlsx",
         "Test Trip Distribution",
     )
-    internals = read_study_area(
-        Path(
-            r"C:\WSP_Projects\TfN Local Freight Model\01 - Delivery\LGV Method\NoHAM_study_area.csv"
-        )
-    )
+    internals = read_study_area(folder / "NoHAM_study_area.csv")
     calib_gm = CalibrateGravityModel(
         trip_ends_path, costs_path, trip_distribution_path, internal_zones=internals
     )
