@@ -268,7 +268,7 @@ def furness_2d(
 
 
 def annual_pa_to_od(matrix: np.ndarray, col_total: np.ndarray, row_total: np.ndarray) -> np.ndarray:
-    r"""Convert annual PA matrix to OD by adding on the transpose after factoring to totals.
+    """Convert annual PA matrix to OD by adding on the transpose after factoring to totals.
 
     Simple PA to OD conversion by factoring the `matrix` up to
     the `row_total` and factoring the transposed `matrix` to
@@ -279,7 +279,7 @@ def annual_pa_to_od(matrix: np.ndarray, col_total: np.ndarray, row_total: np.nda
     Parameters
     ----------
     matrix : np.ndarray
-        Square annual PA trip matrix/
+        Square annual PA trip matrix.
     col_total : np.ndarray
         Expected column totals.
     row_total : np.ndarray
