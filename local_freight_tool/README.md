@@ -729,9 +729,9 @@ written.
 
 | Parameter                             |      Data Type       | Description                                                                                                                                                   |
 | :------------------------------------ | :------------------: | :------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Annual Trip Productions - Parcel Stem |       Integer        | The total annual trip productions for the delivery parcel stem segment from the DfT van survey                                                                |
-| Annual Trips - Parcel Bush            |       Integer        | The total annual trips for the delivery parcel bush segment from the DfT van survey                                                                           |
-| Annual Trips - Grocery Bush           |       Integer        | The total annual trips for the delivery grocery bush segment from the DfT van survey                                                                          |
+| Annual Trip Productions - Parcel Stem |       Integer        | The total annual trip productions for the delivery parcel stem segment from the DfT van survey, for the **model year**.                                       |
+| Annual Trips - Parcel Bush            |       Integer        | The total annual trips for the delivery parcel bush segment from the DfT van survey, for the **model year**.                                                  |
+| Annual Trips - Grocery Bush           |       Integer        | The total annual trips for the delivery grocery bush segment from the DfT van survey, for the **model year**.                                                 |
 | B2C vs B2B Weighting                  |     Real (0 - 1)     | The ratio of business-to-customer vs business-to-business delivery trips                                                                                      |
 | VOA Infill Function                   |         Text         | The function used to infill the VOA dataset when the rateable value is missing, the following are allowed: "minimum", "mean", "median" and "non-zero minimum" |
 | Depots Infill Zones                   | Comma-separated list | List of all zones in areas that aren't covered by the VOA dataset (e.g. Scotland), these zones will have depots allocated based on number of households       |
