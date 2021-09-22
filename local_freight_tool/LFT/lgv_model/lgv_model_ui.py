@@ -84,7 +84,7 @@ class LGVModelUI(QtWidgets.QWidget):
                 filetype="CSV",
             ),
             "qs606sc_path": ui.FileInput(
-                "Census Occupation data for Scotland (QS606SC) CSV", filetype="CSV"
+                "Census Occupation data for Scotland (QS606UK) CSV", filetype="CSV"
             ),
             "sc_w_dwellings_path": ui.FileInput(
                 "Dwellings data for Wales and Scotland CSV", filetype="CSV"

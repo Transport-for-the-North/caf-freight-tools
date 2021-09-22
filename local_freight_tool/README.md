@@ -468,7 +468,14 @@ The LGV model has a number of input files which can be provided in the GUI, or v
 file (example below). This section details all of the input files which are needed in order to run
 the LGV model.
 
-Example of the configuration file:
+To run the LGV model with a configuration file it needs to be ran from command line. The command
+for running it is **`python -m LFT.lgv_model -c "path/to/config.ini"`**, this command should be ran
+from the Anaconda prompt after activating the environment (see
+[Running Local Freight Tool](#running-local-freight-tool) for more information). An example of the
+configuration file is shown below.
+
+***Note:** help text for running the tool through the command line can be seen with `python -m
+LFT.lgv_model -h`.*
 
 ```
 [LGV File Paths]
