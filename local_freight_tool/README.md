@@ -766,14 +766,14 @@ the table below, with the headers on the first row.
 
 Table: Required columns for the gravity model parameters sheet.
 
-| Column Name               |          Data Type          | Description                                                                                                             |
-| :------------------------ | :-------------------------: | :---------------------------------------------------------------------------------------------------------------------- |
-| Segment                   |            Text             | The name of the LGV model segment e.g. Service                                                                          |
-| Furness Constraint Type   |   Text (DOUBLE or SINGLE)   | The type of furnessing to do, see [Gravity Model](#gravity-model) for more details                                      |
-| Cost Function             | Text (tanner or log normal) | The cost function to use, see [Gravity Model](#gravity-model) for more details                                          |
-| Cost Function Parameter 1 |            Real             | The first variable for the cost function, $\alpha$ for tanner and $\sigma$ for log normal                               |
-| Cost Function Parameter 2 |            Real             | The second variable for the cost function, $\beta$ for tanner and $\mu$ for log normal                                  |
-| Run Calibration           |      Text (Yes or No)       | Whether or not to calibrate the gravity model to the trip distribution, uses cost function parameters as starting point |
+| Column Name               |          Data Type          | Description                                                                                                                          |
+| :------------------------ | :-------------------------: | :----------------------------------------------------------------------------------------------------------------------------------- |
+| Segment                   |            Text             | The name of the LGV model segment e.g. Service                                                                                       |
+| Furness Constraint Type   |   Text (DOUBLE or SINGLE)   | The type of furnessing to do, see [Gravity Model](#gravity-model) for more details. These can be provided in uppercase or lowercase. |
+| Cost Function             | Text (tanner or log normal) | The cost function to use, see [Gravity Model](#gravity-model) for more details. These can be provided in uppercase or lowercase.     |
+| Cost Function Parameter 1 |            Real             | The first variable for the cost function, $\alpha$ for tanner and $\sigma$ for log normal                                            |
+| Cost Function Parameter 2 |            Real             | The second variable for the cost function, $\beta$ for tanner and $\mu$ for log normal                                               |
+| Run Calibration           |      Text (Yes or No)       | Whether or not to calibrate the gravity model to the trip distribution, uses cost function parameters as starting point              |
 
 ##### Time Period Factors
 
@@ -781,17 +781,28 @@ The sheet named "Time Period Factors" should contain all the factors for convert
 matrices to the time periods for each model segment. The table should contain one factor for each
 time period / segment combination, a list of the required columns is given below.
 
+The time period factors ($f_{tp}$) are multiplied by the annual matrix ($M_{annual}$) to get the
+time period matrix ($M_{tp}$) using the formula below. This calculation is done for each segment
+and time period separately.
+
+$$
+M_{tp} = M_{annual} \times f_{tp}
+$$
+
+***Note:** the time period factors are expected to convert from annual trips to average daily time
+period, therefore each factor should be less than, approximately, 1/365.*
+
 Table: Required columns for the time period factors sheet.
 
-| Column Names             | Data Type | Description                                                                         |
-| :----------------------- | :-------: | :---------------------------------------------------------------------------------- |
-| Time Period              |   Text    | The name of the time period, will be used for naming the outputs                    |
-| Service                  |   Real    | The factor to multiply the annual matrix by to get the time period for this segment |
-| Delivery Parcel Stem     |   Real    | The factor to multiply the annual matrix by to get the time period for this segment |
-| Delivery Parcel Bush     |   Real    | The factor to multiply the annual matrix by to get the time period for this segment |
-| Delivery Grocery         |   Real    | The factor to multiply the annual matrix by to get the time period for this segment |
-| Commuting Drivers        |   Real    | The factor to multiply the annual matrix by to get the time period for this segment |
-| Commuting Skilled Trades |   Real    | The factor to multiply the annual matrix by to get the time period for this segment |
+| Column Names             | Data Type | Description                                                                                                 |
+| :----------------------- | :-------: | :---------------------------------------------------------------------------------------------------------- |
+| Time Period              |   Text    | The name of the time period, will be used for naming the outputs                                            |
+| Service                  |   Real    | The factor to multiply the annual matrix by to get the average daily time period (e.g. AM) for this segment |
+| Delivery Parcel Stem     |   Real    | The factor to multiply the annual matrix by to get the average daily time period (e.g. AM) for this segment |
+| Delivery Parcel Bush     |   Real    | The factor to multiply the annual matrix by to get the average daily time period (e.g. AM) for this segment |
+| Delivery Grocery         |   Real    | The factor to multiply the annual matrix by to get the average daily time period (e.g. AM) for this segment |
+| Commuting Drivers        |   Real    | The factor to multiply the annual matrix by to get the average daily time period (e.g. AM) for this segment |
+| Commuting Skilled Trades |   Real    | The factor to multiply the annual matrix by to get the average daily time period (e.g. AM) for this segment |
 
 #### LGV Trip Distributions Spreadsheet
 
