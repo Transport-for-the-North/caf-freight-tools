@@ -379,8 +379,9 @@ matrices into rigid and articulated annual PCU matrices. The interface is shown 
 
 ![Annual Tonne to Annual PCU GUI](doc/images/tonne_to_pcu_menu.PNG "Annual Tonne to Annual PCU GUI")
 
-The conversion and splitting process is based on the specification proposed by Ian Williams in the technical note
-`035_Separating_Rigids_Artics`. The process is detailed in the flowchart below.
+The conversion and splitting process is based on the specification proposed by Ian Williams in the
+technical note "Separating Rigid from Artic HGVs" [[1](#references)]. The process is detailed in the
+flowchart below.
 
 ![Annual Tonne to Annual PCU flowchart](doc/images/module_3_flowchart.png "Annual Tonne to Annual PCU flowchart")
 
@@ -411,8 +412,8 @@ Table: Outputs for HGV annual tonne to annual PCU conversion module
 
 ## 4: HGV Annual PCU to Model Time Period PCU
 This module converts the articulated and rigid matrices (created by module 3: [HGV Annual Tonne to
-Annual PCU Conversion](#3-hgv-annual-tonne-to-annual-pcu-conversion) from annual PCUs to model time period PCUs, based on the time periods defined
-by module 2: [Time Profile Builder](#2-time-profile-builder).
+Annual PCU Conversion](#3-hgv-annual-tonne-to-annual-pcu-conversion) from annual PCUs to model time
+period PCUs, based on the time periods defined by module 2: [Time Profile Builder](#2-time-profile-builder).
 
 ![Annual PCU to Model Time Period PCU Menu](doc/images/annual_to_time_period_menu.png "Annual PCU to Model Time Period PCU Menu")
 
@@ -455,7 +456,8 @@ Table: Outputs from the HGV annual PCU to model time period PCU module
 
 This module contains the functionality for running the LGV model which includes calculating trip
 ends, using a gravity model to generate annual trip matrices and converting the annual matrices to
-time periods. The interface is shown below.
+time periods. The interface is shown below. The methodology of the LGV model is based on Ian Williams'
+technical note "LGVN Model Design" [[2](#references)].
 
 ![LGV Model GUI](doc/images/lgv_model_menu.PNG "LGV Model GUI")
 
@@ -778,7 +780,8 @@ Table: Required columns for the gravity model parameters sheet.
 ##### Time Period Factors
 
 The sheet named "Time Period Factors" should contain all the factors for converting from the annual
-matrices to the time periods for each model segment. The table should contain one factor for each
+matrices to the time periods for each model segment, see Ian Williams' technical note [[2](#references)]
+for more detail on each segment. The table should contain one factor for each
 time period / segment combination, a list of the required columns is given below.
 
 The time period factors ($f_{tp}$) are multiplied by the annual matrix ($M_{annual}$) to get the
@@ -1000,7 +1003,7 @@ The LGV model outputs are split into three sub-folders "trip ends", "annual trip
 #### Trip Ends
 
 The trip ends folder contains six CSVs, which each contain the trip end values for each of the
-following model segments:
+following model segments (see Ian Williams' technical note [[2](#references)] for more details):
 
 - Service
 - Delivery Grocery
@@ -1078,7 +1081,7 @@ period name as a prefix e.g. `AM_service-trip_matrix.csv`.
 ### Methodology
 
 The LGV model is split into six model segments for different types of LGV trips, these are the
-following:
+following (see Ian Williams' technical note [[2](#references)] for more details):
 
 - Service
 - Delivery Grocery
@@ -1115,7 +1118,8 @@ The trip ends for the service segment are calculated by using employment and hou
 data to distribute the total annual service trips (from the DfT van survey) to the model zone system.
 The trip ends are distributed separately for the sub-segments of Residential, Office and All Other
 Employment before being combined together into a single set of service productions and attractions.
-The flowchart below outlines the service trip ends methodology in more detail.
+The flowchart below outlines the service trip ends methodology, more details of this methodology can
+be found in section 5 of Ian Williams' technical note [[2](#references)].
 
 ![LGV service productions and attractions trip ends methodology - flowchart](doc/images/LGV_methodology-Servicing.png "LGV service productions and attractions trip ends methodology - flowchart")
 
@@ -1135,7 +1139,8 @@ The trip ends for the delivery segment are split into three different sub-segmen
 
 The parcel stem trips are calculated as productions and attractions, whereas both the bush types are
 origin / destination trip ends. The flowchart below outlines the methodology for calculating the
-trip ends for all three types of delivery trip.
+trip ends for all three types of delivery trip, more details of this methodology can be found in
+section 6 of Ian Williams' technical note [[2](#references)].
 
 ![LGV delivery parcel and grocery trip ends methodology - flowchart](doc/images/LGV_methodology-Delivery.png "LGV delivery parcel and grocery trip ends methodology - flowchart")
 
@@ -1149,7 +1154,8 @@ The trip ends for the commuting segment are split into two sub-segments, detaile
 - Drivers: These are the LGV commuting trips which represent resident drivers.
 
 Both commuting segments are calculated as productions and attractions, these methodologies have been
-split into two flowcharts below, one for each type of trip end.
+split into two flowcharts below, one for each type of trip end. More details on the commuting
+methodology is given in section 4 of Ian Williams' technical note [[2](#references)].
 
 ![LGV commuting attractions trip ends methodology - flowchart](doc/images/LGV_methodology-Commuting-Attractions.png "LGV commuting attractions trip ends methodology - flowchart")
 
@@ -1307,3 +1313,8 @@ The user must select an O-D cost matrix file to convert, an O-D trip matrix file
 the zone correspondence file produced in module 1, and an output directory. Once 'Run' is clicked, a
 progress window displays the cost conversion process. Once completed, the cost CSV in the new zoning
 system is saved to the output directory under the name 'Output_Cost_Converted'.
+
+# References
+
+1. Ian Williams. 035 Separating Rigid from Artic HGVs, v1.0. February 2021.
+2. Ian Williams. 030 LGVN Model Design, v4.0. July 2021.
