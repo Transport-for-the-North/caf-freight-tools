@@ -202,6 +202,13 @@ class TonneToPCU:
             how="left",
             on="port_id",
         )
+        # Some port IDs correspond to the same GB zones aggregating those rows together
+        cols = ["Imp0Exp1", "port_zone_id", "zone_id", "trips"]
+        non_eu_imports_exports = (
+            non_eu_imports_exports[cols]
+            .groupby(cols[:3], as_index=False)
+            .sum()
+        )
         imports_dict = {
             "port_zone_id": "origin",
             "zone_id": "destination",
