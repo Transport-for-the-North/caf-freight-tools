@@ -27,7 +27,7 @@ class ODMatrix:
     operations with them.
     """
 
-    def __init__(self, dataframe, name=None, pivoted=True):
+    def __init__(self, dataframe, name=None, pivoted=True, fill_value=0):
         """Intialises an O-D matrix object from a pandas dataframe, creating
         both column and pivoted matrices.
 
@@ -43,6 +43,8 @@ class ODMatrix:
         pivoted : bool, optional
             Indicates whether the input dataframe is a column matrix or
             pivoted matrix, by default True
+        fill_value : float, default 0
+            Value to fill any missing OD pairs with.
         """
         self.name = name
         if not pivoted:
@@ -71,7 +73,10 @@ class ODMatrix:
 
             # create pivoted version of dataframe
             self.matrix = dataframe.pivot_table(
-                index="origin", columns="destination", values="trips", fill_value=0
+                index="origin",
+                columns="destination",
+                values="trips",
+                fill_value=fill_value,
             )
         else:
             self.matrix = dataframe
@@ -557,7 +562,7 @@ class ODMatrix:
         return out_mat
 
     @classmethod
-    def read_OD_file(cls, filepath):
+    def read_OD_file(cls, filepath, fill_value=0):
         """Creates an O-D matrix instance from a csv file.
 
         Parameters
@@ -566,6 +571,9 @@ class ODMatrix:
             Path to csv file with three columns: origin, destination and
             trips. The file can be comma or tab-separated, and does not
             require a header.
+        fill_value : float, default 0
+            Value to fill any missing OD pairs with, passed to class
+            initialisation.
 
         Returns
         -------
@@ -612,7 +620,7 @@ class ODMatrix:
             msg = f"Error: Problem with input {name}: {e}"
             raise ValueError(msg) from e
 
-        matrix = cls(matrix_dataframe, name, pivoted=False)
+        matrix = cls(matrix_dataframe, name, pivoted=False, fill_value=fill_value)
 
         return matrix
 

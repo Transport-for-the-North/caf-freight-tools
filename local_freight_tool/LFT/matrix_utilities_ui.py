@@ -708,7 +708,7 @@ class background_thread(QThread):
                         factor = float(factor_str)
                     except:
                         print("Reading in matrix factor")
-                        factor = ODMatrix.read_OD_file(factor_str)
+                        factor = ODMatrix.read_OD_file(factor_str, fill_value=1)
                     print("Factoring matrix")
                     od_matrix = od_matrix * factor
                     if self.summary:
