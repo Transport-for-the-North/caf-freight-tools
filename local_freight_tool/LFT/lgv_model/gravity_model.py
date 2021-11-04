@@ -328,7 +328,6 @@ class CalibrateGravityModel:
                 p0=init_params,
                 bounds=bounds,
                 verbose=2,
-                diff_step=0.1,
             )
         else:
             popt = init_params
