@@ -165,7 +165,13 @@ class InfoWindow(QtWidgets.QWidget):
             if line == "### Zone Correspondence Calculations\n":
                 text += "See user guide for detailed information.\n"
         html = STYLESHEET
-        html += markdown.markdown(text, extensions=["tables", "toc"])
+        html += markdown.markdown(
+            text,
+            extensions=[
+                "markdown.extensions.tables",
+                "markdown.extensions.toc",
+            ],
+        )
         self.page.setHtml(html)
 
     def closeEvent(self, event):
