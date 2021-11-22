@@ -19,6 +19,7 @@ from .utilities import Utilities
 from .cost_conversion import WeightedRezone
 from .time_period_conversion_ui import TimeConversionUI
 from .info_window import InfoWindow
+from .data_utils import local_path
 
 # Other packages
 
@@ -33,10 +34,10 @@ class tier_converter(QtWidgets.QWidget):
     def initUI(self):
         self.setGeometry(500, 200, 500, 540)
         self.setWindowTitle("Local Freight Tool")
-        self.setWindowIcon(QtGui.QIcon("icon.png"))
+        self.setWindowIcon(QtGui.QIcon(str(local_path("icon.png"))))
 
         logo_label = QtWidgets.QLabel(self)
-        logo_image = QtGui.QPixmap('TFN_title.png')
+        logo_image = QtGui.QPixmap(str(local_path('TFN_title.png')))
         logo_image = logo_image.scaled(168, 40, Qt.KeepAspectRatio, Qt.FastTransformation)
         logo_label.setGeometry(320, 10, 168, 40)
         logo_label.setPixmap(logo_image)

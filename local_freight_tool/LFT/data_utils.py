@@ -6,8 +6,10 @@
 
 ##### IMPORTS #####
 # Standard imports
+import sys
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Union
 
 # Third party imports
 
@@ -43,3 +45,27 @@ class DataPaths:
         """Check that both paths given exist."""
         for nm, p in (("data", self.path), ("zone correspondence", self.zc_path)):
             check_file_path(p, f"{self.name} {nm}")
+
+
+##### FUNCTIONS #####
+def local_path(path: Union[Path, str]) -> Path:
+    """Check if running from pyinstaller bundle and update path.
+
+    Updates path by prepending `sys._MEIPASS` only if running
+    within pyinstaller bundle.
+
+    Parameters
+    ----------
+    path : Union[Path, str]
+        Path to the local data file.
+
+    Returns
+    -------
+    Path
+        Path with `sys._MEIPASS` prepended if running
+        from pyinstaller bundle, otherwise converted
+        to Path object and return original path.
+    """
+    if hasattr(sys, "_MEIPASS"):
+        return Path(sys._MEIPASS) / path
+    return Path(path)

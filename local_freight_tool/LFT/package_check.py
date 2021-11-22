@@ -24,6 +24,9 @@ import jinja2
 import markdown
 from PyQt5.Qt import PYQT_VERSION_STR
 
+# Local imports
+from .data_utils import local_path
+
 
 ##### CLASSES #####
 class PackageChecker:
@@ -41,7 +44,10 @@ class PackageChecker:
     def __init__(self, env_path: Path = None):
         self._versions = None
         self._expected = None
-        self.env_path = self.DEFAULT_FILE if env_path is None else Path(env_path)
+        if env_path is None:
+            self.env_path = local_path(self.DEFAULT_FILE)
+        else:
+            self.env_path = Path(env_path)
         self.env_list = self.read_environment()
 
     def read_environment(self) -> List[str]:

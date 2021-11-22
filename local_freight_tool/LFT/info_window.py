@@ -4,16 +4,20 @@ GUI to render README.md when clicking the Info button from main menu.
 The introduction, images and zone correspondence calculations are removed.
 """
 
-# User-defined imports
-from .utilities import Utilities
+##### IMPORTS #####
+# Standard imports
 
-# PyQt imports
+
+# Third party imports
+import markdown
 from PyQt5 import QtWidgets, QtGui
 from PyQt5.QtWidgets import QVBoxLayout
 from PyQt5 import QtWebEngineWidgets
 
-# Other packages
-import markdown
+# Local imports
+from .utilities import Utilities
+from .data_utils import local_path
+
 
 STYLESHEET = (
     r"<head>"
@@ -106,7 +110,7 @@ class InfoWindow(QtWidgets.QWidget):
         """
         super().__init__()
         self.tier_converter = tier_converter
-        self.readme = readme
+        self.readme = local_path(readme)
         self.include = include
         self.initUI()
 
