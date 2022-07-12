@@ -30,3 +30,7 @@ def main():
             graph_title=row['graph_title'],
             save_as=row['save_as']
         )
+
+
+if __name__ == '__main__':
+    main()
