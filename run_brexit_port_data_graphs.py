@@ -16,6 +16,7 @@ def main():
     """
 
     run_csv_path = r'Y:\Freight\18. Brexit impacts on freight\2. Port0400\graph_run_params.csv'
+    verbose = True
 
     # Import
     iter_params = pd.read_csv(run_csv_path)
@@ -29,7 +30,8 @@ def main():
             direction=row['direction'],
             region=row['region'],
             graph_title=row['graph_title'],
-            save_as=row['save_as']
+            save_as=row['save_as'],
+            verbose=verbose
         )
 
 

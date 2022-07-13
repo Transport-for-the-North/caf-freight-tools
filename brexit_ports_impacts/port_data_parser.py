@@ -43,7 +43,8 @@ class PortDataParser:
                    direction: str,
                    region: str,
                    graph_title: str,
-                   save_as: str):
+                   save_as: str,
+                   verbose: bool = False):
         """
         direction: str
             takes 'in', 'out' - direction of traffic to plot
@@ -53,6 +54,8 @@ class PortDataParser:
             text to plot above the graph
          save_as: str
             text to include with saved plot, will be appended by relevant port name
+        verbose: bool = False
+            echo toggle
         """
         # Remove all but core data
         required_headings = ['Port', 'Year', 'Region', 'Direction', 'Value (Thousands)']
@@ -74,6 +77,8 @@ class PortDataParser:
         working_data = working_data.groupby('Port')
 
         for key, group in working_data:
+            if verbose:
+                print('Printing outputs for port %s' % key)
             plt.figure()
             plt.title(graph_title)
             group.groupby('Year')['Value (Thousands)'].sum().plot(label=key)
@@ -85,12 +90,12 @@ class PortDataParser:
             target_folder = target_direction + '_' + target_region
             target_folder = target_folder.replace(' ', '_')
             
-            out_path = os.path.join(self.out_data_path, target_folder, figure_name)
+            out_path = os.path.join(self.out_data_path, target_folder)
             
             if not os.path.exists(out_path):
                 os.mkdir(out_path)
 
-            plt.savefig(out_path)
+            plt.savefig(os.path.join(out_path, figure_name))
 
         return 0
 
