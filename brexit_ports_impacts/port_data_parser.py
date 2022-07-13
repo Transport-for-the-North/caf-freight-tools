@@ -29,7 +29,7 @@ class PortDataParser:
         self.out_data_path = out_data_path
 
         # Pass port data to object
-        self.port_data = pd.read_csv(self.data_path)
+        self.port_data = pd.read_csv(self.in_data_path)
 
         self.direction_dict = {'out': 'Outwards',
                                'in': 'Inwards'}
