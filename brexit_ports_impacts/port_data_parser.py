@@ -13,12 +13,13 @@ from matplotlib import pyplot as plt
 
 class PortDataParser:
 
-    _working_folder = r'Y:\Freight\18. Brexit impacts on freight\2. Port0400'
+    _working_folder = r'Y:\Freight\18. Brexit impacts on freight\2. Port0400\Raw data and code'
     _port_data_sheet = 'Data from PORT0400 from 2015-2020.xlsx'
+
+    _default_out_data_path = r'Y:\Freight\18. Brexit impacts on freight\2. Port0400\Graphs'
 
     _default_data_path = os.path.join(_working_folder, _port_data_sheet)
 
-    _default_out_data_path = _working_folder
 
     def __init__(self,
                  in_data_path: str = _default_data_path,
@@ -29,7 +30,7 @@ class PortDataParser:
         self.out_data_path = out_data_path
 
         # Pass port data to object
-        self.port_data = pd.read_csv(self.in_data_path)
+        self.port_data = pd.read_excel(self.in_data_path)
 
         self.direction_dict = {'out': 'Outwards',
                                'in': 'Inwards'}
@@ -81,11 +82,19 @@ class PortDataParser:
             plt.ylabel('Tonnage (Thousands)')
 
             figure_name = "%s_%s.png" % (save_as, key)
-            out_path = os.path.join(self.out_data_path, figure_name)
+            target_folder = target_direction + '_' + target_region
+            target_folder = target_folder.replace(' ', '_')
+            
+            out_path = os.path.join(self.out_data_path, target_folder, figure_name)
+            
+            if not os.path.exists(out_path):
+                os.mkdir(out_path)
 
             plt.savefig(out_path)
 
         return 0
+
+
 
 
 
