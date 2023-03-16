@@ -11,7 +11,7 @@ import string
 import warnings
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Sequence, Any, Union
+from typing import Optional, Sequence, Any, Union
 
 # Third party imports
 import numpy as np
@@ -353,6 +353,7 @@ def voa_ratings_list(
     zone_lookup: Path,
     year: int = None,
     fill_func: str = "minimum",
+    encoding: Optional[str] = None,
 ) -> pd.DataFrame:
     """Reads VOA NDR ratings list entries file and filters based on `scat_codes`.
 
@@ -378,6 +379,8 @@ def voa_ratings_list(
         The function to use for filling in any NaN values in the
         `rateable_value` column. Can be any function defined in
         `VOA_FILL_FUNCTIONS`.
+    encoding : str, optional
+        Encoding to use when reading the VOA file.
 
     Returns
     -------
@@ -408,6 +411,7 @@ def voa_ratings_list(
         header=None,
         names=VOA_RATINGS_LIST_COLUMNS.keys(),
         lineterminator="\n",
+        encoding=encoding,
     )
     # Extract number from SCAT code and use for filtering
     voa_data.insert(
