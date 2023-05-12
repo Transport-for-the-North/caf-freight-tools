@@ -1,0 +1,19 @@
+operational:
+  output_folder: C:\Users\UKKXF022\Documents\Midlands_connect_freight\ttt_demo_outputs
+  a_roads: True
+  show_plots: False
+  hex_bin_width: 12
+
+
+analysis_inputs:
+  zone_centroids_path: C:\Users\UKKXF022\Documents\Midlands_connect_freight\ttt_inputs\demo_centroids\demo_centroids.shp
+  od_demand_matrix_path: C:\Users\UKKXF022\Documents\Midlands_connect_freight\ttt_inputs\demo_od_matrix.csv
+  range: 50
+
+plotting_inputs:
+  network_path: C:\Users\UKKXF022\Documents\Midlands_connect_freight\midlands_road_links_shapefile\aggregated_filtered_road_network.shp 
+  motorway_junction_path: C:\Users\UKKXF022\Documents\Midlands_connect_freight\shape_files\os_motorway_junction
+  outlines_path: C:\Users\UKKXF022\Documents\Midlands_connect_freight\shape_files\useful_for_hexbin\England_regions\england_regions.shp
+  service_stations_path: C:\Users\UKKXF022\Documents\Midlands_connect_freight\shape_files\motorway_services_HGV_access\motorway_services.shp
+  map_labels_path: C:\Users\UKKXF022\Documents\Midlands_connect_freight\shape_files\notable_places\notable_places_easting_northing.shp
+ignore: C:\Users\UKKXF022\Documents\Midlands_connect_freight\shape_files\os_road_links\
