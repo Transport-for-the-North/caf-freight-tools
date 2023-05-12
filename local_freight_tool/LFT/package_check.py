@@ -143,7 +143,7 @@ class PackageChecker:
         """
         if self._versions is None:
             self._versions = {
-                "python": sys.version.split("|")[0].strip(),
+                "python": ".".join(str(i) for i in sys.version_info[:3]),
                 "pyqt": PYQT_VERSION_STR,
                 "openpyxl": openpyxl.__version__,
                 "pandas": pd.__version__,
