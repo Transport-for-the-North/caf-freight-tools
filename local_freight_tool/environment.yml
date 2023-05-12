@@ -7,7 +7,6 @@ dependencies:
   - pyqt=5.12.*
   - openpyxl>=3.0.6
   - pandas=1.2.*
-  - geopandas>=0.8.2
   - markdown>=3.3.4
   - jinja2>=2.11
   - packaging>=20.0

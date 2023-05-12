@@ -19,7 +19,6 @@ import pandas as pd
 import matplotlib
 import scipy
 import openpyxl
-import geopandas as gpd
 import jinja2
 import markdown
 from PyQt5.Qt import PYQT_VERSION_STR
@@ -147,7 +146,6 @@ class PackageChecker:
                 "pyqt": PYQT_VERSION_STR,
                 "openpyxl": openpyxl.__version__,
                 "pandas": pd.__version__,
-                "geopandas": gpd.__version__,
                 "jinja2": jinja2.__version__,
                 "matplotlib": matplotlib.__version__,
                 "markdown": markdown.__version__,

@@ -12,8 +12,6 @@ from .profile_builder import Profile_Builder
 from .hgv_annual_tonne_to_pcu_ui import TonneToPCUInterface
 from .matrix_utilities_ui import MatrixUtilities
 from .lgv_model.lgv_model_ui import LGVModelUI
-from .combine_shapefiles import CombineShapefiles
-from .zone_correspondence_ui import ZoneCorrespondenceUi
 from .forecast_ui import ForecastUI
 from .utilities import Utilities
 from .cost_conversion import WeightedRezone
@@ -60,22 +58,9 @@ class tier_converter(QtWidgets.QWidget):
         next_button.clicked.connect(self.on_click_Info)
 
         y += sep
-        # Create a push buttons for menu options
-        next_button = QtWidgets.QPushButton(self)
-        next_button.setText("0: Combine Point and Polygon Shapefiles")
-        next_button.setGeometry(10, y, 480, 30)
-        next_button.clicked.connect(self.on_click_CombineShapefiles)
-
-        y += sep
-        next_button = QtWidgets.QPushButton(self)
-        next_button.setText("1: Produce Zone Correspondence")
-        next_button.setGeometry(10, y, 480, 30)
-        next_button.clicked.connect(self.on_click_ZoneCorrespondence)
-
-        y += sep
         #  Create a push button for Profile Builder
         next_button = QtWidgets.QPushButton(self)
-        next_button.setText("2: Time Profile Builder")
+        next_button.setText("Time Profile Builder")
         next_button.setGeometry(10, y, 480, 30)
         next_button.clicked.connect(self.on_click_Profile_Builder)
 
@@ -87,19 +72,19 @@ class tier_converter(QtWidgets.QWidget):
 
         y += sep
         next_button = QtWidgets.QPushButton(self)
-        next_button.setText("3: HGV Annual Tonne to Annual PCU Conversion")
+        next_button.setText("HGV Annual Tonne to Annual PCU Conversion")
         next_button.setGeometry(10, y, 480, 30)
         next_button.clicked.connect(self.on_click_AnnualTonne2PCU)
 
         y += sep
         next_button = QtWidgets.QPushButton(self)
-        next_button.setText("4: HGV Annual PCU to Model Zoning and Time Periods")
+        next_button.setText("HGV Annual PCU to Model Zoning and Time Periods")
         next_button.setGeometry(10, y, 480, 30)
         next_button.clicked.connect(self.on_click_time_period_conv)
 
         y += sep
         next_button = QtWidgets.QPushButton(self)
-        next_button.setText("5: LGV Model")
+        next_button.setText("LGV Model")
         next_button.setGeometry(10, y, 480, 30)
         next_button.clicked.connect(self.on_click_LGVProcessing)
 
@@ -111,19 +96,19 @@ class tier_converter(QtWidgets.QWidget):
 
         y += sep
         next_button = QtWidgets.QPushButton(self)
-        next_button.setText("6: Matrix Utilities")
+        next_button.setText("Matrix Utilities")
         next_button.setGeometry(10, y, 480, 30)
         next_button.clicked.connect(self.on_click_MatrixUtilities)
 
         y += sep
         next_button = QtWidgets.QPushButton(self)
-        next_button.setText("7: Delta Process")
+        next_button.setText("Delta Process")
         next_button.setGeometry(10, y, 480, 30)
         next_button.clicked.connect(self.on_click_DeltaProcess)
 
         y += sep
         next_button = QtWidgets.QPushButton(self)
-        next_button.setText("8: Cost Conversion")
+        next_button.setText("Cost Conversion")
         next_button.setGeometry(10, y, 480, 30)
         next_button.clicked.connect(self.on_click_CostConversion)
 
@@ -138,18 +123,6 @@ class tier_converter(QtWidgets.QWidget):
     @pyqtSlot()
     def on_click_Info(self):
         self.selections_window = InfoWindow(self, 'README.md')
-        self.selections_window.show()
-
-    @pyqtSlot()
-    def on_click_CombineShapefiles(self):
-        self.selections_window = CombineShapefiles(self)
-        self.hide()
-        self.selections_window.show()
-
-    @pyqtSlot()
-    def on_click_ZoneCorrespondence(self):
-        self.selections_window = ZoneCorrespondenceUi(self)
-        self.hide()
         self.selections_window.show()
 
     @pyqtSlot()
