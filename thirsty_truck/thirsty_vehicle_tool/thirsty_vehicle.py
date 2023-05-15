@@ -13,9 +13,9 @@ import argparse
 from tqdm.contrib import logging as tqdm_log
 
 # local imports
-from thirsty_vehicle import input_output_constants, utilities, geospatial_analysis, hex_plotting
+from thirsty_vehicle_tool import input_output_constants, thirsty_vehicle_logging, geospatial_analysis, hex_plotting
 
-LOG_FILE = "thirsty_truck.log"
+LOG_FILE = "thirsty_vehicle.log"
 LOG = logging.getLogger(__package__)
 
 
@@ -27,12 +27,12 @@ def main(args: argparse.Namespace) -> None:
     args : argparse.Namespace
         command line arguement inputs
     """
-    with utilities.ThirstyTruckLog() as thirsty_truck_log:
+    with thirsty_vehicle_logging.ThirstyVehicleLog() as thirsty_truck_log:
         with tqdm_log.logging_redirect_tqdm([thirsty_truck_log.logger]):
             run(thirsty_truck_log, args)
 
 
-def run(log: utilities.ThirstyTruckLog, args: argparse.Namespace) -> None:
+def run(log: thirsty_vehicle_logging.ThirstyVehicleLog, args: argparse.Namespace) -> None:
     """parses config, set up logging and passes inputs to tool
 
     inputs: reads in config, parses file paths to inputs and passes this to tool
@@ -45,15 +45,15 @@ def run(log: utilities.ThirstyTruckLog, args: argparse.Namespace) -> None:
     args : argparse.Namespace
         command line arguement inputs
     """
-    config = input_output_constants.ThirstyTruckConfig.load_yaml(args.config)
+    config = input_output_constants.ThirstyVehicleConfig.load_yaml(args.config)
     config.operational.output_folder.mkdir(exist_ok=True)
 
     log.add_file_handler(config.operational.output_folder / LOG_FILE)
 
     config.convert_to_m()
 
-    analysis_inputs = config.parse_analysis_inputs()
-    plotting_inputs = config.parse_plotting_inputs()
+    analysis_inputs = config.analysis_inputs.parse_analysis_inputs()
+    plotting_inputs = config.plotting_inputs.parse_plotting_inputs(config.operational)
 
     thirsty_vehicle_process(analysis_inputs, plotting_inputs, config.operational)
 

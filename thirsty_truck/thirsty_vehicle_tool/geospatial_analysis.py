@@ -13,7 +13,7 @@ import numpy as np
 from tqdm import tqdm
 
 # local imports
-from thirsty_vehicle import input_output_constants
+from thirsty_vehicle_tool import input_output_constants
 
 # constants
 LOG = logging.getLogger(__name__)

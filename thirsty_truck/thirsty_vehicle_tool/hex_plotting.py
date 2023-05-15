@@ -15,7 +15,7 @@ from bokeh import io, models, plotting, palettes, layouts
 from shapely import geometry
 
 # local imports
-from thirsty_vehicle import input_output_constants
+from thirsty_vehicle_tool import input_output_constants
 
 
 LOG = logging.getLogger(__name__)

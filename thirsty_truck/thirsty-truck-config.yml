@@ -1,0 +1,28 @@
+operational:
+  output_folder: C:\Users\UKKXF022\Documents\Midlands_connect_freight\thirsty_truck_outputs
+  a_roads: True
+  show_plots: False
+  hex_bin_width: 12
+
+
+analysis_inputs:
+  range: 50
+  tonne_to_pcu_inputs:
+    domestic_bulk_port_path: C:\Users\UKKXF022\Documents\Midlands_connect_freight\LFT_inputs\AllCommTotTonnesOZ_DZ_DomBulkPortRoad_GBZ.csv
+    unitised_eu_imports_path: C:\Users\UKKXF022\Documents\Midlands_connect_freight\LFT_inputs\UnitisedTradeEurope_Tonnes_Dir_GBZSeqPort_GBZSeqROAD0_GBZ.csv
+    unitised_eu_exports_path: C:\Users\UKKXF022\Documents\Midlands_connect_freight\LFT_inputs\BWUnitTradeEurope_Tonnes_Dir_GBZSeqPort_GBZSeqROAD1_GBZ.csv
+    unitised_non_eu_path: C:\Users\UKKXF022\Documents\Midlands_connect_freight\LFT_inputs\IOGBP_U_NONEurope_Tn_Dir_GBPort_GBZSeqROAD_GBZ.csv
+    ports_path: GBPortctrToGBPortCodesToGBZoneCodes(not sequential).csv
+    distance_bands_path: C:\Users\UKKXF022\Documents\Midlands_connect_freight\LFT_inputs\Annual tonnes to annual pcus\hgv_trips_per_1000t_by_distance_band.csv
+    gbfm_distance_matrix_path: C:\Users\UKKXF022\Documents\Midlands_connect_freight\LFT_inputs\Annual tonnes to annual pcus\B057 3320 DIS HGV_IP fmV PS_GBFMZ.csv
+    port_traffic_proportions_path: C:\Users\UKKXF022\Documents\Midlands_connect_freight\LFT_inputs\Annual tonnes to annual pcus\port_traffic_trips_per_1000t.csv
+    pcu_factors_path: C:\Users\UKKXF022\Documents\Midlands_connect_freight\LFT_inputs\Annual tonnes to annual pcus\pcu_factors.csv
+
+
+plotting_inputs:
+  network_path: C:\Users\UKKXF022\Documents\Midlands_connect_freight\midlands_road_links_shapefile\aggregated_filtered_road_network.shp 
+  motorway_junction_path: C:\Users\UKKXF022\Documents\Midlands_connect_freight\shape_files\os_motorway_junction
+  outlines_path: C:\Users\UKKXF022\Documents\Midlands_connect_freight\shape_files\useful_for_hexbin\England_regions\england_regions.shp
+  service_stations_path: C:\Users\UKKXF022\Documents\Midlands_connect_freight\shape_files\motorway_services_HGV_access\motorway_services.shp
+  map_labels_path: C:\Users\UKKXF022\Documents\Midlands_connect_freight\shape_files\notable_places\notable_places_easting_northing.shp
+ignore: C:\Users\UKKXF022\Documents\Midlands_connect_freight\shape_files\os_road_links\

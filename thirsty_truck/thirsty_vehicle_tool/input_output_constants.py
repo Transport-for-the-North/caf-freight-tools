@@ -54,15 +54,15 @@ A_ROAD_LINEWIDTH = 0.5
 ROAD_COLOUR = "gray"
 
 JUNCTION_COLOUR = "gray"
-JUNCTION_SIZE = 5
-JUNCTION_SHAPE = "x"
+JUNCTION_SIZE = 3
+JUNCTION_SHAPE = "circle"
 
 OUTLINE_COLOUR = "deepskyblue"
 OUTLINE_WIDTH = 0.3
 
-SERVICES_SIZE = 5
-SERVICES_COLOUR = "gray"
-SERVICES_SHAPE = "diamond_dot"
+SERVICES_SIZE = 7
+SERVICES_COLOUR = "blue"
+SERVICES_SHAPE = "diamond"
 
 LABEL_SHAPE = "triangle"
 LABEL_TEXT_COLOUR = "white"
@@ -89,6 +89,39 @@ class AnalysisInputs:
     zone_centroids_path: pathlib.Path
     range: float
 
+    def parse_analysis_inputs(self) -> ParsedAnalysisInputs:
+        """parses inputs into a named tuple
+
+        Returns
+        -------
+        ParsedAnalysisInputs
+            named tuple containing all analysis input data
+        """
+        LOG.info("Parsing inputs")
+        # read in files
+
+        # check range is correct type
+        try:
+            range_ = float(self.range)
+        except ValueError:
+            raise ValueError(
+                "The range you provided in not a number, please re-enter the value. Cheers!"
+            )
+
+        LOG.info("Parsing Centroids")
+        zone_centroids = gpd.read_file(self.zone_centroids_path)
+        zone_centroids = check_and_format_centroids(zone_centroids)
+
+        LOG.info("Parsing OD demand matrix")
+        demand_matrix = pd.read_csv(self.od_demand_matrix_path)
+        demand_matrix = check_and_format_demand_matrix(demand_matrix)
+
+        return ParsedAnalysisInputs(
+            demand_marix=demand_matrix,
+            zone_centroids=zone_centroids,
+            range=range_,
+        )
+
 
 @dataclasses.dataclass
 class PlottingInputs:
@@ -105,6 +138,75 @@ class PlottingInputs:
     outlines_path: pathlib.Path
     service_stations_path: pathlib.Path
     map_labels_path: pathlib.Path
+
+    def parse_plotting_inputs(self, operational: Operational) -> ParsedPlottingInputs:
+        """Parses Plotting inputs
+
+        Returns
+        -------
+        ParsedPlottingInputs
+            parsed plotting inputs from config file
+        """
+        LOG.info("Parsing road network")
+
+        if self.network_path.is_dir():
+            roads = read_in_network_folder(
+                self.network_path,
+                operational.a_roads,
+                operational.output_folder,
+            )
+        else:
+            roads = read_shape_file(
+                self.network_path,
+                required_columns=ROADS_REQUIRED_COLUMNS,
+            )
+            roads = format_roads(roads, operational.a_roads)
+
+        if len(roads) == 0:
+            LOG.warning(
+                "filtering by road class yeilded no roads."
+                f" Please ensure your roads file's 'class' column contains '{MOTORWAY_LABEL}' "
+                f"and (if applicable) '{A_ROAD_LABEL}' values. This is the same format as the "
+                "data provided on the OS datahub website."
+            )
+
+        LOG.info("Parsing motorway junctions")
+
+        if self.motorway_junction_path.is_dir():
+            junctions = read_in_junction_folder(
+                self.motorway_junction_path,
+                operational.output_folder,
+            )
+
+        else:
+            junctions = read_shape_file(
+                self.motorway_junction_path,
+                required_columns=JUNCTION_REQUIRED_COLUMNS,
+            )
+
+        outlines = read_shape_file(
+            self.outlines_path, precision=GEOSPATIAL_PRECISION
+        )
+        # some remove any multilinestringgs
+        outlines = outlines.explode()
+
+        services_stations = read_shape_file(
+            self.service_stations_path,
+            required_columns=SERVICES_REQUIRED_COLUMNS,
+        )
+
+        map_labels = read_shape_file(
+            self.map_labels_path,
+            required_columns=MAP_LABELS_REQUIRED_COLUMNS,
+        )
+
+        return ParsedPlottingInputs(
+            roads=roads,
+            junctions=junctions,
+            outlines=outlines,
+            service_stations=services_stations,
+            map_labels=map_labels,
+        )
 
 
 class ParsedPlottingInputs(NamedTuple):
@@ -142,7 +244,6 @@ class ParsedAnalysisInputs(NamedTuple):
     zone_centroids: gpd.GeoDataFrame
     range: float
 
-
 @dataclasses.dataclass
 class Operational:
     """operational inputs for the tool
@@ -164,8 +265,7 @@ class Operational:
     show_plots: bool
     hex_bin_width: float
 
-
-class ThirstyTruckConfig(caf.toolkit.BaseConfig):
+class ThirstyVehicleConfig(caf.toolkit.BaseConfig):
     """manages reading the thirsty truck config file
 
     Parameters
@@ -187,113 +287,11 @@ class ThirstyTruckConfig(caf.toolkit.BaseConfig):
         self.analysis_inputs.range = self.analysis_inputs.range * TO_M_FACTOR
         self.operational.hex_bin_width = self.operational.hex_bin_width * TO_M_FACTOR
 
-    def parse_analysis_inputs(self) -> ParsedAnalysisInputs:
-        """parses inputs into a named tuple
 
-        Returns
-        -------
-        ParsedAnalysisInputs
-            named tuple containing all analysis input data
-        """
-        LOG.info("Parsing inputs")
-        # read in files
-
-        # check range is correct type
-        try:
-            range_ = float(self.analysis_inputs.range)
-        except ValueError:
-            raise ValueError(
-                "The range you provided in not a number, please re-enter the value. Cheers!"
-            )
-
-        LOG.info("Parsing Centroids")
-        zone_centroids = gpd.read_file(self.analysis_inputs.zone_centroids_path)
-        zone_centroids = check_and_format_centroids(zone_centroids)
-
-        LOG.info("Parsing OD demand matrix")
-        demand_matrix = pd.read_csv(self.analysis_inputs.od_demand_matrix_path)
-        demand_matrix = check_and_format_demand_matrix(demand_matrix)
-
-        return ParsedAnalysisInputs(
-            demand_marix=demand_matrix,
-            zone_centroids=zone_centroids,
-            range=range_,
-        )
-
-    def parse_plotting_inputs(self) -> ParsedPlottingInputs:
-        """Parses Plotting inputs
-
-        Returns
-        -------
-        ParsedPlottingInputs
-            parsed plotting inputs from config file
-        """
-        LOG.info("Parsing road network")
-
-        if self.plotting_inputs.network_path.is_dir():
-            roads = read_in_network_folder(
-                self.plotting_inputs.network_path,
-                self.operational.a_roads,
-                self.operational.output_folder,
-            )
-        else:
-            roads = read_shape_file(
-                self.plotting_inputs.network_path,
-                required_columns=ROADS_REQUIRED_COLUMNS,
-            )
-            roads = format_roads(roads, self.operational.a_roads)
-
-        if len(roads) == 0:
-            LOG.warning(
-                "filtering by road class yeilded no roads."
-                f" Please ensure your roads file's 'class' column contains '{MOTORWAY_LABEL}' "
-                f"and (if applicable) '{A_ROAD_LABEL}' values. This is the same format as the "
-                "data provided on the OS datahub website."
-            )
-
-        LOG.info("Parsing motorway junctions")
-
-        if self.plotting_inputs.motorway_junction_path.is_dir():
-            junctions = read_in_junction_folder(
-                self.plotting_inputs.motorway_junction_path,
-                self.operational.output_folder,
-            )
-
-        else:
-            junctions = read_shape_file(
-                self.plotting_inputs.motorway_junction_path,
-                required_columns=JUNCTION_REQUIRED_COLUMNS,
-            )
-
-        outlines = read_shape_file(
-            self.plotting_inputs.outlines_path, precision=GEOSPATIAL_PRECISION
-        )
-        # some remove any multilinestringgs
-        outlines = outlines.explode()
-
-        services_stations = read_shape_file(
-            self.plotting_inputs.service_stations_path,
-            required_columns=SERVICES_REQUIRED_COLUMNS,
-        )
-
-        map_labels = read_shape_file(
-            self.plotting_inputs.map_labels_path,
-            required_columns=MAP_LABELS_REQUIRED_COLUMNS,
-        )
-
-        return ParsedPlottingInputs(
-            roads=roads,
-            junctions=junctions,
-            outlines=outlines,
-            service_stations=services_stations,
-            map_labels=map_labels,
-        )
 
 
 def check_and_format_centroids(zone_centroids: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
     """checks and formats inputted zone centroids
-
-
 
     Parameters
     ----------
@@ -342,8 +340,6 @@ def check_and_format_demand_matrix(demand_matrix: pd.DataFrame) -> pd.DataFrame:
     -------
     pd.DataFrame
         reformatted and checked demand matrix
-
-
     """
     # convert columns to lower case
     demand_matrix.columns = demand_matrix.columns.str.lower()
@@ -378,7 +374,7 @@ def read_shape_file(
     -------
     gpd.GeoDataFrame
         _description_
-    """    
+    """
     read_file = gpd.read_file(file)
     read_file.to_crs(CRS)
     read_file.columns = read_file.columns.str.lower()
