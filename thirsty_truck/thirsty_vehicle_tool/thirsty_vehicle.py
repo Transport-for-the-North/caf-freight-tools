@@ -13,10 +13,10 @@ import argparse
 from tqdm.contrib import logging as tqdm_log
 
 # local imports
-from thirsty_vehicle_tool import input_output_constants, thirsty_vehicle_logging, geospatial_analysis, hex_plotting
+from thirsty_vehicle_tool import input_output_constants, tv_logging, geospatial_analysis, hex_plotting
 
 LOG_FILE = "thirsty_vehicle.log"
-LOG = logging.getLogger(__package__)
+LOG = tv_logging.get_logger(__package__)
 
 
 def main(args: argparse.Namespace) -> None:
@@ -27,12 +27,12 @@ def main(args: argparse.Namespace) -> None:
     args : argparse.Namespace
         command line arguement inputs
     """
-    with thirsty_vehicle_logging.ThirstyVehicleLog() as thirsty_truck_log:
+    with tv_logging.ThirstyVehicleLog("Thirsty Vehicle Tool") as thirsty_truck_log:
         with tqdm_log.logging_redirect_tqdm([thirsty_truck_log.logger]):
             run(thirsty_truck_log, args)
 
 
-def run(log: thirsty_vehicle_logging.ThirstyVehicleLog, args: argparse.Namespace) -> None:
+def run(log: tv_logging.ThirstyVehicleLog, args: argparse.Namespace) -> None:
     """parses config, set up logging and passes inputs to tool
 
     inputs: reads in config, parses file paths to inputs and passes this to tool

@@ -13,10 +13,10 @@ import numpy as np
 from tqdm import tqdm
 
 # local imports
-from thirsty_vehicle_tool import input_output_constants
+from thirsty_vehicle_tool import input_output_constants, tv_logging
 
 # constants
-LOG = logging.getLogger(__name__)
+LOG = tv_logging.get_logger(__name__)
 
 
 def get_thirsty_points(

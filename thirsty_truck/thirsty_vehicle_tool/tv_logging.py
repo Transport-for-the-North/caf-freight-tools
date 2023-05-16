@@ -7,9 +7,10 @@ import pathlib
 from typing import Optional
 
 #constants
-LOG = logging.getLogger(__name__)
 
-class ThirstyTruckLog:
+PARENT_LOGGER = "TV"
+
+class ThirstyVehicleLog:
     """Manages the Thirsty Truck tool log file.
 
     Parameters
@@ -19,8 +20,8 @@ class ThirstyTruckLog:
         a file. Can be done later with `DlitLog.add_file_handler`.
     """
 
-    def __init__(self, file: Optional[pathlib.Path] = None):
-        self.logger = logging.getLogger(__package__)
+    def __init__(self, title: str, file: Optional[pathlib.Path] = None):
+        self.logger = logging.getLogger(PARENT_LOGGER)
         self.logger.setLevel(logging.DEBUG)
 
         sh = logging.StreamHandler()
@@ -28,14 +29,13 @@ class ThirstyTruckLog:
         self.logger.addHandler(sh)
 
         logging.captureWarnings(True)
-        self.init_message(logging.INFO)
+        self.init_message(logging.INFO, title)
 
         if file is not None:
             self.add_file_handler(file)
 
-    def init_message(self, level: int) -> None:
+    def init_message(self, level: int, init_msg: str) -> None:
         """Log tool initialisation message."""
-        init_msg = "Thirsty Truck Tool"
         self.logger.log(level, init_msg)
         self.logger.log(level, "-" * len(init_msg))
 
@@ -80,10 +80,12 @@ class ThirstyTruckLog:
         # Write exception to logfile
         if excepType is not None or excepVal is not None or traceback is not None:
             self.logger.critical(
-                "Oh no a critical error occurred", exc_info=True)
+                "Oh no a critical error occurred (I'm not angry, just disappointed)", exc_info=True)
         else:
             self.logger.info("Program completed without any fatal errors")
 
         self.logger.info("Closing log file")
         logging.shutdown()
 
+def get_logger(name: str)->logging.Logger:
+    return logging.getLogger(f"{PARENT_LOGGER}.{name}")

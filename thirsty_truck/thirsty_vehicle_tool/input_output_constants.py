@@ -19,9 +19,11 @@ from tqdm import tqdm
 import numpy as np
 from matplotlib import collections
 
+from thirsty_vehicle_tool import tv_logging
+
 
 # constants
-LOG = logging.getLogger(__name__)
+LOG = tv_logging.get_logger(__name__)
 
 #   process consts
 CRS = 27700
@@ -38,6 +40,7 @@ ROADS_REQUIRED_COLUMNS = [
     "endnode",
     "geometry",
 ]
+ZONE_CENTROIDS_REQUIRED_COLUMNS = ["uniqueid", "geometry"]
 SERVICES_REQUIRED_COLUMNS = ["name", "geometry"]
 DEMAND_MATRIX_REQUIRED_COLUMNS = ["origin", "destination", "trips"]
 JUNCTION_REQUIRED_COLUMNS = ["number", "geometry"]
@@ -110,7 +113,7 @@ class AnalysisInputs:
 
         LOG.info("Parsing Centroids")
         zone_centroids = gpd.read_file(self.zone_centroids_path)
-        zone_centroids = check_and_format_centroids(zone_centroids)
+        zone_centroids = check_and_format_centroids(zone_centroids, ZONE_CENTROIDS_REQUIRED_COLUMNS)
 
         LOG.info("Parsing OD demand matrix")
         demand_matrix = pd.read_csv(self.od_demand_matrix_path)
@@ -290,7 +293,7 @@ class ThirstyVehicleConfig(caf.toolkit.BaseConfig):
 
 
 
-def check_and_format_centroids(zone_centroids: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
+def check_and_format_centroids(zone_centroids: gpd.GeoDataFrame, required_columns) -> gpd.GeoDataFrame:
     """checks and formats inputted zone centroids
 
     Parameters
@@ -312,6 +315,8 @@ def check_and_format_centroids(zone_centroids: gpd.GeoDataFrame) -> gpd.GeoDataF
     """
     # columns to lower case
     zone_centroids.columns = zone_centroids.columns.str.lower()
+    #check columns
+    check_columns("zone_centroids", zone_centroids.columns, required_columns)
     # to easting northing
     zone_centroids.to_crs(CRS, inplace=True)
     # check centroids have "uniqueid" in columns and convert all to lowercase
@@ -325,7 +330,7 @@ def check_and_format_centroids(zone_centroids: gpd.GeoDataFrame) -> gpd.GeoDataF
             "zone centroids must have a Point geometry type (Multipoint is not valid)"
         )
     # remove unwanted columns from centroids
-    return zone_centroids.loc[:, ["uniqueid", "geometry"]]
+    return zone_centroids.loc[:, required_columns]
 
 
 def check_and_format_demand_matrix(demand_matrix: pd.DataFrame) -> pd.DataFrame:

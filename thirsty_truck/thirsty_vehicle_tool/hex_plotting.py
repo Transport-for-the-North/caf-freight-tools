@@ -15,10 +15,10 @@ from bokeh import io, models, plotting, palettes, layouts
 from shapely import geometry
 
 # local imports
-from thirsty_vehicle_tool import input_output_constants
+from thirsty_vehicle_tool import input_output_constants, tv_logging
 
 
-LOG = logging.getLogger(__name__)
+LOG = tv_logging.get_logger(__name__)
 
 
 def hexbin_plot(

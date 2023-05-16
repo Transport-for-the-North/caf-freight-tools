@@ -639,3 +639,206 @@ class TonneToPCU:
                 raise ValueError(msg)
 
         return df
+    
+def tonne_to_pcu(inputs: dict[str, Path], output_path: Path)->TonneToPCU:
+    """Runs the Tonne to PCU process
+
+    creates TonneToPCU object and applies tonne to PCU conversion.
+    Logs inputs and process to Excel spreadsheet located at output_path/tonne_to_pcu_log.xlsx.
+    conversions are saved to output_path.
+    conversion can be accessed from output variable using output.total_pcus
+
+    Parameters
+    ----------
+    inputs : dict[str, Path]
+        input file paths for tonne to pcu to parse and process
+    output_path : Path
+        path to store output and logging files
+
+    Returns
+    -------
+    TonneToPCU
+        contains parsed inputs and outputs
+    """    
+    log_file = output_path / Path("tonne_to_pcu_log.xlsx")
+    log_data = {}
+    try:
+        i = 0
+        progress_df = pd.DataFrame(
+            {
+                "Process": [
+                    "Read inputs",
+                    "Perform conversion",
+                    "Generate summaries",
+                    "Save output matrices",
+                ],
+                "Completed": ["no"] * 4,
+                "Error": [""] * 4,
+            }
+        )
+
+        # add selected input paths to log file
+        inputs_to_log = inputs.copy()
+        inputs_to_log["output_folder"] = str(output_path)
+        inputs_df = pd.DataFrame.from_dict(
+            inputs_to_log, orient="index", columns=["path"]
+        )
+        inputs_df.index.name = "file"
+        log_data["inputs"] = inputs_df
+
+        # read input files
+        hgv = TonneToPCU(inputs)
+
+        # add inputs to log file
+        log_data["distance_bands"] = hgv.inputs["distance_bands"]
+
+        log_data["port_traffic"]=hgv.inputs["port_traffic_proportions"]
+
+        log_data["pcu_factors"] =hgv.inputs["pcu_factors"]
+        
+        progress_df.loc[i, "Completed"] = "yes"
+        hgv.run_conversion()
+        i += 1
+        progress_df.loc[i, "Completed"] = "yes"
+
+        summary_df = hgv.summary_df()
+        log_data["matrix_summaries"] = (
+            summary_df.style.apply(
+                highlight_cells,
+                axis=0,
+                subset=pd.IndexSlice[
+                    summary_df.Name.isin(
+                        [
+                            "artic_total_annual_trips",
+                            "rigid_total_annual_trips",
+                            "artic_total_annual_pcus",
+                            "rigid_total_annual_pcus",
+                        ]
+                    ),
+                    "Cell Count",
+                ],
+            ).apply(
+                (lambda row: ["font-weight: bold"] * len(row)),
+                axis=1,
+                subset=pd.IndexSlice[
+                    summary_df.Name.isin(
+                        [
+                            "artic_total_annual_pcus",
+                            "rigid_total_annual_pcus",
+                        ]
+                    ),
+                    :,
+                ],
+            )
+        )
+        i += 1
+        progress_df.loc[i, "Completed"] = "yes"
+
+        hgv.save_pcu_outputs(output_path)
+        i += 1
+        progress_df.loc[i, "Completed"] = "yes"
+    except Exception as e:
+        progress_df.loc[i, "Error"] = str(e)
+        log_data["process"] =progress_df.style.apply(flag_error_row, axis=1)
+        write_to_excel(log_file, log_data)
+        raise e
+    finally:
+        # create log file for matrix summaries and processes information
+        log_data["process"] =progress_df.style.apply(flag_error_row, axis=1)
+        write_to_excel(log_file, log_data)
+        return hgv
+
+
+def output_file_checks(output_function):
+    """decorator for out put fuctions
+
+    will deal with permission errors and warn user when overwriting file
+
+
+    Parameters
+    ----------
+    output_function : function
+        output function, the first input must be the output file path
+    """
+    def wrapper_func(file_path, *args, **kwargs):
+        while True:
+            try:
+                output_function(file_path, *args, **kwargs)
+                break
+            except PermissionError:
+                input(f"Please close {file_path}, then press enter. Cheers!")
+
+    return wrapper_func
+
+
+@output_file_checks
+def write_to_excel(file_path: Path, outputs: dict[str, pd.DataFrame]) -> None:
+    """write a dict of pandas DF to a excel spreadsheet
+
+    the keys will become the sheet names
+
+    Parameters
+    ----------
+    file_path : pathlib.Path
+        file path of the outputted spreadsheet
+    outputs : dict[str, pd.DataFrame]
+        data to output, str = sheet names, DF = data to write
+    """
+    with pd.ExcelWriter(file_path, engine="openpyxl") as writer:
+        for key, value in outputs.items():
+            value.to_excel(writer, sheet_name=key)
+
+def flag_error_row(row):
+    """Highlights whether the processes in the process dataframe were
+    completed (text is set to green), whether an error occurred
+    (background colour set to red, text set to white), or the process was
+    not completed (text remains black).
+
+    Parameters
+    ----------
+    row : pd.Series
+        Row of dataframe corresponding to a process.
+
+    Returns
+    -------
+    List[str]
+        Formatting required for row
+    """
+    if row['Completed'] == 'yes':
+        return ['color: green']*len(row)
+    elif not row['Error']:
+        return ['']*len(row)
+    else:
+        return ['background-color: red; color: white']*len(row)    
+    
+def highlight_cells(column):
+        """Creates styling lists for a given column. If the values given all
+        match, they are set to green. If there are multiple values, the most
+        common value is taken to be the true value if it is present in over
+        half of the cells, and all cells with the true value are set to green
+        while the others are set to red. If no true value can be found all
+        cells are set to red.
+
+        Parameters
+        ----------
+        column : pd.Series
+            Column to style
+
+        Returns
+        -------
+        list
+            Styles to use for each cell in the column
+        """
+        if len(column.unique()) == 1:
+            return ["color: green"] * len(column)
+        else:
+            column_counts = column.value_counts()
+            if column_counts.max() <= int(len(column)) / 2:
+                return ["color: red"] * len(column)
+            else:
+                most_common_value = column_counts.idxmax()
+                return [
+                    "color: green" if v == most_common_value else "color: red"
+                    for v in column
+                ]
+    

@@ -136,3 +136,5 @@ thirsty-vehicle-config.yml
 
 #launc
 launch.json
+#
+.vscode
