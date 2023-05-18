@@ -6,7 +6,7 @@ operational:
 
 
 analysis_inputs:
-  range: 50
+  range: 200
   tonne_to_pcu_inputs:
     domestic_bulk_port_path: C:\Users\UKKXF022\Documents\Midlands_connect_freight\LFT_inputs\AllCommTotTonnesOZ_DZ_DomBulkPortRoad_GBZ.csv
     unitised_eu_imports_path: C:\Users\UKKXF022\Documents\Midlands_connect_freight\LFT_inputs\UnitisedTradeEurope_Tonnes_Dir_GBZSeqPort_GBZSeqROAD0_GBZ.csv

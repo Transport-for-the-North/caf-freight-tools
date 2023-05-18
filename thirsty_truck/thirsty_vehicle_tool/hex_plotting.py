@@ -2,10 +2,11 @@
 Creates hexbin plot with road network overlayed
 """
 # standard imports
-import logging
+from __future__ import annotations
 import pathlib
 
 # third party imports
+
 import matplotlib.pyplot as plt
 import pandas as pd
 import geopandas as gpd
@@ -108,8 +109,8 @@ def hexbin_plot(
     return hex_binning_params
 
 
-def create_hex_bin_bokeh(
-    hex_bin: input_output_constants.HexTilling,
+def create_hex_bin_html(
+    hex_bin: input_output_constants.HexTilling | dict[str, input_output_constants.HexTilling],
     plotting_inputs: input_output_constants.ParsedPlottingInputs,
     title: str,
     operational: input_output_constants.Operational,
@@ -159,14 +160,26 @@ def create_hex_bin_bokeh(
     )
 
     #   hex data
-    hex_source = plotting.ColumnDataSource(
-        {
-            "x": hex_bin.vertices_x,
-            "y": hex_bin.vertices_y,
-            "c": hex_bin.rgb,
-            "count": hex_bin.count.round(),
-        }
-    )
+    if isinstance(hex_bin, input_output_constants.HexTilling):
+        hex_source = {"Hexs":plotting.ColumnDataSource(
+            {
+                "x": hex_bin.vertices_x,
+                "y": hex_bin.vertices_y,
+                "c": hex_bin.rgb,
+                "count": hex_bin.count.round(),
+            }
+        )}
+    elif isinstance(hex_bin, dict[str, input_output_constants.HexTilling]):
+        hex_source
+        for key, value in hex_bin.items():
+            hex_source[f"{key} Hexs"] = plotting.ColumnDataSource(
+            {
+                "x": value.vertices_x,
+                "y": value.vertices_y,
+                "c": value.rgb,
+                "count": value.count.round(),
+            }
+        )
     #   junction source
 
     junction_source = get_points_glyph_source(
@@ -223,14 +236,17 @@ def create_hex_bin_bokeh(
     plot.title.align = "center"
     plot.title.text_font_size = "12pt"
 
-    # plot hexes
+    legend_items = []
 
-    hex_renderer = plot.add_glyph(hex_source, hex_glyph)
-    hex_hover = models.HoverTool(
-        renderers=[hex_renderer],
-        tooltips=[(input_output_constants.SCALE_LABEL, "@count")],
-    )
-    plot.add_tools(hex_hover)
+    # plot hexes
+    for key, value in hex_source.items():
+        hex_renderer = plot.add_glyph(value, hex_glyph)
+        hex_hover = models.HoverTool(
+            renderers=[hex_renderer],
+            tooltips=[(input_output_constants.SCALE_LABEL, "@count")],
+        )
+        plot.add_tools(hex_hover)
+        legend_items.append(models.LegendItem(label=key, renderers=[hex_renderer]))
 
     # plot outlines
 
@@ -238,6 +254,7 @@ def create_hex_bin_bokeh(
         outlines_source,
         line_glyph,
     )
+    legend_items.append(models.LegendItem(label="outlines", renderers=[outlines_renederer]))
 
     # plot roads
 
@@ -247,7 +264,8 @@ def create_hex_bin_bokeh(
         renderers=[a_road_renderer, motorway_renderer], tooltips=[("Road", "@name")]
     )
     plot.add_tools(road_hover)
-
+    legend_items.append(models.LegendItem(label="A Roads", renderers=[a_road_renderer]))
+    legend_items.append(models.LegendItem(label="Motorways", renderers=[motorway_renderer]))
     # plot junctions
 
     junctions_renderer = plot.add_glyph(junction_source, scatter_glyph)
@@ -255,6 +273,7 @@ def create_hex_bin_bokeh(
         renderers=[junctions_renderer], tooltips=[("Junction", "@number")]
     )
     plot.add_tools(junction_hover)
+    legend_items.append(models.LegendItem(label="Junctions", renderers=[junctions_renderer]))
 
     # plot services
 
@@ -263,6 +282,8 @@ def create_hex_bin_bokeh(
         renderers=[services_renderer], tooltips=[("Services Station", "@name")]
     )
     plot.add_tools(services_hover)
+
+    legend_items.append(models.LegendItem(label="Services", renderers=[services_renderer]))
 
     # plot labels
 
@@ -282,14 +303,7 @@ def create_hex_bin_bokeh(
 
     # legend
 
-    legend_items = [
-        models.LegendItem(label="hexs", renderers=[hex_renderer]),
-        models.LegendItem(label="outlines", renderers=[outlines_renederer]),
-        models.LegendItem(label="A Roads", renderers=[a_road_renderer]),
-        models.LegendItem(label="Motorways", renderers=[motorway_renderer]),
-        models.LegendItem(label="Junctions", renderers=[junctions_renderer]),
-        models.LegendItem(label="Services", renderers=[services_renderer]),
-    ]
+
     plot.add_layout(models.Legend(items=legend_items))
 
     plot.legend.click_policy = "hide"

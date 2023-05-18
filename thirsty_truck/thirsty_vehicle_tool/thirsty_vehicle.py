@@ -86,7 +86,7 @@ def thirsty_vehicle_process(
         operational,
     )
     #html plot
-    hex_plotting.create_hex_bin_bokeh(
+    hex_plotting.create_hex_bin_html(
         hex_bins,
         plotting_inputs,
         "Thirsty Truck Hex Map",

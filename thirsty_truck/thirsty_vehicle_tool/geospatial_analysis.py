@@ -4,13 +4,15 @@ creates OD lines between each OD pair
 # standard imports
 import pathlib
 import logging
-
+from typing import Optional
+import multiprocessing
 # third party imports
 import geopandas as gpd
 import pandas as pd
 from shapely import geometry
 import numpy as np
 from tqdm import tqdm
+from caf.toolkit import concurrency
 
 # local imports
 from thirsty_vehicle_tool import input_output_constants, tv_logging
@@ -22,6 +24,7 @@ LOG = tv_logging.get_logger(__name__)
 def get_thirsty_points(
     data_inputs: input_output_constants.ParsedAnalysisInputs,
     output_folder: pathlib.Path,
+    file_name: str = "thirsty_points"
 ) -> gpd.GeoDataFrame:
     """finds the points at which the vehicle will run out of range
 
@@ -43,7 +46,7 @@ def get_thirsty_points(
     od_matrix = remove_intrazonal_trips(data_inputs.demand_marix)
 
     # create a linestring between each OD pair, with the trips as an atribute
-    od_lines = create_od_lines(od_matrix, data_inputs.zone_centroids)
+    od_lines = create_od_lines(od_matrix, data_inputs.zone_centroids, data_inputs.range)
 
     # replace od lines geometry with a list points along line in steps of given range
     LOG.info("Creating thirsty points")
@@ -63,13 +66,14 @@ def get_thirsty_points(
     thirsty_points.crs = input_output_constants.CRS
 
     # write thristy points to file
-    # change name to avoid truncated name warning
-    output_thirsty_points = thirsty_points.rename(columns={"destination": "destin."})
-    thirsty_point_folder = output_folder / "thirsty_points"
-    thirsty_point_folder.mkdir(exist_ok=True)
+    # write to csv to prevent file too big errors
+    output_thirsty_points = pd.DataFrame(thirsty_points.copy())
+    output_thirsty_points["easting"] = gpd.GeoSeries(output_thirsty_points["geometry"]).x
+    output_thirsty_points["northing"] = gpd.GeoSeries(output_thirsty_points["geometry"]).y
+    output_thirsty_points.drop(columns=["geometry"])
 
-    input_output_constants.to_shape_file(
-        thirsty_point_folder / "thirsty_points.shp", output_thirsty_points
+    input_output_constants.write_to_csv(
+        output_folder / file_name, output_thirsty_points
     )
 
     return thirsty_points
@@ -90,10 +94,11 @@ def remove_intrazonal_trips(od_trip_matrix: pd.DataFrame) -> pd.DataFrame:
     ]
     filtered_od_trip_matrix.reset_index(drop=True, inplace=True)
     return filtered_od_trip_matrix
+    
 
 
 def create_od_lines(
-    od_trip_matrix: pd.DataFrame, centroids: gpd.GeoDataFrame
+    od_trip_matrix: pd.DataFrame, centroids: gpd.GeoDataFrame, range: float
 ) -> gpd.GeoDataFrame:
     """creates linestring for each OD pair
 
@@ -159,12 +164,20 @@ def create_od_lines(
     LOG.debug("OD points created")
 
     # create lines
+    LOG.debug("removing short trips (<range)")
+    
+    #filter for < range
+    o_points = gpd.GeoDataFrame(od_geom_matrix["geometry_origin"], geometry="geometry_origin")
+    d_points = gpd.GeoDataFrame(od_geom_matrix["geometry_destination"], geometry="geometry_destination")
+
+    od_geom_matrix = od_geom_matrix.loc[o_points.distance(d_points)>range]
+    od_geom_matrix = od_geom_matrix.loc[od_geom_matrix["trips"]>0]
     line_end_points = od_geom_matrix.loc[:, ["geometry_origin", "geometry_destination"]]
-    line_geoms = []
+
+
     LOG.info("Creating OD lines")
-    for origin_geom, desitination_geom in tqdm(line_end_points.values):
-        line_geoms.append(geometry.LineString([origin_geom, desitination_geom]))
-    od_geom_matrix["geometry"] = line_geoms
+
+    od_geom_matrix["geometry"] = od_lines(line_end_points)
 
     od_geom_matrix.drop(
         columns=["geometry_origin", "geometry_destination"], inplace=True
@@ -194,3 +207,9 @@ def drop_points(line: geometry.LineString, step: float) -> list[geometry.Point]:
     """
     distances = np.arange(step, line.length, step)
     return [line.interpolate(distance) for distance in distances]
+
+def od_lines(line_end_points: pd.DataFrame)->geometry.LineString:
+    lines = []
+    for start, end in tqdm(line_end_points.values):
+        lines.append(geometry.LineString([start, end]))
+    return lines

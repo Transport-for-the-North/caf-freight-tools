@@ -594,7 +594,20 @@ def to_shape_file(file_name: pathlib.Path, data: gpd.GeoDataFrame) -> None:
         data to save
     """
     data.to_file(file_name)
+@output_file_checks
+def write_to_csv(file_path:pathlib.Path, output: pd.DataFrame)-> None:
+    """wirtes file to csv
 
+    used so wrapper with logging and permission error checks can be applied
+
+    Parameters
+    ----------
+    file_path : pathlib.Path
+        path to write csv to
+    output : pd.DataFrame
+        data to write
+    """
+    output.to_csv(file_path)
 
 @dataclasses.dataclass
 class HexTilling:
