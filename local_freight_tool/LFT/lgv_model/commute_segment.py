@@ -626,6 +626,8 @@ class CommuteTripEnds:
         """
         if self.voa_weightings is None:
             self._read_commute_tables()
+
+        raise NotImplementedError("WIP: replacing dataset")
         voa_data = lgv_inputs.voa_ratings_list(
             self.paths["VOA"],
             self.voa_weightings,

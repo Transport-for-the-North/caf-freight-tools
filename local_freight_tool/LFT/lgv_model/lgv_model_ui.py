@@ -71,11 +71,11 @@ class LGVModelUI(QtWidgets.QWidget):
             ),
             "bres_data": ui.FileInput("BRES data CSV", filetype="CSV"),
             "bres_zc": ui.FileInput("BRES zone correspondence CSV", filetype="CSV"),
-            "voa_data": ui.FileInput("VOA non domestic ratings CSV", filetype="CSV"),
-            "voa_zc": ui.FileInput("VOA zone correspondence CSV", filetype="CSV"),
-            "parameters_path": ui.FileInput(
-                "LGV parameters spreadsheet", filetype="excel"
+            "warehouse_data": ui.FileInput("Warehouse Floorspace by LSOA CSV", filetype="CSV"),
+            "warehouse_zc": ui.FileInput(
+                "Warehouse Floorspace zone correspondence CSV", filetype="CSV"
             ),
+            "parameters_path": ui.FileInput("LGV parameters spreadsheet", filetype="excel"),
             "trip_distributions_path": ui.FileInput(
                 "Trip distributions spreadsheet", filetype="excel"
             ),
@@ -143,8 +143,8 @@ class LGVModelUI(QtWidgets.QWidget):
         Dict[str, Union[Path, int]]
             Dictionary containing all the parameters (keys)
             and their values, contains the following keys:
-            hh_data, hh_zc, bres_data, bres_zc, voa_data,
-            voa_zc, parameters_path, trip_distributions_path,
+            hh_data, hh_zc, bres_data, bres_zc, warehouse_data,
+            warehouse_zc, parameters_path, trip_distributions_path,
             qs606ew_path, qs606sc_path, sc_w_dwellings_path,
             e_dwellings_path, ndr_floorspace_path, lsoa_lookup_path,
             msoa_lookup_path, lad_lookup_path, model_study_area,
@@ -247,9 +247,7 @@ class Worker(QThread):
     PROGRESS_WIDTH = 800
     error = pyqtSignal(str, str)
 
-    def __init__(
-        self, lgv_model_ui: LGVModelUI, parameters: dict[str, Union[Path, int]]
-    ):
+    def __init__(self, lgv_model_ui: LGVModelUI, parameters: dict[str, Union[Path, int]]):
         super().__init__()
         self.ui_window = lgv_model_ui
         self.parameters = parameters

@@ -50,6 +50,7 @@ PA_MATRICES = [
 ]
 """List of matrices which are in PA format and will be converted to OD."""
 
+
 ##### CLASSES #####
 class LGVInputsUI:
     """Handles reading UI inputs for the LGV Model.
@@ -84,13 +85,13 @@ class LGVInputsUI:
             parameters["bres_data"],
             parameters["bres_zc"],
         )
-        paths["voa_paths"] = DataPaths(
+        paths["warehouse_paths"] = DataPaths(
             "LGV VOA",
-            parameters["voa_data"],
-            parameters["voa_zc"],
+            parameters["warehouse_data"],
+            parameters["warehouse_zc"],
         )
         # All parameters in ignore are handled separately
-        ignore = ("hh_data", "hh_zc", "bres_data", "bres_zc", "voa_data", "voa_zc")
+        ignore = ("hh_data", "hh_zc", "bres_data", "bres_zc", "warehouse_data", "warehouse_zc")
         optional = ("calibration_matrix_path",)
         for key in parameters:
             if key in ignore:
@@ -330,22 +331,16 @@ def calculate_trip_ends(
     # Calculate the delivery trip ends and save outputs
     message_hook("Calculating Delivery trip ends")
     delivery = DeliveryTripEnds(
-        input_paths.voa_paths,
+        input_paths.warehouse_paths,
         input_paths.bres_paths,
         input_paths.household_paths,
         input_paths.parameters_path,
         year,
     )
     delivery.read()
-    delivery.parcel_stem_trip_ends.to_csv(
-        output_folder / "delivery_parcel_stem_trip_ends.csv"
-    )
-    delivery.parcel_bush_trip_ends.to_csv(
-        output_folder / "delivery_parcel_bush_trip_ends.csv"
-    )
-    delivery.grocery_bush_trip_ends.to_csv(
-        output_folder / "delivery_grocery_trip_ends.csv"
-    )
+    delivery.parcel_stem_trip_ends.to_csv(output_folder / "delivery_parcel_stem_trip_ends.csv")
+    delivery.parcel_bush_trip_ends.to_csv(output_folder / "delivery_parcel_bush_trip_ends.csv")
+    delivery.grocery_bush_trip_ends.to_csv(output_folder / "delivery_grocery_trip_ends.csv")
 
     # Calculate commuting trip ends and save output
     message_hook("Calculating Commuting trip ends")
@@ -359,11 +354,11 @@ def calculate_trip_ends(
             "SC&W dwellings": input_paths.sc_w_dwellings_path,
             "E dwellings": input_paths.e_dwellings_path,
             "NDR floorspace": input_paths.ndr_floorspace_path,
-            "VOA": input_paths.voa_paths.path,
+            "VOA": input_paths.warehouse_paths.path,
             "LSOA lookup": input_paths.lsoa_lookup_path,
             "MSOA lookup": input_paths.msoa_lookup_path,
             "LAD lookup": input_paths.lad_lookup_path,
-            "Postcodes": input_paths.voa_paths.zc_path,
+            "Postcodes": input_paths.warehouse_paths.zc_path,
         }
     )
     commute_trips = commute.trips
@@ -440,9 +435,7 @@ def run_gravity_model(
         if name == "zones":
             continue
         try:
-            calib_gm = _calibrate_gm(
-                te, name, input_paths, gm_params, internals, message_hook
-            )
+            calib_gm = _calibrate_gm(te, name, input_paths, gm_params, internals, message_hook)
         except Exception as e:
             message_hook(f"\t{e.__class__.__name__}: {e}")
             continue
@@ -477,9 +470,7 @@ def run_gravity_model(
         with pd.ExcelWriter(output_folder / (name + "-GM_log.xlsx")) as writer:
             df = pd.DataFrame.from_dict(calib_gm.results.asdict(), orient="index")
             df.to_excel(writer, sheet_name="Calibration Results", header=False)
-            df = pd.DataFrame.from_dict(
-                calib_gm.furness_results.asdict(), orient="index"
-            )
+            df = pd.DataFrame.from_dict(calib_gm.furness_results.asdict(), orient="index")
             df.to_excel(writer, sheet_name="Furnessing Results", header=False)
             calib_gm.trip_distribution.to_excel(
                 writer, sheet_name="Trip Distribution", index=False
@@ -489,9 +480,7 @@ def run_gravity_model(
                     calib_gm.trip_matrix, calib_gm.costs, internals
                 )
                 vehicle_kms.to_excel(writer, sheet_name="Vehicle Kilometres (PA)")
-            vehicle_kms = calculate_vehicle_kms(
-                matrices[name], calib_gm.costs, internals
-            )
+            vehicle_kms = calculate_vehicle_kms(matrices[name], calib_gm.costs, internals)
             vehicle_kms.to_excel(writer, sheet_name="Vehicle Kilometres")
         message_hook("\tFinished writing")
 
@@ -565,8 +554,7 @@ def main(input_paths: LGVInputPaths, message_hook: Callable = print):
     # Create output folder
     message_hook("Creating output folder")
     output_folder = (
-        input_paths.output_folder
-        / f"LGV Model Outputs - {datetime.now():%Y-%m-%d %H.%M.%S}"
+        input_paths.output_folder / f"LGV Model Outputs - {datetime.now():%Y-%m-%d %H.%M.%S}"
     )
     output_folder.mkdir(exist_ok=True, parents=True)
 
@@ -622,7 +610,6 @@ def lgv_arg_parser() -> argparse.ArgumentParser:
         "-e",
         "--example",
         action="store_true",
-        help="If given will write an example config "
-        "file to the current working directory",
+        help="If given will write an example config " "file to the current working directory",
     )
     return parser

@@ -57,15 +57,15 @@ class DeliveryTripEnds:
 
     Parameters
     ----------
-    voa_paths : tuple[Path, Path]
-        - Path to the CSV containing the VOA rateable values data.
-        - Path to the postcode zone correspondence file to convert
-          VOA data to model zone system.
-    bres_paths : tuple[Path, Path]
+    warehouse_paths : DataPaths
+        - Path to the CSV containing the warehouse floorspace data.
+        - Path to the LSOA zone correspondence file to convert
+          data to model zone system.
+    bres_paths : DataPaths
         - Path to the CSV containing the BRES data.
         - Path to the zone correspondence CSV for converting the
           BRES data to the model zone system.
-    household_paths : tuple[Path, Path]
+    household_paths : DataPaths
         - Path to the CSV containing the household projections data.
         - Path to the zone correpondence file to convert household
           data to the model zone system.
@@ -77,7 +77,6 @@ class DeliveryTripEnds:
     """
 
     BRES_AGGREGATION = {"Employees": list(lgv_inputs.letters_range(end="U"))}
-    VOA_SCAT_CODES = (217, 267)
     PARAMETERS_SHEET = "Delivery Segment Parameters"
     PARAMETERS_HEADER = {"Parameter": str, "Value": str}
     PARAMETERS: dict[str, tuple[str, Callable]] = {
@@ -91,14 +90,14 @@ class DeliveryTripEnds:
 
     def __init__(
         self,
-        voa_paths: data_utils.DataPaths,
+        warehouse_paths: data_utils.DataPaths,
         bres_paths: data_utils.DataPaths,
         household_paths: data_utils.DataPaths,
         parameters_path: Path,
         year: int,
     ):
         """Initialise class by checking inputs files exist and are expected type."""
-        self._check_paths(voa_paths, bres_paths, household_paths, parameters_path)
+        self._check_paths(warehouse_paths, bres_paths, household_paths, parameters_path)
         try:
             self._year = int(year)
         except ValueError as e:
@@ -122,7 +121,7 @@ class DeliveryTripEnds:
 
     def _check_paths(
         self,
-        voa_paths: data_utils.DataPaths,
+        warehouse_paths: data_utils.DataPaths,
         bres_paths: data_utils.DataPaths,
         household_paths: data_utils.DataPaths,
         parameters_path: Path,
@@ -130,13 +129,14 @@ class DeliveryTripEnds:
         """Checks the input files exist and are the expected type."""
         extensions = (".csv", ".txt")
         for nm, paths in (
-            ("VOA", voa_paths),
+            ("Warehouse", warehouse_paths),
             ("Households", household_paths),
             ("BRES", bres_paths),
         ):
             utilities.check_file_path(paths.path, f"{nm} data", *extensions)
             utilities.check_file_path(paths.zc_path, f"{nm} lookup", *extensions)
-        self._voa_paths = voa_paths
+
+        self._warehouse_paths = warehouse_paths
         self._household_paths = household_paths
         self._bres_paths = bres_paths
         self._parameters_path = utilities.check_file_path(
@@ -148,8 +148,8 @@ class DeliveryTripEnds:
         """pd.DataFrame : Summary table of class input parameters."""
         return pd.DataFrame.from_dict(
             {
-                "VOA Data Path": str(self._voa_paths.path),
-                "VOA Zone Correpondence Path": str(self._voa_paths.zc_path),
+                "Warehouse Data Path": str(self._warehouse_paths.path),
+                "Warehouse Zone Correpondence Path": str(self._warehouse_paths.zc_path),
                 "BRES Data Path": str(self._bres_paths.path),
                 "BRES Zone Correpondence Path": str(self._bres_paths.zc_path),
                 "Household Data Path": str(self._household_paths.path),
@@ -175,22 +175,16 @@ class DeliveryTripEnds:
             Reads, filters and converts the BRES input CSV.
         """
         self.parameters = self.read_parameters(self._parameters_path)
-        self.depots = lgv_inputs.voa_ratings_list(
-            self._voa_paths.path,
-            self.VOA_SCAT_CODES,
-            self._voa_paths.zc_path,
-            year=self._year,
-            fill_func=self.parameters["voa_fill_func"],
+        self.depots = lgv_inputs.load_warehouse_floorspace(
+            self._warehouse_paths.path, self._warehouse_paths.zc_path
         )
-        self.depots.rename(
-            columns={"rateable_value": "Depots", "zone": "Zone"}, inplace=True
-        )
-        self.depots.set_index("Zone", inplace=True)
+        self.depots.columns = ["Depots"]
+
         self.households = lgv_inputs.household_projections(
             self._household_paths.path, self._household_paths.zc_path
         )
         self.households.set_index("Zone", inplace=True)
-        self._infill_missing_depots()
+
         self.bres = lgv_inputs.filtered_bres(
             self._bres_paths.path, self._bres_paths.zc_path, self.BRES_AGGREGATION
         )
@@ -249,45 +243,6 @@ class DeliveryTripEnds:
         if missing:
             raise errors.MissingDataError("Delivery Parameters", missing)
         return params
-
-    def _infill_missing_depots(self):
-        """Infill depot data for any zones in `depots_infill` parameter.
-
-        Rateable value of depots is infilled by calculating rateable value
-        of depots per household in all zones not in `depots_infill` and
-        multiplying that by the number of households for each zone in
-        `depots_infill`.
-
-        Raises
-        ------
-        errors.MissingDataError
-            If any zones in `depots_infill` aren't present in the
-            households data.
-        ValueError
-            If any zones in `depots_infill` already have depot
-            data.
-        """
-        if self.parameters["depots_infill"] is None:
-            return
-        zones = self.parameters["depots_infill"]
-        missing = [i for i in zones if i not in self.households.index]
-        if missing:
-            raise errors.MissingDataError("Households for zones", missing)
-        already = [i for i in zones if i in self.depots.index]
-        if already:
-            raise ValueError(
-                f"{len(already)} zones ({already}) already have depot data."
-            )
-        # Calculate rateable value of depots per households and
-        # then calculate rateable value for all infill zones
-        depots_per_hh = np.sum(
-            self.depots.loc[~self.depots.index.isin(zones)].values
-        ) / np.sum(self.households.loc[~self.households.index.isin(zones)].values)
-        new_depots = self.households.loc[self.households.index.isin(zones)].copy()
-        new_depots = new_depots * depots_per_hh
-        # Add additional depot data to original dataframe
-        new_depots.columns = self.depots.columns
-        self.depots = pd.concat([self.depots, new_depots])
 
     @property
     def trip_proportions(self) -> pd.DataFrame:
