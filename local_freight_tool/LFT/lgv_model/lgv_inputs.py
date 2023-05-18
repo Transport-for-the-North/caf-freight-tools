@@ -6,16 +6,18 @@
 
 ##### IMPORTS #####
 # Standard imports
+from __future__ import annotations
 import re
 import string
 import warnings
-from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional, Sequence, Any, Union
 
 # Third party imports
+import caf.toolkit
 import numpy as np
 import pandas as pd
+from pydantic import types, dataclasses
 
 # Local imports
 from .. import utilities, errors
@@ -152,83 +154,118 @@ LGV_SEGMENTS = [
     "commuting_skilled_trades",
 ]
 "Names of the LGV segments."
+EXAMPLE_CONFIG_NAME = "LGV_config_example.yml"
 
 
 ##### CLASSES #####
-@dataclass(frozen=True)
-class LGVInputPaths:
+class LGVInputPaths(caf.toolkit.BaseConfig):
     """Dataclass storing paths to all the input files for the LGV model."""
 
-    household_paths: DataPaths = None
+    household_paths: DataPaths
     """Paths for the households data and zone correspondence."""
-    bres_paths: DataPaths = None
+    bres_paths: DataPaths
     """Paths for the BRES data and zone correspondence."""
-    voa_paths: DataPaths = None
+    voa_paths: DataPaths
     """Paths for the VOA data and zone correspondence."""
-    parameters_path: Path = None
+    parameters_path: types.FilePath
     """Path to the LGV parameters Excel workbook."""
-    qs606ew_path: Path = None
+    qs606ew_path: types.FilePath
     """Path to the England & Wales Census Occupation data CSV."""
-    qs606sc_path: Path = None
+    qs606sc_path: types.FilePath
     """Path to the Scottish Census Occupation data CSV."""
-    sc_w_dwellings_path: Path = None
+    sc_w_dwellings_path: types.FilePath
     """Path to the Scottish and Welsh dwellings data CSV."""
-    e_dwellings_path: Path = None
+    e_dwellings_path: types.FilePath
     """Path to the English dwellings data XLSX."""
-    ndr_floorspace_path: Path = None
+    ndr_floorspace_path: types.FilePath
     """Path to the NDR Business Floorspace CSV."""
-    lsoa_lookup_path: Path = None
+    lsoa_lookup_path: types.FilePath
     """Path to the LSOA to NoHAM zone correspondence
     CSV"""
-    msoa_lookup_path: Path = None
+    msoa_lookup_path: types.FilePath
     """Path to the MSOA to NoHAM zone correspondence
     CSV"""
-    lad_lookup_path: Path = None
+    lad_lookup_path: types.FilePath
     """Path to the Local Authority District to NoHAM zone correspondence
     CSV"""
-    model_study_area: Path = None
+    model_study_area: types.FilePath
     """Path to CSV containing lookup for zones in model study area."""
-    cost_matrix_path: Path = None
+    cost_matrix_path: types.FilePath
     """Path to CSV containing cost matrix, should be square matrix with
     zone numbers as column names and indices."""
-    calibration_matrix_path: Path = None
+    calibration_matrix_path: types.FilePath
     """Path to CSV containing calibration matrix, should be square matrix
     with zone numbers as column names and indices."""
-    trip_distributions_path: Path = None
+    trip_distributions_path: types.FilePath
     """Path to Excel Workbook containing all the trip cost distributions."""
-    output_folder: Path = None
+    output_folder: types.DirectoryPath
     """Path to folder to save outputs to."""
 
-    def asdict(self) -> dict[str, Path]:
-        """Return class attributes as a dictionary."""
-        attrs = {}
-        for nm in dir(self):
-            if nm.startswith("_"):
-                continue
-            a = getattr(self, nm)
-            if not callable(a):
-                attrs[nm] = a
-        return attrs
+    @classmethod
+    def write_example(cls, path: Path, **examples: str) -> None:
+        """Write examples to a config file.
 
-    def __post_init__(self):
-        # Check if all input files exist
-        for nm, value in self.asdict().items():
-            if isinstance(value, DataPaths) or value is None:
-                # DataPaths instances should already have been checked
-                continue
-            if nm == "output_folder":
-                utilities.check_folder(value, nm, True)
+        Parameters
+        ----------
+        path : Path
+            Path to the YAML file to write.
+        examples : str
+            Fields of the config to write, any missing fields
+            are filled in with their default value (if they have
+            one) or 'REQUIRED' / 'OPTIONAL'.
+        """
+        data = {}
+        for name, field in cls.__fields__.items():
+            if field.default is not None:
+                value = field.default
             else:
-                utilities.check_file_path(value, nm)
+                value = "REQUIRED" if field.required else "OPTIONAL"
 
-    def __str__(self) -> str:
-        s = [f"{self.__class__.__name__}("]
-        for nm, value in self.asdict().items():
-            s.append(f"{nm}={value}")
-        return "\n\t".join(s) + "\n)"
+            data[name] = examples.get(name, value)
+
+        example = cls.construct(**data)
+        example.save_yaml(path)
 
 
 ##### FUNCTIONS #####
+def write_example_config(path: Path | None) -> None:
+    """Write an example config file to given `path`."""
+    if path is None:
+        path = Path(EXAMPLE_CONFIG_NAME)
+
+    with dataclasses.set_validation(DataPaths, False):
+        example_data = dict(
+            household_paths=DataPaths(
+                "LGV Households",
+                "CSV of households data",
+                "Zone correspondence CSV",
+            ),
+            bres_paths=DataPaths("LGV BRES", "CSV of BRES data", "Zone correspondence CSV"),
+            voa_paths=DataPaths("LGV VOA", "CSV of VOA data", "Zone correspondence CSV"),
+            parameters_path="Path to parameters spreadsheet",
+            qs606ew_path="Path to the England & Wales Census Occupation data CSV",
+            qs606sc_path="Path to the Scottish Census Occupation data CSV",
+            sc_w_dwellings_path="Path to the Scottish and Welsh dwellings data CSV",
+            e_dwellings_path="Path to the English dwellings data XLSX",
+            ndr_floorspace_path="Path to the NDR Business Floorspace CSV.",
+            lsoa_lookup_path="Path to the LSOA to model zone correspondence CSV",
+            msoa_lookup_path="Path to the MSOA to model zone correspondence CSV",
+            lad_lookup_path="Path to the Local Authority District to "
+            "model zone correspondence CSV",
+            model_study_area="Path to CSV containing lookup for zones in model study area",
+            cost_matrix_path="Path to CSV containing cost matrix, should "
+            "be square matrix with zone numbers as column names and indices",
+            calibration_matrix_path="Path to CSV containing calibration matrix, "
+            "should be square matrix with zone numbers as column names and indices",
+            trip_distributions_path="Path to Excel Workbook containing all the "
+            "trip cost distributions",
+            output_folder="Path to folder to save outputs to",
+        )
+
+    LGVInputPaths.write_example(path, **example_data)
+    print(f"Written example config: {path}")
+
+
 def household_projections(path: Path, zone_lookup: Path) -> pd.DataFrame:
     """Reads the household projections CSV and converts to model zone system.
 
@@ -397,9 +434,7 @@ def voa_ratings_list(
     LFT.utilities.read_csv : Function used for reading the input file.
     """
     inc_columns = {
-        k: v
-        for k, v in VOA_RATINGS_LIST_COLUMNS.items()
-        if k in VOA_RATINGS_LIST_INCLUDE
+        k: v for k, v in VOA_RATINGS_LIST_COLUMNS.items() if k in VOA_RATINGS_LIST_INCLUDE
     }
     # File has some carriage-return characters in the middle of some
     # lines so need to make sure the lineterminator is just line feed
@@ -438,19 +473,15 @@ def voa_ratings_list(
     # Make sure depot is active from before model year to after model
     # year (inclusive), include NaT values for both
     if year:
-        date_mask = (
-            (voa_data["eff_date"].dt.year <= year) | voa_data["eff_date"].isna()
-        ) & ((voa_data["to_date"].dt.year >= year) | voa_data["to_date"].isna())
+        date_mask = ((voa_data["eff_date"].dt.year <= year) | voa_data["eff_date"].isna()) & (
+            (voa_data["to_date"].dt.year >= year) | voa_data["to_date"].isna()
+        )
         voa_data = voa_data.loc[date_mask].copy()
 
     lookup = Rezone.read(zone_lookup, None)
     # Convert post code columns to uppercase and remove all whitespace
-    lookup.iloc[:, 0] = (
-        lookup.iloc[:, 0].str.upper().str.replace(r"\s+", "", regex=True)
-    )
-    voa_data["postcode"] = (
-        voa_data["postcode"].str.upper().str.replace(r"\s+", "", regex=True)
-    )
+    lookup.iloc[:, 0] = lookup.iloc[:, 0].str.upper().str.replace(r"\s+", "", regex=True)
+    voa_data["postcode"] = voa_data["postcode"].str.upper().str.replace(r"\s+", "", regex=True)
     # Infill any NaN rateable_values with the average
     nan_value = voa_data["rateable_value"].isna()
     if nan_value.sum() > 0:
@@ -474,9 +505,7 @@ def voa_ratings_list(
         voa_data = voa_data[["postcode", "rateable_value", "scat_num"]].merge(
             weightings, left_on="scat_num", right_on=weightings.index, how="left"
         )
-        voa_data["weighted_rateable_value"] = (
-            voa_data["rateable_value"] * voa_data["Weight"]
-        )
+        voa_data["weighted_rateable_value"] = voa_data["rateable_value"] * voa_data["Weight"]
         voa_data = voa_data[["postcode", "weighted_rateable_value"]].rename(
             columns={"weighted_rateable_value": "rateable_value"}
         )
@@ -500,9 +529,7 @@ def voa_ratings_list(
         )
         rezoned.dropna(subset=["postcode"], inplace=True)
     rezoned.rename(columns={"postcode": "zone"}, inplace=True)
-    rezoned["zone"] = pd.to_numeric(
-        rezoned["zone"], errors="ignore", downcast="integer"
-    )
+    rezoned["zone"] = pd.to_numeric(rezoned["zone"], errors="ignore", downcast="integer")
     return rezoned.groupby("zone", as_index=False).sum()
 
 
@@ -530,9 +557,9 @@ def lgv_parameters(path: Path) -> dict[str, Any]:
     LGV_PARAMETERS_COLUMNS
     LGV_PARAMETERS
     """
-    params = utilities.read_multi_sheets(
-        path, {LGV_PARAMETERS_SHEET: LGV_PARAMETERS_COLUMNS}
-    )[LGV_PARAMETERS_SHEET]
+    params = utilities.read_multi_sheets(path, {LGV_PARAMETERS_SHEET: LGV_PARAMETERS_COLUMNS})[
+        LGV_PARAMETERS_SHEET
+    ]
     params = utilities.to_dict(params, *LGV_PARAMETERS_COLUMNS, name="LGV Parameters")
     missing = []
     out_params = {}

@@ -6,17 +6,15 @@
 
 ##### IMPORTS #####
 # Standard imports
-from dataclasses import dataclass
-from pathlib import Path
 
 # Third party imports
+from pydantic import dataclasses, types
 
 # Local imports
-from .utilities import check_file_path
 
 
 ##### CLASSES #####
-@dataclass
+@dataclasses.dataclass
 class DataPaths:
     """Dataclass for storing path to data source and zone correspondence.
 
@@ -36,10 +34,5 @@ class DataPaths:
     """
 
     name: str
-    path: Path
-    zc_path: Path
-
-    def __post_init__(self):
-        """Check that both paths given exist."""
-        for nm, p in (("data", self.path), ("zone correspondence", self.zc_path)):
-            check_file_path(p, f"{self.name} {nm}")
+    path: types.FilePath
+    zc_path: types.FilePath

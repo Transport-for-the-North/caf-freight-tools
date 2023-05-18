@@ -14,3 +14,4 @@ dependencies:
   - pyyaml>=5.4
   - scipy>=1.7
   - matplotlib=3.4.*
+  - caf.toolkit>=0.0.7
