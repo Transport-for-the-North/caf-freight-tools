@@ -26,65 +26,19 @@ class CommuteTripEnds:
 
     Parameters
     ----------
-    inputs : dict
-        Dictionary of paths to all required inputs. Must contain:
-        - "commuting tables": Path to XLSX containing sheets and column names
-        as defined in `COMMUTING_INPUTS_SHEET_HEADERS`.
-        - "household projectons": Path to the CSV containing the household
-        projections data by MSOA.
-        - "BRES": Path to the CSV containing the BRES data by LSOA.
-        - "QS606EW": Path to CSV containing QS606EW data by LSOA. Must have
-        column names as defined in `QS606_HEADERS`.
-        - "QS606SC": Path to CSV containing QS606UK Scottish data by datazone.
-        Must have column names as defined in `QS606_HEADERS`.
-        - "SC&W dwellings": Path to CSV containing 2017 and 2018 dwelling
-        numbers for Wales and Scotland by LAD with columns as defined in
-        `SC_W_DWELLINGS_HEADER`.
-        - "E dwellings": Path to XLSX containing MHCLGC Live Table 123
-        dwellings data for England by LAD, with sheets and column names as
-        defined in `E_DWELLINGS_SHEET_HEADER`.
-        - "NDR floorspace": Path to CSV containing NDR business floorspace
-        data by LSOA from tables FS2.0, FS3.0, FS4.0 and FS5.0, with column
-        names as defined in `BUSINESS_FLOORSPACE_HEADER`.
-        - "LSOA lookup": Path to the zone correspondence CSV for converting
-        from LSOA and Scottish datazone to the model zone system.
-        - "MSOA lookup": Path to the zone correpondence file to convert
-        household data to the model zone system.
-        - "LAD lookup": Path to LAD to model zone system zone correspondence
-        CSV.
-
-    Raises
-    ------
+    inputs : LGVInputPaths
+        Dataclass storing paths to all the input files for the LGV model.
 
     See Also
     --------
     .lgv_inputs: Module with functions for reading some inputs.
     """
 
-    INPUT_KEYS = {
-        "commuting tables": ".xlsx",
-        "household projections": ".csv",
-        "BRES": ".csv",
-        "QS606EW": ".csv",
-        "QS606SC": ".csv",
-        "SC&W dwellings": ".csv",
-        "E dwellings": ".xlsx",
-        "NDR floorspace": ".csv",
-        "VOA": ".csv",
-        "LSOA lookup": ".csv",
-        "MSOA lookup": ".csv",
-        "LAD lookup": ".csv",
-        "Postcodes": ".csv",
-    }
-
     COMMUTING_INPUTS_SHEET_HEADERS = {
         "Parameters": {"Parameter": str, "Value": float},
         "Commute trips by main usage": {"Main usage": str, "Trips": float},
         "Commute trips by land use": {"Land use at trip end": str, "Trips": float},
-        "Commute VOA property weightings": {
-            "Weight": float,
-            "SCat code": int,
-        },
+        "Commute Warehouse weightings": {"Input": str, "Weight": float},
         "Delivery Segment Parameters": {"Parameter": str, "Value": str},
     }
 
@@ -129,17 +83,13 @@ class CommuteTripEnds:
     HH_PROJECTIONS_HEADER = {"Area Description": str, "HHs": float, "Jobs": float}
     HH_RENAME = {"Area Description": "zone", "HHs": "households", "Jobs": "jobs"}
 
-    def __init__(self, input_paths: dict):
+    def __init__(self, input_paths: lgv_inputs.LGVInputPaths):
         """Initialise class by checking all input paths are in input dict and
         all input files exist"""
-        missing = self.INPUT_KEYS.keys() - input_paths.keys()
-        if missing:
-            raise errors.MissingInputsError(missing)
-        self.paths = self._check_paths(input_paths)
+        self.paths = input_paths
 
-        # Initialise instance variables defined later
         self.params = {}
-        self.voa_weightings = None
+        self.warehouse_weightings: dict[str, float] = None
         self.zone_lookups = {}
         self.commute_trips_main_usage = {}
         self.commute_trips_land_use = {}
@@ -157,36 +107,6 @@ class CommuteTripEnds:
         self.trip_ends = {}
         self.infill_zones = []
 
-    def _check_paths(self, input_paths):
-        """Checks the input file paths are of expected type.
-
-        Parameters
-        ----------
-        input_paths : Dict
-            Dictionary of paths to all required inputs, with keys as specified
-            in `INPUT_KEYS`.
-
-        Returns
-        -------
-        paths: Dict
-            Dictionary of paths to all required inputs.
-        """
-        paths = {}
-        for key in input_paths:
-            if self.INPUT_KEYS[key] == ".csv":
-                paths[key] = utilities.check_file_path(
-                    input_paths[key],
-                    key,
-                    self.INPUT_KEYS[key],
-                    ".txt",
-                    return_path=True,
-                )
-            else:
-                paths[key] = utilities.check_file_path(
-                    input_paths[key], key, self.INPUT_KEYS[key], return_path=True
-                )
-        return paths
-
     @property
     def inputs_summary(self) -> pd.DataFrame:
         """Returns a summary table of class inputs.
@@ -196,13 +116,13 @@ class CommuteTripEnds:
         pd.DataFrame
             Summary of inputs
         """
-        return pd.DataFrame.from_dict(self.paths, orient="index", columns=["Path"])
+        return pd.DataFrame.from_dict(self.paths.dict(), orient="index", columns=["Path"])
 
     def _read_commute_tables(self):
         """Read in commuting tables input XLSX."""
         # read in XLSX
         commute_tables = utilities.read_multi_sheets(
-            self.paths["commuting tables"], sheets=self.COMMUTING_INPUTS_SHEET_HEADERS
+            self.paths.parameters_path, sheets=self.COMMUTING_INPUTS_SHEET_HEADERS
         )
 
         # write the input parameters to a dictionary
@@ -221,9 +141,9 @@ class CommuteTripEnds:
         self.infill_zones = zone_list(infill_zone_str)
 
         # assign VOA weightings
-        voa_weightings = commute_tables["Commute VOA property weightings"]
-        voa_weightings.index = voa_weightings["SCat code"]
-        self.voa_weightings = voa_weightings[["Weight"]]
+        warehouse_weightings = commute_tables["Commute Warehouse weightings"]
+        warehouse_weightings.set_index("Input", inplace=True)
+        self.warehouse_weightings = warehouse_weightings["Weight"].to_dict()
 
         # write the commute trips by main usage to a dictionary
         commute_trips_main_usage = utilities.to_dict(
@@ -243,9 +163,11 @@ class CommuteTripEnds:
         )
 
     def _read_zone_lookups(self):
-        for key in self.paths:
-            if key.endswith("lookup"):
-                self.zone_lookups[key] = Rezone.read(self.paths[key], None)
+        for key, value in self.paths.dict().items():
+            key = key.lower()
+            if key.endswith("lookup") or key.endswith("lookup_path"):
+                name = re.sub(r"[\s_]+|path", " ", key).strip()
+                self.zone_lookups[name] = Rezone.read(value, None)
 
     def _read_qs606(self):
         """Read in and rezone Census occupation data."""
@@ -274,7 +196,7 @@ class CommuteTripEnds:
             qs606[key] = (
                 (
                     utilities.read_csv(
-                        self.paths[f"QS606{key}"],
+                        getattr(self.paths, f"qs606{key}_path".lower()),
                         columns=self.QS606_HEADERS[key],
                         skiprows=7,
                         skipfooter=5,
@@ -303,7 +225,7 @@ class CommuteTripEnds:
         cols = qs606uk.columns
         return Rezone.rezoneOD(
             qs606uk,
-            self.zone_lookups["LSOA lookup"],
+            self.zone_lookups["lsoa lookup"],
             dfCols=(cols[0],),
             rezoneCols=cols[1:],
         )
@@ -323,7 +245,7 @@ class CommuteTripEnds:
         sheet = f"{self.params['Model Year']}-{self.params['Model Year'] - 2000 + 1}"
         e_dwellings = (
             utilities.read_excel(
-                self.paths["E dwellings"],
+                self.paths.e_dwellings_path,
                 columns=self.E_DWELLINGS_HEADER,
                 skiprows=3,
                 sheet_name=sheet,
@@ -337,12 +259,10 @@ class CommuteTripEnds:
             try:
                 e_dwellings[col] = e_dwellings[col].astype(float)
             except ValueError as err:
-                match = re.match(
-                    r"could not convert \w+ to float", str(err), re.IGNORECASE
-                )
+                match = re.match(r"could not convert \w+ to float", str(err), re.IGNORECASE)
                 if match:
                     raise errors.NonNumericDataError(
-                        name=f"{self.paths['E dwellings'].stem} column",
+                        name=f"{self.paths.e_dwellings_path.stem} column",
                         non_numeric=str(col),
                     )
                 raise
@@ -354,8 +274,7 @@ class CommuteTripEnds:
 
         # Calculate ratio of additional construction over net additional dwellings
         additional_net_ratio = (
-            e_dwellings["additional dwellings"].sum()
-            / e_dwellings["Net Additions"].sum()
+            e_dwellings["additional dwellings"].sum() / e_dwellings["Net Additions"].sum()
         )
 
         # Read in Welsh and Scottish dwellings data
@@ -365,7 +284,7 @@ class CommuteTripEnds:
             str(self.params["Model Year"] + 1): int,
         }
         sc_w_dwellings = utilities.read_csv(
-            self.paths["SC&W dwellings"], columns=sc_w_header
+            self.paths.sc_w_dwellings_path, columns=sc_w_header
         )
 
         # Calculate additional construction
@@ -391,7 +310,7 @@ class CommuteTripEnds:
         # Assign to floorspace dictionary
         return Rezone.rezoneOD(
             dwellings,
-            self.zone_lookups["LAD lookup"],
+            self.zone_lookups["lad lookup"],
             dfCols=(cols[0],),
             rezoneCols=cols[1:],
         )
@@ -420,7 +339,7 @@ class CommuteTripEnds:
 
         # Read in NDR data
         ndr = utilities.read_csv(
-            self.paths["NDR floorspace"], columns=self.BUSINESS_FLOORSPACE_HEADER
+            self.paths.ndr_floorspace_path, columns=self.BUSINESS_FLOORSPACE_HEADER
         ).rename(columns=self.BUSINESS_FLOORSPACE_RENAME)
 
         # Remove rows that are not LAD
@@ -430,12 +349,8 @@ class CommuteTripEnds:
         ndr = ndr[~conditional]
 
         # distinguish columns by year
-        previous_yr = [
-            col for col in ndr.columns if str(self.params["Model Year"] - 1) in col
-        ]
-        current_yr = [
-            col for col in ndr.columns if str(self.params["Model Year"]) in col
-        ]
+        previous_yr = [col for col in ndr.columns if str(self.params["Model Year"] - 1) in col]
+        current_yr = [col for col in ndr.columns if str(self.params["Model Year"]) in col]
 
         # sort lists alphabetically to ensure they are in the same category order
         previous_yr.sort()
@@ -456,7 +371,7 @@ class CommuteTripEnds:
         # rezone to model zone system
         return Rezone.rezoneOD(
             ndr,
-            self.zone_lookups["LAD lookup"],
+            self.zone_lookups["lad lookup"],
             dfCols=(ndr.columns[0],),
             rezoneCols=ndr.columns[1:],
         )
@@ -464,7 +379,7 @@ class CommuteTripEnds:
     def _read_household_projections(self):
         """Reads in household projections data."""
         households = utilities.read_csv(
-            self.paths["household projections"],
+            self.paths.household_paths.path,
             name="Household projections",
             columns=self.HH_PROJECTIONS_HEADER,
         ).rename(columns=self.HH_RENAME)
@@ -475,9 +390,7 @@ class CommuteTripEnds:
         ].jobs.sum()
 
         # get Scottish jobs data
-        scottish_jobs = households[["zone", "jobs"]][
-            households.zone.str.startswith("S")
-        ]
+        scottish_jobs = households[["zone", "jobs"]][households.zone.str.startswith("S")]
 
         # rezone to model zone system
         if not self.zone_lookups:
@@ -485,7 +398,7 @@ class CommuteTripEnds:
 
         self.TEMPro_data["S jobs"] = Rezone.rezoneOD(
             scottish_jobs,
-            self.zone_lookups["MSOA lookup"],
+            self.zone_lookups["msoa lookup"],
             dfCols=(scottish_jobs.columns[0],),
             rezoneCols=scottish_jobs.columns[1:],
         )
@@ -493,7 +406,7 @@ class CommuteTripEnds:
         households.drop(axis=1, labels=["jobs"], inplace=True)
         self.TEMPro_data["households"] = Rezone.rezoneOD(
             households,
-            self.zone_lookups["MSOA lookup"],
+            self.zone_lookups["msoa lookup"],
             dfCols=(households.columns[0],),
             rezoneCols=households.columns[1:],
         )
@@ -546,12 +459,11 @@ class CommuteTripEnds:
         if not self.zone_lookups:
             self._read_zone_lookups()
         bres = lgv_inputs.filtered_bres(
-            self.paths["BRES"], self.zone_lookups["LSOA lookup"], self.BRES_AGGREGATION
+            self.paths.bres_path, self.zone_lookups["lsoa lookup"], self.BRES_AGGREGATION
         ).rename(columns={"Zone": "zone"})
         bres.index = bres["zone"]
         bres["factor"] = (
-            bres[self.BRES_AGGREGATION.keys()]
-            / bres[self.BRES_AGGREGATION.keys()].sum()
+            bres[self.BRES_AGGREGATION.keys()] / bres[self.BRES_AGGREGATION.keys()].sum()
         )
         self.attractor_factors["Employment"] = bres[["factor"]]
 
@@ -604,10 +516,8 @@ class CommuteTripEnds:
 
         # calculate skilled attractions
         skilled_attractions = {}
-        for key in self.commute_trips_land_use:
-            skilled_attractions[key] = (
-                self.commute_trips_land_use[key] * self.attractor_factors[key]
-            )
+        for key, value in self.commute_trips_land_use.items():
+            skilled_attractions[key] = value * self.attractor_factors[key]
 
         skilled_attractions = sum(skilled_attractions.values()).rename(
             columns={"factor": "trips"}
@@ -624,88 +534,34 @@ class CommuteTripEnds:
             DataFrame of trip attractions with zones as indices and a "trips"
             column.
         """
-        if self.voa_weightings is None:
+        if self.warehouse_weightings is None:
             self._read_commute_tables()
 
-        raise NotImplementedError("WIP: replacing dataset")
-        voa_data = lgv_inputs.voa_ratings_list(
-            self.paths["VOA"],
-            self.voa_weightings,
-            self.paths["Postcodes"],
-            year=self.params["Model Year"],
-            fill_func="non-zero minimum",
-        )
-        voa_data.index = voa_data["zone"]
-        voa_data.drop(axis=1, labels=["zone"], inplace=True)
-        voa_data = self._infill_missing_depots(voa_data)
-        voa_data["trips"] = (voa_data / voa_data.sum()) * self.commute_trips_land_use[
-            "Employment"
+        data_paths = [
+            ("medium", self.paths.commute_warehouse_paths.medium),
+            ("low", self.paths.commute_warehouse_paths.low),
+            ("high", self.paths.commute_warehouse_paths.high),
         ]
+        factored_data = []
 
-        return voa_data[["trips"]]
+        for weight, path in data_paths:
+            if path is None and weight == "medium":
+                raise errors.MissingInputsError("commute warehouse path (medium)")
+            if path is None:
+                continue
+            if weight not in self.warehouse_weightings:
+                raise errors.MissingInputsError(f"commute warehouse {weight} weighting factor")
 
-    def _infill_missing_depots(self, voa_data: pd.DataFrame):
-        """Infill depot data for any zones in `infill_zones` parameter.
+            data = lgv_inputs.load_warehouse_floorspace(path, self.paths.lsoa_lookup_path)
+            data = data.fillna(0) * self.warehouse_weightings[weight]
+            factored_data.append(data)
 
-        Rateable value of depots is infilled by calculating rateable value
-        of depots per household in all zones not in `depots_infill` and
-        multiplying that by the number of households for each zone in
-        `depots_infill`.
+        warehouse_floorspace = pd.concat(factored_data, axis=1).sum(axis=1)
+        trips = (
+            warehouse_floorspace / warehouse_floorspace.sum()
+        ) * self.commute_trips_land_use["Employment"]
 
-        Parameters
-        ----------
-        voa_data: pd.DataFrame
-            Dataframe with VOA data in model zone system with zones as index
-
-        Returns
-        -------
-        pd.DataFrame
-            DataFrame with original and infilled VOA data
-
-        Raises
-        ------
-        errors.MissingDataError
-            If any zones in `depots_infill` aren't present in the
-            households data.
-        ValueError
-            If any zones in `depots_infill` already have depot
-            data.
-        """
-        if self.infill_zones is None:
-            return
-        if not self.TEMPro_data:
-            self._read_household_projections()
-        missing = [
-            i for i in self.infill_zones if i not in self.TEMPro_data["households"].zone
-        ]
-        if missing:
-            raise errors.MissingDataError("Households for zones", missing)
-        already = [i for i in self.infill_zones if i in voa_data.index]
-        if already:
-            raise ValueError(
-                f"{len(already)} zones ({already}) already have depot data."
-            )
-        # Calculate rateable value of depots per households and
-        # then calculate rateable value for all infill zones
-        depots_per_hh = np.sum(
-            voa_data.loc[~voa_data.index.isin(self.infill_zones)].values
-        ) / np.sum(
-            self.TEMPro_data["households"]
-            .loc[~self.TEMPro_data["households"].zone.isin(self.infill_zones)]
-            .values
-        )
-        new_depots = (
-            self.TEMPro_data["households"]
-            .loc[self.TEMPro_data["households"].zone.isin(self.infill_zones)]
-            .copy()
-        )
-        new_depots.index = new_depots.zone
-        new_depots.drop(columns=["zone"], inplace=True)
-        new_depots = new_depots * depots_per_hh
-
-        # Add additional depot data to original dataframe
-        new_depots.columns = voa_data.columns
-        return pd.concat([voa_data, new_depots])
+        return trips.to_frame("trips")
 
     def estimate_attractions(self):
         """Estimates trip attractions"""
@@ -720,9 +576,9 @@ class CommuteTripEnds:
         (
             trip_attractions["Drivers"],
             trip_attractions["Skilled trades"],
-        ) = trip_attractions["Drivers"].align(
-            trip_attractions["Skilled trades"], join="outer", fill_value=0
-        )
+        ) = trip_attractions[
+            "Drivers"
+        ].align(trip_attractions["Skilled trades"], join="outer", fill_value=0)
 
         self.trip_attractions = sum(trip_attractions.values()).rename(
             columns={"trips": "Total"}

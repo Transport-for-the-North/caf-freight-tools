@@ -10,7 +10,7 @@ from __future__ import annotations
 import re
 import string
 from pathlib import Path
-from typing import Any, Union
+from typing import Any, Optional, Union
 
 # Third party imports
 import caf.toolkit
@@ -103,15 +103,25 @@ EXAMPLE_CONFIG_NAME = "LGV_config_example.yml"
 
 
 ##### CLASSES #####
+@dataclasses.dataclass
+class CommuteWarehousePaths:
+    """Paths to LSOA warehouse data for the commute segment."""
+
+    medium: types.FilePath
+    low: Optional[types.FilePath] = None
+    high: Optional[types.FilePath] = None
+
+
 class LGVInputPaths(caf.toolkit.BaseConfig):
     """Dataclass storing paths to all the input files for the LGV model."""
 
     household_paths: DataPaths
     """Paths for the households data and zone correspondence."""
-    bres_paths: DataPaths
-    """Paths for the BRES data and zone correspondence."""
-    warehouse_paths: DataPaths
-    """Paths for the warehouse floorspace data and zone correspondence."""
+    bres_path: types.FilePath
+    """Path to the BRES data CSV at LSOA level."""
+    warehouse_path: types.FilePath
+    """Path for the warehouse floorspace data CSV at LSOA level."""
+    commute_warehouse_paths: CommuteWarehousePaths
     parameters_path: types.FilePath
     """Path to the LGV parameters Excel workbook."""
     qs606ew_path: types.FilePath
@@ -176,38 +186,45 @@ def write_example_config(path: Path | None) -> None:
     if path is None:
         path = Path(EXAMPLE_CONFIG_NAME)
 
+    commute_warehouse_doc = (
+        "CSV of LSOA warehouse floorspace for commute "
+        "segment ({weight} weighting), {required}"
+    )
+
     with dataclasses.set_validation(DataPaths, False):
-        example_data = dict(
-            household_paths=DataPaths(
-                "LGV Households",
-                "CSV of households data",
-                "Zone correspondence CSV",
-            ),
-            bres_paths=DataPaths("LGV BRES", "CSV of BRES data", "Zone correspondence CSV"),
-            warehouse_paths=DataPaths(
-                "LGV Warehouse Floorspace",
-                "CSV of warehouse floorspace data",
-                "Zone correspondence CSV",
-            ),
-            parameters_path="Path to parameters spreadsheet",
-            qs606ew_path="Path to the England & Wales Census Occupation data CSV",
-            qs606sc_path="Path to the Scottish Census Occupation data CSV",
-            sc_w_dwellings_path="Path to the Scottish and Welsh dwellings data CSV",
-            e_dwellings_path="Path to the English dwellings data XLSX",
-            ndr_floorspace_path="Path to the NDR Business Floorspace CSV.",
-            lsoa_lookup_path="Path to the LSOA to model zone correspondence CSV",
-            msoa_lookup_path="Path to the MSOA to model zone correspondence CSV",
-            lad_lookup_path="Path to the Local Authority District to "
-            "model zone correspondence CSV",
-            model_study_area="Path to CSV containing lookup for zones in model study area",
-            cost_matrix_path="Path to CSV containing cost matrix, should "
-            "be square matrix with zone numbers as column names and indices",
-            calibration_matrix_path="Path to CSV containing calibration matrix, "
-            "should be square matrix with zone numbers as column names and indices",
-            trip_distributions_path="Path to Excel Workbook containing all the "
-            "trip cost distributions",
-            output_folder="Path to folder to save outputs to",
-        )
+        with dataclasses.set_validation(CommuteWarehousePaths, False):
+            example_data = dict(
+                household_paths=DataPaths(
+                    "LGV Households",
+                    "CSV of households data",
+                    "Zone correspondence CSV",
+                ),
+                bres_path="Path to the BRES data CSV at LSOA level",
+                warehouse_path="Path for the warehouse floorspace data CSV at LSOA level",
+                commute_warehouse_paths=CommuteWarehousePaths(
+                    commute_warehouse_doc.format(weight="medium", required="required"),
+                    commute_warehouse_doc.format(weight="low", required="optional"),
+                    commute_warehouse_doc.format(weight="high", required="optional"),
+                ),
+                parameters_path="Path to parameters spreadsheet",
+                qs606ew_path="Path to the England & Wales Census Occupation data CSV",
+                qs606sc_path="Path to the Scottish Census Occupation data CSV",
+                sc_w_dwellings_path="Path to the Scottish and Welsh dwellings data CSV",
+                e_dwellings_path="Path to the English dwellings data XLSX",
+                ndr_floorspace_path="Path to the NDR Business Floorspace CSV.",
+                lsoa_lookup_path="Path to the LSOA to model zone correspondence CSV",
+                msoa_lookup_path="Path to the MSOA to model zone correspondence CSV",
+                lad_lookup_path="Path to the Local Authority District to "
+                "model zone correspondence CSV",
+                model_study_area="Path to CSV containing lookup for zones in model study area",
+                cost_matrix_path="Path to CSV containing cost matrix, should "
+                "be square matrix with zone numbers as column names and indices",
+                calibration_matrix_path="Path to CSV containing calibration matrix, "
+                "should be square matrix with zone numbers as column names and indices",
+                trip_distributions_path="Path to Excel Workbook containing all the "
+                "trip cost distributions",
+                output_folder="Path to folder to save outputs to",
+            )
 
     LGVInputPaths.write_example(path, **example_data)
     print(f"Written example config: {path}")

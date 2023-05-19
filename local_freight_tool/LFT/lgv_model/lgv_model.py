@@ -317,11 +317,15 @@ def calculate_trip_ends(
     LGVTripEnds: Stores all trip end DataFrames.
     """
     output_folder.mkdir(exist_ok=True)
-    # Calculate the service trip ends and save output
+
+    bres_paths = DataPaths(
+        "LGV BRES Data", input_paths.bres_path, input_paths.lsoa_lookup_path
+    )
+
     message_hook("Calculating Service trip ends")
     service = ServiceTripEnds(
         input_paths.household_paths,
-        input_paths.bres_paths,
+        bres_paths,
         input_paths.parameters_path,
         lgv_growth,
     )
@@ -331,8 +335,10 @@ def calculate_trip_ends(
     # Calculate the delivery trip ends and save outputs
     message_hook("Calculating Delivery trip ends")
     delivery = DeliveryTripEnds(
-        input_paths.warehouse_paths,
-        input_paths.bres_paths,
+        DataPaths(
+            "LGV Delivery Warehouse", input_paths.warehouse_path, input_paths.lsoa_lookup_path
+        ),
+        bres_paths,
         input_paths.household_paths,
         input_paths.parameters_path,
         year,
@@ -344,23 +350,7 @@ def calculate_trip_ends(
 
     # Calculate commuting trip ends and save output
     message_hook("Calculating Commuting trip ends")
-    commute = CommuteTripEnds(
-        {
-            "commuting tables": input_paths.parameters_path,
-            "household projections": input_paths.household_paths.path,
-            "BRES": input_paths.bres_paths.path,
-            "QS606EW": input_paths.qs606ew_path,
-            "QS606SC": input_paths.qs606sc_path,
-            "SC&W dwellings": input_paths.sc_w_dwellings_path,
-            "E dwellings": input_paths.e_dwellings_path,
-            "NDR floorspace": input_paths.ndr_floorspace_path,
-            "VOA": input_paths.warehouse_paths.path,
-            "LSOA lookup": input_paths.lsoa_lookup_path,
-            "MSOA lookup": input_paths.msoa_lookup_path,
-            "LAD lookup": input_paths.lad_lookup_path,
-            "Postcodes": input_paths.warehouse_paths.zc_path,
-        }
-    )
+    commute = CommuteTripEnds(input_paths)
     commute_trips = commute.trips
     for key in commute_trips:
         commute_trips[key].to_csv(output_folder / Path(f"commute_{key}_trip_ends.csv"))
