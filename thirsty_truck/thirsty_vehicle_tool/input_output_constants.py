@@ -45,6 +45,7 @@ SERVICES_REQUIRED_COLUMNS = ["name", "geometry"]
 DEMAND_MATRIX_REQUIRED_COLUMNS = ["origin", "destination", "trips"]
 JUNCTION_REQUIRED_COLUMNS = ["number", "geometry"]
 MAP_LABELS_REQUIRED_COLUMNS = ["name", "geometry"]
+THRISTY_POINTS_REQUIRED_COLUMNS = ["easting", "northing", "trips"]
 
 #   plotting visual const
 # UPDATING COLOUR MAP WILL NOT UPDATE BOKEH COLOURBAR!!!!
@@ -113,7 +114,9 @@ class AnalysisInputs:
 
         LOG.info("Parsing Centroids")
         zone_centroids = gpd.read_file(self.zone_centroids_path)
-        zone_centroids = check_and_format_centroids(zone_centroids, ZONE_CENTROIDS_REQUIRED_COLUMNS)
+        zone_centroids = check_and_format_centroids(
+            zone_centroids, ZONE_CENTROIDS_REQUIRED_COLUMNS
+        )
 
         LOG.info("Parsing OD demand matrix")
         demand_matrix = pd.read_csv(self.od_demand_matrix_path)
@@ -124,6 +127,41 @@ class AnalysisInputs:
             zone_centroids=zone_centroids,
             range=range_,
         )
+
+
+@dataclasses.dataclass
+class ODMatrixInputs:
+    od_matrices_path: list[pathlib.Path]
+    od_matrix_keys: list[str]
+
+    def parse(self) -> dict[str, pd.DataFrame]:
+        if len(self.od_matrices_path) != len(self.od_matrices_path):
+            raise ValueError("OD matrix paths and keys must be the same length")
+        od_matrices = {}
+        for i, path in enumerate(self.od_matrices_path):
+            matrix = pd.read_csv(path)
+            od_matrices[self.od_matrix_keys[i]] = check_and_format_demand_matrix(matrix)
+        return od_matrices
+
+
+@dataclasses.dataclass
+class ThirstyPointsInputs:
+    thirsty_points_paths: list[pathlib.Path]
+    thirsty_points_keys = list[str]
+
+    def parse(self) -> dict[str, gpd.GeoDataFrame]:
+        if len(self.thirsty_points) != len(self.thirsty_points_keys):
+            raise ValueError("thirsty point paths and keys must be the same length")
+        thirsty_points = {}
+        for i, path in enumerate(self.thirsty_points_paths):
+            points = pd.read_csv(path)
+            check_columns(path, points.columns, THRISTY_POINTS_REQUIRED_COLUMNS)
+            thirsty_points[self.thirsty_points_keys[i]] = gpd.GeoDataFrame(
+                points,
+                geometry=gpd.points_from_xy(
+                    points["easting"], points["northing"], crs=CRS
+                ),
+            ).drop(columns=["easting", "northing"])
 
 
 @dataclasses.dataclass
@@ -187,9 +225,7 @@ class PlottingInputs:
                 required_columns=JUNCTION_REQUIRED_COLUMNS,
             )
 
-        outlines = read_shape_file(
-            self.outlines_path, precision=GEOSPATIAL_PRECISION
-        )
+        outlines = read_shape_file(self.outlines_path, precision=GEOSPATIAL_PRECISION)
         # some remove any multilinestringgs
         outlines = outlines.explode()
 
@@ -247,6 +283,7 @@ class ParsedAnalysisInputs(NamedTuple):
     zone_centroids: gpd.GeoDataFrame
     range: float
 
+
 @dataclasses.dataclass
 class Operational:
     """operational inputs for the tool
@@ -267,6 +304,7 @@ class Operational:
     a_roads: bool
     show_plots: bool
     hex_bin_width: float
+
 
 class ThirstyVehicleConfig(caf.toolkit.BaseConfig):
     """manages reading the thirsty truck config file
@@ -291,9 +329,9 @@ class ThirstyVehicleConfig(caf.toolkit.BaseConfig):
         self.operational.hex_bin_width = self.operational.hex_bin_width * TO_M_FACTOR
 
 
-
-
-def check_and_format_centroids(zone_centroids: gpd.GeoDataFrame, required_columns) -> gpd.GeoDataFrame:
+def check_and_format_centroids(
+    zone_centroids: gpd.GeoDataFrame, required_columns
+) -> gpd.GeoDataFrame:
     """checks and formats inputted zone centroids
 
     Parameters
@@ -315,7 +353,7 @@ def check_and_format_centroids(zone_centroids: gpd.GeoDataFrame, required_column
     """
     # columns to lower case
     zone_centroids.columns = zone_centroids.columns.str.lower()
-    #check columns
+    # check columns
     check_columns("zone_centroids", zone_centroids.columns, required_columns)
     # to easting northing
     zone_centroids.to_crs(CRS, inplace=True)
@@ -594,8 +632,10 @@ def to_shape_file(file_name: pathlib.Path, data: gpd.GeoDataFrame) -> None:
         data to save
     """
     data.to_file(file_name)
+
+
 @output_file_checks
-def write_to_csv(file_path:pathlib.Path, output: pd.DataFrame)-> None:
+def write_to_csv(file_path: pathlib.Path, output: pd.DataFrame) -> None:
     """wirtes file to csv
 
     used so wrapper with logging and permission error checks can be applied
@@ -608,6 +648,7 @@ def write_to_csv(file_path:pathlib.Path, output: pd.DataFrame)-> None:
         data to write
     """
     output.to_csv(file_path)
+
 
 @dataclasses.dataclass
 class HexTilling:

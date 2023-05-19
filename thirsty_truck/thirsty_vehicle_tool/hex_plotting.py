@@ -169,8 +169,8 @@ def create_hex_bin_html(
                 "count": hex_bin.count.round(),
             }
         )}
-    elif isinstance(hex_bin, dict[str, input_output_constants.HexTilling]):
-        hex_source
+    else:
+        hex_source = {}
         for key, value in hex_bin.items():
             hex_source[f"{key} Hexs"] = plotting.ColumnDataSource(
             {

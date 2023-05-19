@@ -138,3 +138,4 @@ thirsty-vehicle-config.yml
 launch.json
 #
 .vscode
+.vscode/launch.json
