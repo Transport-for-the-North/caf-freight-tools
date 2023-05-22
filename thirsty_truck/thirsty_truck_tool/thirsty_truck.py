@@ -25,7 +25,7 @@ from thirsty_vehicle_tool import (
     geospatial_analysis,
 )
 from thirsty_truck_tool import ioc
-from LFT import hgv_annual_tonne_to_pcu, matrix_utilities
+from LFT import hgv_annual_tonne_to_pcu
 
 LOG_FILE = "thirsty_truck.log"
 LOG = tv_logging.get_logger(__name__)
@@ -63,11 +63,10 @@ def thirsty_truck(
     plotting_inputs: input_output_constants.PlottingInputs,
     operational: input_output_constants.Operational,
 ) -> None:
-    LOG.info("Parsing LFT inputs and converting to annual PCU")
-
     #handle LFT input
 
     if analysis_inputs.lft_inputs is not None:
+        LOG.info("Parsing LFT inputs and converting to annual PCU")
         trip_conversion_obj = hgv_annual_tonne_to_pcu.tonne_to_pcu(
             analysis_inputs.lft_inputs, operational.output_folder
         )
@@ -104,21 +103,26 @@ def thirsty_truck(
                 key, temp_thirsty_points = future.result()
                 thirsty_points[key] = temp_thirsty_points
 
-    thirsty_points["Combined"] = pd.concat(list(thirsty_points.values()))
+    thirsty_points[ioc.COMBINED_KEY] = pd.concat(list(thirsty_points.values()))
 
     all_hex_bins = {}
 
+
     for key, value in thirsty_points.items():
 
-        LOG.info(f"Creating thirsty {key} hex shapefile")
+        LOG.info(f"Creating thirsty {key} hexs")
+
         hex_bins = hex_plotting.hexbin_plot(
             value, plotting_inputs, f"Thirsty {key} Hex Plot", operational
         )
 
+        LOG.info(f"Creating thirsty {key} hex shapefile")
         hex_plotting.create_hex_shapefile(
             hex_bins, f"thirsty_{key.lower()}_hexs.shp", operational.output_folder
         )
         all_hex_bins[key] = hex_bins
+
+    LOG.info(f"Creating thirsty truck hex map")
     hex_plotting.create_hex_bin_html(
         all_hex_bins, plotting_inputs, "Thirsty Truck Hex Map", operational
     )
@@ -150,6 +154,7 @@ def process_matrix(
         input_output_constants.ParsedAnalysisInputs(matrix, zone_centroids, range),
         output_folder,
         f"thirsty_{key}_points.csv",
+        key
     )
 
     return key, thirsty_points

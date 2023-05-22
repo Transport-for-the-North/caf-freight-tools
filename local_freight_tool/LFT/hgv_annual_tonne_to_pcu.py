@@ -572,6 +572,25 @@ class TonneToPCU:
                     output_folder / Path(f"{self.total_pcus[key].name}.csv")
                 )
 
+    def save_trip_outputs(self, output_folder):
+        """Saves the PCU output matrices as csvs.
+
+        Parameters
+        ----------
+        output_folder : Path
+            Path to output folder
+        """
+        try:
+            self.total_trips.keys()
+        except AttributeError:
+            self.run_conversion()
+        finally:
+            for key in self.total_trips.keys():
+                self.total_trips[key].export_to_csv(
+                    output_folder / Path(f"{self.total_trips[key].name}.csv")
+                )
+
+
     @staticmethod
     def read_csv(path, columns, new_headers=None, numerical_columns=None):
         """Reads in a csv file and converts it to a Pandas DataFrame.
@@ -734,7 +753,7 @@ def tonne_to_pcu(inputs: dict[str, Path], output_path: Path)->TonneToPCU:
         i += 1
         progress_df.loc[i, "Completed"] = "yes"
 
-        hgv.save_pcu_outputs(output_path)
+        hgv.save_trip_outputs(output_path)
         i += 1
         progress_df.loc[i, "Completed"] = "yes"
     except Exception as e:

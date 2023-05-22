@@ -4,7 +4,7 @@ Creates hexbin plot with road network overlayed
 # standard imports
 from __future__ import annotations
 import pathlib
-
+from typing import Optional
 # third party imports
 
 import matplotlib.pyplot as plt
@@ -27,6 +27,7 @@ def hexbin_plot(
     plotting_inputs: input_output_constants.ParsedPlottingInputs,
     title: str,
     operational: input_output_constants.Operational,
+    max_colour_bar_scale: Optional[float] = None,
 ) -> input_output_constants.HexTilling:
     """Create hexbin plot and saves as a PNG
 
@@ -63,17 +64,29 @@ def hexbin_plot(
 
     grid_size = int(((x_max - x_min) / (operational.hex_bin_width)))
     # setup hexbins
-
-    hex_bin = ax.hexbin(
-        points["geometry"].x,
-        points["geometry"].y,
-        C=points["trips"],
-        cmap=input_output_constants.COlOUR_MAP,
-        gridsize=grid_size,
-        extent=(x_min, x_max, y_min, y_max),
-        reduce_C_function=np.sum,
-        vmin=0,
-    )
+    if max_colour_bar_scale is None:
+        hex_bin = ax.hexbin(
+            points["geometry"].x,
+            points["geometry"].y,
+            C=points["trips"],
+            cmap=input_output_constants.COlOUR_MAP,
+            gridsize=grid_size,
+            extent=(x_min, x_max, y_min, y_max),
+            reduce_C_function=np.sum,
+            vmin=0,
+        )
+    else:
+        hex_bin = ax.hexbin(
+            points["geometry"].x,
+            points["geometry"].y,
+            C=points["trips"],
+            cmap=input_output_constants.COlOUR_MAP,
+            gridsize=grid_size,
+            extent=(x_min, x_max, y_min, y_max),
+            reduce_C_function=np.sum,
+            vmin=0,
+            vmax = max_colour_bar_scale,
+        )
     # create output
     hex_binning_params = input_output_constants.HexTilling.from_polycollection(
         hexbin=hex_bin
@@ -166,7 +179,7 @@ def create_hex_bin_html(
                 "x": hex_bin.vertices_x,
                 "y": hex_bin.vertices_y,
                 "c": hex_bin.rgb,
-                "count": hex_bin.count.round(),
+                "count": hex_bin.relative_count.round(),
             }
         )}
     else:
@@ -177,7 +190,7 @@ def create_hex_bin_html(
                 "x": value.vertices_x,
                 "y": value.vertices_y,
                 "c": value.rgb,
-                "count": value.count.round(),
+                "count": value.relative_count.round(),
             }
         )
     #   junction source
@@ -360,7 +373,7 @@ def create_hex_shapefile(
 
     hexs = gpd.GeoDataFrame(hexs, geometry="geometry", crs=input_output_constants.CRS)
 
-    hexs["rel_scale"] = hex_bin.count
+    hexs["rel_scale"] = hex_bin.relative_count
     output_folder.mkdir(exist_ok=True)
     input_output_constants.to_shape_file(output_folder / file_name, hexs)
 

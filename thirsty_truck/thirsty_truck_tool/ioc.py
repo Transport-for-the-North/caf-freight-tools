@@ -39,6 +39,7 @@ TONNE_TO_PCU_COLUMNS = {
     "pcu_factors": ["zone", "direction", "artic", "rigid"],
 }
 
+COMBINED_KEY = "Combined"
 
 @dataclasses.dataclass
 class TonneToPCUInputs:

@@ -147,10 +147,10 @@ class ODMatrixInputs:
 @dataclasses.dataclass
 class ThirstyPointsInputs:
     thirsty_points_paths: list[pathlib.Path]
-    thirsty_points_keys = list[str]
+    thirsty_points_keys: list[str]
 
     def parse(self) -> dict[str, gpd.GeoDataFrame]:
-        if len(self.thirsty_points) != len(self.thirsty_points_keys):
+        if len(self.thirsty_points_paths) != len(self.thirsty_points_keys):
             raise ValueError("thirsty point paths and keys must be the same length")
         thirsty_points = {}
         for i, path in enumerate(self.thirsty_points_paths):
@@ -162,6 +162,7 @@ class ThirstyPointsInputs:
                     points["easting"], points["northing"], crs=CRS
                 ),
             ).drop(columns=["easting", "northing"])
+        return thirsty_points
 
 
 @dataclasses.dataclass
@@ -676,6 +677,7 @@ class HexTilling:
     centres_x: np.ndarray
     centres_y: np.ndarray
     count: np.ndarray
+    relative_count: np.ndarray
     rgb: list[tuple[int]]
     rel_vertices_x: Optional[np.ndarray] = None
     rel_vertices_y: Optional[np.ndarray] = None
@@ -725,7 +727,8 @@ class HexTilling:
         return HexTilling(
             centres_x=centres_x,
             centres_y=centres_y,
-            count=relative_count,
+            count=count,
+            relative_count = relative_count, 
             rgb=rgb,
             vertices_x=vertices_x,
             vertices_y=vertices_y,
