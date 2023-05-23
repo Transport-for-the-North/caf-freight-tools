@@ -4,9 +4,14 @@ operational:
   show_plots: False
   hex_bin_width: 12
 
-
 analysis_inputs:
-  range: 200
+  vehicle_keys:
+    - Artic
+    - Rigid
+  vehicle_ranges:
+    - 200
+    - 200
+  zone_centroids_path: C:\Users\UKKXF022\Documents\Midlands_connect_freight\LFT_inputs\centroids\gbfm_zone_centroids.shp
   tonne_to_pcu_inputs:
     domestic_bulk_port_path: C:\Users\UKKXF022\Documents\Midlands_connect_freight\LFT_inputs\AllCommTotTonnesOZ_DZ_DomBulkPortRoad_GBZ.csv
     unitised_eu_imports_path: C:\Users\UKKXF022\Documents\Midlands_connect_freight\LFT_inputs\UnitisedTradeEurope_Tonnes_Dir_GBZSeqPort_GBZSeqROAD0_GBZ.csv
@@ -17,22 +22,14 @@ analysis_inputs:
     gbfm_distance_matrix_path: C:\Users\UKKXF022\Documents\Midlands_connect_freight\LFT_inputs\Annual tonnes to annual pcus\B057 3320 DIS HGV_IP fmV PS_GBFMZ.csv
     port_traffic_proportions_path: C:\Users\UKKXF022\Documents\Midlands_connect_freight\LFT_inputs\Annual tonnes to annual pcus\port_traffic_trips_per_1000t.csv
     pcu_factors_path: C:\Users\UKKXF022\Documents\Midlands_connect_freight\LFT_inputs\Annual tonnes to annual pcus\pcu_factors.csv
-  od_matrices_inputs:
-    od_matrices_path:
-      - C:\Users\UKKXF022\Documents\Midlands_connect_freight\thirsty_truck_outputs\artic_total_annual_trips.csv
-      - C:\Users\UKKXF022\Documents\Midlands_connect_freight\thirsty_truck_outputs\rigid_total_annual_trips.csv
-    od_matrix_keys:
-      - Artic
-      - Rigid
-  thirsty_points_inputs:
-    thirsty_points_paths:
-      - C:\Users\UKKXF022\Documents\Midlands_connect_freight\thirsty_truck_outputs\thirsty_Artic_points.csv
-      - C:\Users\UKKXF022\Documents\Midlands_connect_freight\thirsty_truck_outputs\thirsty_Rigid_points.csv
-    thirsty_points_keys: 
-      - Artic
-      - Rigid
-
-  zone_centroids_path: C:\Users\UKKXF022\Documents\Midlands_connect_freight\LFT_inputs\centroids\gbfm_zone_centroids.shp
+#  od_matrices_inputs:
+#    od_matrices_path:
+#      - C:\Users\UKKXF022\Documents\Midlands_connect_freight\thirsty_truck_outputs\artic_total_annual_trips.csv
+#      - C:\Users\UKKXF022\Documents\Midlands_connect_freight\thirsty_truck_outputs\rigid_total_annual_trips.csv
+#  thirsty_points_inputs:
+#    thirsty_points_paths:
+#      - C:\Users\UKKXF022\Documents\Midlands_connect_freight\thirsty_truck_outputs\thirsty_Artic_points.csv
+#      - C:\Users\UKKXF022\Documents\Midlands_connect_freight\thirsty_truck_outputs\thirsty_Rigid_points.csv
 
 plotting_inputs:
   network_path: C:\Users\UKKXF022\Documents\Midlands_connect_freight\midlands_road_links_shapefile\aggregated_filtered_road_network.shp 
@@ -40,5 +37,3 @@ plotting_inputs:
   outlines_path: C:\Users\UKKXF022\Documents\Midlands_connect_freight\shape_files\useful_for_hexbin\England_regions\england_regions.shp
   service_stations_path: C:\Users\UKKXF022\Documents\Midlands_connect_freight\shape_files\motorway_services_HGV_access\motorway_services.shp
   map_labels_path: C:\Users\UKKXF022\Documents\Midlands_connect_freight\shape_files\notable_places\notable_places_easting_northing.shp
-
-ignore: C:\Users\UKKXF022\Documents\Midlands_connect_freight\shape_files\os_road_links\

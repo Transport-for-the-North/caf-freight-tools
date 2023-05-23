@@ -70,9 +70,12 @@ def thirsty_truck(
         trip_conversion_obj = hgv_annual_tonne_to_pcu.tonne_to_pcu(
             analysis_inputs.lft_inputs, operational.output_folder
         )
-        od_matrices = trip_conversion_obj.total_trips
-        for key, value in od_matrices.items():
-            od_matrices[key]= value.column_matrix()
+        unformatted_od_matrices = trip_conversion_obj.total_trips
+        od_matrices = {}
+        key_lookup = ioc.convert_lft_keys(list(analysis_inputs.ranges.keys()), list(unformatted_od_matrices.keys()))
+        for key, value in unformatted_od_matrices.items():
+            od_matrices[key_lookup[key]]= value.column_matrix()
+
         LOG.info("Extracted annual trips")
 
     if analysis_inputs.od_matrices is not None:
@@ -93,7 +96,7 @@ def thirsty_truck(
                     key,
                     matrix,
                     analysis_inputs.zone_centroids,
-                    analysis_inputs.range,
+                    analysis_inputs.ranges[key],
                     operational.output_folder,
                 )
                 for key, matrix in od_matrices.items()

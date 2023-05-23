@@ -754,6 +754,7 @@ def tonne_to_pcu(inputs: dict[str, Path], output_path: Path)->TonneToPCU:
         progress_df.loc[i, "Completed"] = "yes"
 
         hgv.save_trip_outputs(output_path)
+        hgv.save_pcu_outputs(output_path)
         i += 1
         progress_df.loc[i, "Completed"] = "yes"
     except Exception as e:

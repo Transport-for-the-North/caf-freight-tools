@@ -41,6 +41,7 @@ TONNE_TO_PCU_COLUMNS = {
 
 COMBINED_KEY = "Combined"
 
+LFT_KEYS = ["artic", "rigid"]
 @dataclasses.dataclass
 class TonneToPCUInputs:
     """contains the paths for the tonne to PCU process"""
@@ -54,6 +55,7 @@ class TonneToPCUInputs:
     gbfm_distance_matrix_path: pathlib.Path
     port_traffic_proportions_path: pathlib.Path
     pcu_factors_path: pathlib.Path
+        
 
 
 @dataclasses.dataclass
@@ -63,7 +65,7 @@ class ParsedAnalysisInputs:
     LFT inputs path are formatted into a dictionary
     but not parsed as this is handled by the LFT
     """
-    range: float
+    ranges: dict[str, float]
     zone_centroids: gpd.GeoDataFrame
     lft_inputs: Optional[dict[str, pathlib.Path]]=None
     od_matrices:Optional[dict[str, pd.DataFrame]]=None
@@ -74,8 +76,8 @@ class ParsedAnalysisInputs:
 @dataclasses.dataclass
 class AnalysisInputs:
     """analysis inputs for the config file"""
-
-    range: float
+    vehicle_keys: list[str]
+    vehicle_ranges: list[float]
     zone_centroids_path: pathlib.Path
     tonne_to_pcu_inputs: Optional[TonneToPCUInputs] = None
     od_matrices_inputs: Optional[input_output_constants.ODMatrixInputs] = None
@@ -109,6 +111,15 @@ class AnalysisInputs:
                 "\n- tonne_to_pcu_inputs\n- od_matrices_inputs\n- thirsty_points_inputs\n"
                 "the last input (according to the list abvove) will be used for analysis"
             )
+        
+        #format ranges
+
+        if len(self.vehicle_keys) != len(self.vehicle_ranges):
+            raise ValueError("vehicle ranges and keys must be same length")
+        ranges = {}
+
+        for i, range_ in enumerate(self.vehicle_ranges):
+            ranges[self.vehicle_keys[i]] = range_
 
         # parse centroids
         zone_centroids = gpd.read_file(self.zone_centroids_path)
@@ -122,6 +133,9 @@ class AnalysisInputs:
             and self.thirsty_points_inputs is None
         ):
             LOG.info("Proceeding analysis with annual tonnage input")
+            for key in LFT_KEYS:
+                if key.lower() not in [x.lower() for x in self.vehicle_keys]:
+                    raise IndexError(f"When using LFT inputs, the vehicle keys be {' ,'.join(LFT_KEYS)}")
             paths_dict = dict(
                 zip(
                     TONNE_TO_PCU_KEYS,
@@ -141,28 +155,30 @@ class AnalysisInputs:
             return ParsedAnalysisInputs(
                 lft_inputs=paths_dict,
                 zone_centroids=zone_centroids,
-                range=self.range,
+                ranges=ranges,
             )
         elif(self.od_matrices_inputs is not None
             and self.thirsty_points_inputs is None):
             LOG.info("Proceeding analysis with OD matrix input")
             
-            od_matrices = self.od_matrices_inputs.parse()
+            od_matrices = self.od_matrices_inputs.parse(self.vehicle_keys)
 
             return ParsedAnalysisInputs(
                 od_matrices=od_matrices,
                 zone_centroids=zone_centroids,
-                range=self.range,
+                ranges=ranges,
             )
         
         else:
             LOG.info("Proceeding analysis with thirsty points input")
-            thirsty_points = self.thirsty_points_inputs.parse()
+            thirsty_points = self.thirsty_points_inputs.parse(self.vehicle_keys)
+
+
 
             return ParsedAnalysisInputs(
                 thirsty_points=thirsty_points,
                 zone_centroids=zone_centroids,
-                range=self.range,
+                ranges=ranges,
             )
 
 
@@ -183,4 +199,14 @@ class ThristyTruckConfig(caf.toolkit.BaseConfig):
             factor for to m conversion (e.g. 1000 if variables are in km)
         """
         self.operational.hex_bin_width = self.operational.hex_bin_width * to_m_factor
-        self.analysis_inputs.range = self.analysis_inputs.range * to_m_factor
+        for i, range in enumerate(self.analysis_inputs.vehicle_ranges):
+            self.analysis_inputs.vehicle_ranges[i] = range * to_m_factor
+
+def convert_lft_keys(input_vehicle_keys: list[str], lft_vehicle_keys: list[str])->dict[str, str]:
+    new_keys = {}
+    lower_input_vehicle_keys = [x.lower() for x in input_vehicle_keys]
+    for key in lft_vehicle_keys:
+        if key.lower() in lower_input_vehicle_keys:
+            new_keys[key] = (input_vehicle_keys[lower_input_vehicle_keys.index(key.lower())])
+    return new_keys
+            

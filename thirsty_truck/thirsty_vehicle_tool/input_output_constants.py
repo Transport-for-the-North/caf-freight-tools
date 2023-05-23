@@ -132,31 +132,30 @@ class AnalysisInputs:
 @dataclasses.dataclass
 class ODMatrixInputs:
     od_matrices_path: list[pathlib.Path]
-    od_matrix_keys: list[str]
 
-    def parse(self) -> dict[str, pd.DataFrame]:
-        if len(self.od_matrices_path) != len(self.od_matrices_path):
+
+    def parse(self, keys) -> dict[str, pd.DataFrame]:
+        if len(self.od_matrices_path) != len(keys):
             raise ValueError("OD matrix paths and keys must be the same length")
         od_matrices = {}
         for i, path in enumerate(self.od_matrices_path):
             matrix = pd.read_csv(path)
-            od_matrices[self.od_matrix_keys[i]] = check_and_format_demand_matrix(matrix)
+            od_matrices[keys[i]] = check_and_format_demand_matrix(matrix)
         return od_matrices
 
 
 @dataclasses.dataclass
 class ThirstyPointsInputs:
     thirsty_points_paths: list[pathlib.Path]
-    thirsty_points_keys: list[str]
 
-    def parse(self) -> dict[str, gpd.GeoDataFrame]:
-        if len(self.thirsty_points_paths) != len(self.thirsty_points_keys):
+    def parse(self, keys) -> dict[str, gpd.GeoDataFrame]:
+        if len(self.thirsty_points_paths) != len(keys):
             raise ValueError("thirsty point paths and keys must be the same length")
         thirsty_points = {}
         for i, path in enumerate(self.thirsty_points_paths):
             points = pd.read_csv(path)
             check_columns(path, points.columns, THRISTY_POINTS_REQUIRED_COLUMNS)
-            thirsty_points[self.thirsty_points_keys[i]] = gpd.GeoDataFrame(
+            thirsty_points[keys[i]] = gpd.GeoDataFrame(
                 points,
                 geometry=gpd.points_from_xy(
                     points["easting"], points["northing"], crs=CRS
