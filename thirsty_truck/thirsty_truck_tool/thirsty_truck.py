@@ -1,3 +1,8 @@
+"""Thristy truck process
+Takes annual tonnage to a thirsty truck hex map
+imports LFT and thirsty vehicle
+Kieran Fishwick: kieran.fishwick@wsp.com
+"""
 # standard imports
 import argparse
 import sys
@@ -14,8 +19,8 @@ import geopandas as gpd
 if "local_freight_tool" not in sys.path:
     sys.path.append("local_freight_tool")
 
-if "local_freight_tool" not in sys.path:
-    sys.path.append("local_freight_tool")
+if "LFT" not in sys.path:
+    sys.path.append("LFT")
 
 # local imports
 from thirsty_vehicle_tool import (
@@ -45,6 +50,16 @@ def main(args: argparse.Namespace) -> None:
 
 
 def run(log: tv_logging.ThirstyVehicleLog, args: argparse.Namespace) -> None:
+    """handles creating file handeler reading and parsing the config file
+    before passing inputs to processes
+
+    Parameters
+    ----------
+    log : tv_logging.ThirstyVehicleLog
+        Logging class
+    args : argparse.Namespace
+        keyword arguments from tool call
+    """
     config = ioc.ThristyTruckConfig.load_yaml(args.config)
     config.operational.output_folder.mkdir(exist_ok=True)
 
@@ -63,7 +78,20 @@ def thirsty_truck(
     plotting_inputs: input_output_constants.PlottingInputs,
     operational: input_output_constants.Operational,
 ) -> None:
-    #handle LFT input
+    """combines processes to create the thirsty truck process
+
+    combines elements of the the thirsty vehicle tool and LFT
+
+    Parameters
+    ----------
+    analysis_inputs : ioc.ParsedAnalysisInputs
+        parsed analysis inputs from the config file
+    plotting_inputs : input_output_constants.PlottingInputs
+        parsed plotting inputs from the config file
+    operational : input_output_constants.Operational
+        operational inputs from the config file
+    """
+    # handle LFT input
 
     if analysis_inputs.lft_inputs is not None:
         LOG.info("Parsing LFT inputs and converting to annual PCU")
@@ -72,9 +100,11 @@ def thirsty_truck(
         )
         unformatted_od_matrices = trip_conversion_obj.total_trips
         od_matrices = {}
-        key_lookup = ioc.convert_lft_keys(list(analysis_inputs.ranges.keys()), list(unformatted_od_matrices.keys()))
+        key_lookup = ioc.convert_lft_keys(
+            list(analysis_inputs.ranges.keys()), list(unformatted_od_matrices.keys())
+        )
         for key, value in unformatted_od_matrices.items():
-            od_matrices[key_lookup[key]]= value.column_matrix()
+            od_matrices[key_lookup[key]] = value.column_matrix()
 
         LOG.info("Extracted annual trips")
 
@@ -110,9 +140,7 @@ def thirsty_truck(
 
     all_hex_bins = {}
 
-
     for key, value in thirsty_points.items():
-
         LOG.info(f"Creating thirsty {key} hexs")
 
         hex_bins = hex_plotting.hexbin_plot(
@@ -125,7 +153,7 @@ def thirsty_truck(
         )
         all_hex_bins[key] = hex_bins
 
-    LOG.info(f"Creating thirsty truck hex map")
+    LOG.info("Creating thirsty truck hex map")
     hex_plotting.create_hex_bin_html(
         all_hex_bins, plotting_inputs, "Thirsty Truck Hex Map", operational
     )
@@ -135,7 +163,7 @@ def process_matrix(
     key: str,
     matrix: pd.DataFrame,
     zone_centroids: gpd.GeoDataFrame,
-    range: float,
+    range_: float,
     output_folder: pathlib.Path,
 ):
     """wrapper for get_thirsty_points (also returns key)
@@ -146,6 +174,13 @@ def process_matrix(
         dictionary key of matrix
     matrix : pd.DataFrame
         od matrix
+    zone_centroids : gpd.GeoDataFrame
+        centroids of the zone system used in the matrix
+    range_ : float
+        range of vehicles in OD matrix
+    output_folder : pathlib.Path
+        path to folder to save intermediary outputs
+
 
     Returns
     -------
@@ -154,10 +189,10 @@ def process_matrix(
     """
     LOG.info(f"Getting {key} thirsty points")
     thirsty_points = geospatial_analysis.get_thirsty_points(
-        input_output_constants.ParsedAnalysisInputs(matrix, zone_centroids, range),
+        input_output_constants.ParsedAnalysisInputs(matrix, zone_centroids, range_),
         output_folder,
         f"thirsty_{key}_points.csv",
-        key
+        key,
     )
 
     return key, thirsty_points

@@ -31,8 +31,14 @@ def get_thirsty_points(
 
     Parameters
     ----------
-    thirsty_truck_inputs : inputs.ParsedInputs
-        inputs parsed from the config file
+    data_inputs : input_output_constants.ParsedAnalysisInputs
+        data inputs for analysis
+    output_folder : pathlib.Path
+        path to folder to output thirsty points to
+    file_name : str, optional
+        file name of thirsty points file, by default "thirsty_points"
+    logging_tag : str, optional
+        tag to indetify which process the function has been called by, by default ""
 
     Returns
     -------
@@ -88,6 +94,11 @@ def remove_intrazonal_trips(od_trip_matrix: pd.DataFrame) -> pd.DataFrame:
 
     removes entries that have the same origin and destination
 
+    Parameters
+    ----------
+    od_trip_matrix : pd.DataFrame
+        trip matrix
+
     Returns
     -------
     pd.DataFrame
@@ -103,7 +114,7 @@ def remove_intrazonal_trips(od_trip_matrix: pd.DataFrame) -> pd.DataFrame:
 def create_od_lines(
     od_trip_matrix: pd.DataFrame,
     centroids: gpd.GeoDataFrame,
-    range: float,
+    range_: float,
     logging_tag: str,
 ) -> gpd.GeoDataFrame:
     """creates linestring for each OD pair
@@ -117,6 +128,10 @@ def create_od_lines(
         demand matrix for which to create the OD line
     centroids : gpd.GeoDataFrame
         centroids for the corresponding zone system for the OD matrix
+    range_: float
+        range of vehicle (used to filter out trips short than this)
+    logging_tag: str
+        tag to indentify which process has called function
 
     Returns
     -------
@@ -187,7 +202,7 @@ def create_od_lines(
 
     #    filter and calculate some high level stats
 
-    filtered_od_geom_matrix = od_geom_matrix.loc[od_geom_matrix["distance"] > range]
+    filtered_od_geom_matrix = od_geom_matrix.loc[od_geom_matrix["distance"] > range_]
     filtered_od_geom_matrix = filtered_od_geom_matrix.loc[
         filtered_od_geom_matrix["trips"] > 0
     ]
@@ -197,7 +212,12 @@ def create_od_lines(
     filtered_out_od_pairs = len(filtered_out)
     filtered_out_trips = filtered_out["trips"].sum()
     filtered_trips = filtered_od_geom_matrix["trips"].sum()
-    mean_length = weighted_avg(filtered_od_geom_matrix["distance"],filtered_od_geom_matrix["trips"]) / 1000
+    mean_length = (
+        weighted_avg(
+            filtered_od_geom_matrix["distance"], filtered_od_geom_matrix["trips"]
+        )
+        / 1000
+    )
     #   output stats
     LOG.info(
         f"{logging_tag}: {filtered_out_od_pairs:.3e} OD pairs removed which contains "
@@ -248,11 +268,46 @@ def drop_points(line: geometry.LineString, step: float) -> list[geometry.Point]:
     return [line.interpolate(distance) for distance in distances]
 
 
-def od_lines(line_end_points: pd.DataFrame, logging_tag: str) -> geometry.LineString:
+def od_lines(
+    line_end_points: pd.DataFrame, logging_tag: str
+) -> list[geometry.LineString]:
+    """creates linestrings between the end points
+
+    _extended_summary_
+
+    Parameters
+    ----------
+    line_end_points : pd.DataFrame
+        2 x n df containing start and end points of OD lines,
+        must have start point in 1st column and end point in 2nd column
+
+    logging_tag : str
+        logging tag to identify the process that called the function
+
+    Returns
+    -------
+    list[geometry.LineString]
+        list of resultant linestrings
+    """
     lines = []
     for start, end in tqdm(line_end_points.values, desc=f"{logging_tag} OD lines"):
         lines.append(geometry.LineString([start, end]))
     return lines
 
-def weighted_avg(values: pd.Series, weights: pd.Series)->float:
+
+def weighted_avg(values: pd.Series, weights: pd.Series) -> float:
+    """calculates weighted mean
+
+    Parameters
+    ----------
+    values : pd.Series
+        values for mean
+    weights : pd.Series
+        weights for mean
+
+    Returns
+    -------
+    float
+        weighted mean
+    """
     return (values * weights).sum() / weights.sum()
