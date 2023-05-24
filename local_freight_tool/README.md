@@ -1,4 +1,5 @@
 # Introduction
+
 This document is provided as a user guide for installing and running the Local Freight Tool.
 The Local Freight Tool provides a variety of functionality for developing HGV and LGV freight
 demand matrices for model integration.
@@ -13,6 +14,7 @@ The document is split into the following sections:
   expected outputs.
 
 # Tool Location
+
 The source code for the Local Freight tool is available on the [TfN-Freight-Tools](
   https://github.com/Transport-for-the-North/TfN-Freight-Tools) GitHub repository. For just running
 the tool the required version can be selected by using the dropdown menu to select a branch then
@@ -26,6 +28,7 @@ When all the requirements are installed the Local Freight tool can be run follow
 outlined in the [Running section](#running-local-freight-tool).
 
 # Installation
+
 Installation of the Local Freight Tool requires Anaconda (or Miniconda) to be installed, which
 can be downloaded from [Anaconda.org](https://www.anaconda.com/products/individual#Downloads)
 (or [Miniconda's website](https://docs.conda.io/en/latest/miniconda.html)). Once Anaconda has
@@ -33,6 +36,7 @@ been installed it can be used to install the Python requirements (listed in
 [Packages Required](#packages-required) section) for running the tool.
 
 ## Creating conda Environment
+
 A batch file has been supplied with the tool which will automatically install all the
 Python requirements, this is called `install_tool.bat` and is found within the local_freight_tool
 folder. Run `install_tool.bat` by double-clicking on it, if this is unsuccessful the requirements
@@ -44,13 +48,13 @@ can be installed with the following steps:
   if required.
 
 ## Packages required
+
 The Python packages required by the Local Freight Tool are as follows (detailed version
 information can be found in [environment.yml](environment.yml) which is provided with the
 Python files):
 
 - PyQT;
 - Pandas;
-- GeoPandas;
 - Openpyxl;
 - markdown;
 - jinja2;
@@ -58,6 +62,7 @@ Python files):
 - pyyaml.
 
 # Running Local Freight Tool
+
 Another batch file has been created to simplify the steps for running the tool, this file is
 called `run_tool.bat` and can be found with the Python files in the local_freight_tool folder.
 The tool can be launched by double clicking on `run_tool.bat`, if this is unsuccessful then it
@@ -71,289 +76,38 @@ can be launched with the following steps:
 For more information on the command prompt see [Command Prompt cheat sheet](
   http://www.cs.columbia.edu/~sedwards/classes/2017/1102-spring/Command%20Prompt%20Cheatsheet.pdf).*
 
+## CAF Space
+
+Some of the modules within LFT require zone correspondence files as inputs to translate between
+zoning systems. The recommended method for creating these is using TfN's
+[caf.space](https://github.com/Transport-for-the-North/caf.space) Python package. CAF space is
+available on PyPi and can be installed with `pip install caf.space`.
+
+CAF Space provides functionality for generating standard weighting translations in .csv format
+describing how to convert between different zoning systems. The default output format of CAF space
+is the correct format for any zone correspondence files required within LFT
+
 # Tool Functionality
+
 This section outlines the functionality provided in the tool, this functionality is split across
 a number of modules which can be accessed from the main menu. The main menu of the tool is shown
 in the image below, it is split into the following three sections:
 
-<!-- TODO: Update this section once the final modules have been finished -->
-- Pre-Processing: this section contains a variety of modules for getting inputs ready for the
-  conversion processes.
+- Pre-Processing: this section contains functionality for getting time period inputs ready
+  for the HGV conversion processes.
 - Conversion: this sections provides the main modules for producing HGV and LGV demand matrices.
 - Utilities: this section contains a variety of utility functions that can perform many matrix
   calculations, demand forecasting and cost conversion.
 
 ![Local Freight Tool main menu](doc/images/main_menu.PNG "Local Freight Tool main menu")
 
-## 0: Combine Point and Polygon Shapefiles
-This module provides functionality to combine two shapefiles where one contains points
-and the other contains polygons. For example, this allows the GBFM zone system shapefiles to be
-combined into a single file for use in module 1: [Produce Zone Correspondence](#1-produce-zone-correspondence),
-as the GBFM zone system is provided as one polygon shapefile which doesn't contain all the zones
-and a point (centroids) shapefile which contains all zones.
-
-![Combine shapefiles menu](doc/images/combine_shapefiles_menu.png "Combine shapefiles menu")
-
-The menu for this module is shown above and the inputs are listed in the table below, once these
-have been entered the "Run" button is clicked to start the process. The process runs through
-the following steps to produce the outputs (see outputs table below):
-
-1. Find any zones in the points shapefile which aren't in the polygons shapefile, the zone
-  IDs are expected to be given in a column with the name "UniqueID" in both shapefiles. If no zones
-  are present in the points shapefile which aren't already in the polygon shapefile then the
-  process stops here and no output is created.
-2. Create a buffer around all points found to convert these to polygons, the buffer radius can
-  be provided in the interface.
-3. The newly created polygons are combined with all other
-  polygons to produce the output combined shapefile.
-
-The output provided by this process can then be given to module 1 in order to create a
-correspondence between two zone systems. This module has been developed to be flexible so that it
-will work with any pair of polygon and point shapefiles as long as they both contain a "UniqueID"
-column.
-
-Table: Inputs for Combine Centroid and Polygon Shapefiles module
-
-| Input                      |       Type        | Optional | Default | Description                                                                                      |
-| -------------------------- | :---------------: | :------: | :-----: | ------------------------------------------------------------------------------------------------ |
-| Polygon shapefile          |       .shp        |    No    |    -    | The shapefile containing all the polygon zones, **must contain a column named "UniqueID"**.      |
-| Centroid (point) shapefile |       .shp        |    No    |    -    | The shapefile containing the centroids of all zones, **must contain a column named "UniqueID"**. |
-| Output directory           |      Folder       |    No    |    -    | The folder where the output shapefile will be saved.                                             |
-| Buffer radius              | Real (0.01 - 10m) |    No    |  1.00m  | The radius of the circle (in metres) around the centroid point, created for the output file.     |
-
-Table: Outputs from Combine Centroid and Polygon Shapefiles module
-
-| File                                | File Type | Description                                                                                                                                                                                                                                                                              |
-| ----------------------------------- | :-------: | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `{polygon_shapefile_name}-combined` |   .shp    | Polygon shapefile containing all the information from the input polygon shapefile plus circular representations of any zones from the centroids shapefile. This file includes any information available from the centroid shapefile with the same column names as the polygon shapefile. |
-
-## 1: Produce Zone Correspondence
-This module is used to build a zone correspondence lookup between two shapefiles, flexibility of
-this module allows it to create a lookup between any two polygon shapefiles containing zones
-(assuming they follow the correct format). However the primary purpose of this module is to
-produce a lookup between the GBFM and NoHAM zone systems to be used when creating the model demand
-matrices in later modules of the Local Freight Tool.
-
-The inputs for this module are outlined in the table below, some of which are optional depending if
-point handling or rounding are turned on. Once inputs are filled in "Run" can be clicked to start
-the process and a progress window will pop up to alert you at what stage the process is at and
-will provide information on any issues with the inputs that have been found. The outputs for
-the process are defined in the table below and should be checked thoroughly before the lookup
-is used for anything, the `zone_correspondence_log` provides more information on specific areas
-which will need detailed checking.
-
-The zone correspondence process takes the two input shapefiles and performs spatial analysis to
-calculate the overlap percentages between the two zone systems in order to determine the
-correspondence (see [Zone Correspondence Calculations](#zone-correspondence-calculations) for more
-detail). These overlaps will be used as the spatial splitting factors but two additional options
-are provided to produce a more robust correspondence, these are as follows:
-
-- Rounding: this option will use the tolerance value to filter out any slithers (see
-  [Zone Correspondence Calculations](#zone-correspondence-calculations) for more details) and will
-  round all remaining splitting factors to make sure that each zone from the first zone system has
-  splitting factors with the second zone system which sum to exactly 1. This method will stop any
-  demand being lost when using the lookup to convert from the first to the second zone system
-  (**recommend having this turned on**).
-- Point handling: this option will use the LSOA data and shapefile to determine the splitting
-  factors for point zones in the second zone system, instead of just using the spatial factors
-  (see [Zone Correspondence Calculations](#zone-correspondence-calculations) for more details).
-  Point zones are defined as small zones which are expected to have more demand than there size
-  would suggest, e.g. ports or distribution centres, these can be given to the tool as a list of
-  zone IDs (**recommended method**) or can be calculated by the tool based on the point tolerance.
-
-![Zone correspondence menu](doc/images/zone_correspondence_menu.png "Zone correspondence menu")
-
-Table: Zone correspondence inputs
-
-| Input                              |      Type      | Condition                            | Optional | Default | Description                                                                                                                                                                                                             |
-| ---------------------------------- | :------------: | ------------------------------------ | :------: | :-----: | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Zone 1 name                        |     String     | -                                    |   Yes    |  gbfm   | Name of zoning system to be converted from.                                                                                                                                                                             |
-| Zone 2 name                        |     String     | -                                    |   Yes    |  noham  | Name of zoning system to convert to.                                                                                                                                                                                    |
-| First zone system                  |      .shp      | -                                    |    No    |    -    | Zoning system shapefile to be converted from, zone ID column should be called "UniqueID".                                                                                                                               |
-| Second zone system                 |      .shp      | -                                    |    No    |    -    | Zoning system shapefile to convert to, zone ID column should be called "unique_id".                                                                                                                                     |
-| Output directory                   |   Directory    | -                                    |    No    |    -    | Directory where output files will be saved.                                                                                                                                                                             |
-| Rounding                           |    Checkbox    | -                                    |   Yes    |   On    | Turns on rounding option (**recommend having this turned on**), see above for more details on this option.                                                                                                              |
-| Tolerance                          |      Real      | Point handling or rounding turned on |    No    |  98.0%  | Tolerance used to filter out small overlaps between zones, changing this value will affect how much overlap is needed for zones to be kept in the correspondence (98% is recommended for GBFM to NoHAM correspondence). |
-| Point handling                     |    Checkbox    | -                                    |   Yes    |   On    | Turns on point handling option, see above for more details on this option.                                                                                                                                              |
-| Point tolerance                    |    Integer     | Point handling turned on             |    No    |   95%   | Tolerance used to find point zones in second zone system when no point zone list is specified.                                                                                                                          |
-| Second zone system point zone list | .csv or String | Point handling turned on             |   Yes    |    -    | List of point zones in the second zoning system (e.g. NoHAM). Must be a csv with "zone_id" column name. If unspecified, then the point tolerance is used to find the point zones.                                       |
-| LSOA data                          |      .csv      | Point handling turned on             |    No    |    -    | CSV containing LSOA data (such as employment) to perform non-spatial point zone handling. The file must have the LSOA zone IDs in the "lsoa11cd" column and the relevant data in the "var" column.                      |
-| LSOA shapefile                     |      .csv      | Point handling turned on             |    No    |    -    | LSOA shapefile, with zone IDs in "LSOA11CD" column.                                                                                                                                                                     |
-
-Table: Zone correspondence outputs
-
-| File                                                 | File Type             | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
-| ---------------------------------------------------- | --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `{zone_1}_to_{zone_2}` `_spatial_correspondence.csv` | Comma-separate values | Spatial correspondence with no rounding or point handling, includes adjustment factors for converting from zone system 1 to zone system 2 and vice versa. **This file is provided for checking only, use zone correspondence output (below) for any rezoning.** Contains the following 4 columns:<br>- `{zone_1}_zone_id`: zone ID for first zone system<br>- `{zone_2}_zone_id`: zone ID for corresponding zone in second zone system<br>- `{zone_1}_to_{zone_2}`: spatial splitting factor to go from zone system 1 to 2<br>- `{zone_2}_to_{zone_1}`: spatial splitting factor to go from zone system 2 to 1 |
-| `{zone_1}_to_{zone_2}` `_zone_correspondence.csv`    | Comma-separate values | Zone correspondence with all rounding and point handling options applied (if selected), in the correct format for use in the other modules of the tool. Contains the following 3 columns:<br>- `{zone_1}_zone_id`: zone ID for the first zone system<br>- `{zone_2}_zone_id`: zone ID for the corresponding zone in the second zone system<br>- `{zone_1}_to_{zone_2}`: splitting factor to go from zone system 1 to 2                                                                                                                                                                                         |
-| `zone_correspondence_log.xlsx`                       | Excel Workbook        | Spreadsheet containing results from the checks performed by the tool, **this file should be checked thoroughly before using the zone correspondence output**. Contains the following 4 worksheets:<br>- `Parameters`: list of input parameters and their selected values<br>- `{zone_1}_missing`: list of zone system 1 zones missing from zone correspondence<br>- `{zone_2}_missing`: list of zone system 2 zones missing from zone correspondence<br>- `point_handling`: if point handling was on, this lists all the zones affected by point zone handling                                                 |
-
-### Zone Correspondence Calculations
-This section provides the technical calculations performed by the zone correspondence process to
-produce the lookup between the two zone systems.
-
-<!-- Note: GitHub doesn't render markdown equations -->
-
-#### Spatial Correspondence
-The spatial correspondence adjustment factors are defined as:
-
-$$
-F_{spatial}(Z_{1i} \rightarrow Z_{2j}) = \frac{A(Z_{1i} \cap Z_{2j})}{A(Z_{1i})}
-$$
-
-where:
-
-- $Z_{1i}$ is zone i in the first zone system (usually GBFM);
-- $Z_{2j}$ is zone j in the second zone system (usually model);
-- $A(Z_{1i} \cap Z_{2j})$ is the area of the intersection between the two zones; and
-- $A(Z_{1i})$ is the area of zone i in the first zone system.
-
-The GeoPandas overlay function is used to calculate the intersecting area of the zones; see
-[GeoPandas documentation](https://geopandas.org/set_operations.html) for more details. If neither
-rounding nor point handling are selected then the spatial correspondence is the final correspondence.
-
-#### Point Handling (optional)
-Point handling affects the point zones in the second zone system and any other zones in that system
-which share a correspondence with the same zone for the first zone system. A list of point zones
-can be provided to the tool (recommended) but if not given then the tool will define them as any
-zones which satisfy both of the following:
-
-$$
-F_{spatial}(Z_{1i} \rightarrow Z_{2j}) < 1 - T_{pt}
-$$
-
-$$
-F_{spatial}(Z_{2j} \rightarrow Z_{1i}) > T_{pt}
-$$
-
-where $T_{pt}$ is the point tolerance. This method might miss some point zones, or include some
-non-point zones, so it is recommended to **check the point handling sheet of the output log
-spreadsheet.**
-
-Point handling has been designed to use LSOA data for calculating the adjustment factor, with the
-$F_{non-spatial}$ formulae below, to ensure a more appropriate proportion of the demand is given
-to the point zones when converting to the second zone system. However the flexibility of the tool
-permits any data which satisfies the conditions outlined in the inputs table to be used for the
-non-spatial calculations. For point zone $Z_{2pt}$ and $\{Z_{2j}\}$, the set of zones which overlap
-with the same zone $Z_{1k}$ from the first zone system, the non-spatial adjustment factors for the
-point zones are given by:
-
-$$
-F_{non-spatial}(Z_{1k} \rightarrow Z_{2pt})
-  = \left( F_{spatial}(Z_{1k} \rightarrow Z_{2pt}) + \sum_{j} F_{spatial}(Z_{1k} \rightarrow Z_{2j}) \right)
-    \cdot \frac{V(L_{pt})}{\sum_n V(L_{n})}
-$$
-
-$$
-F_{non-spatial}(Z_{1k} \rightarrow Z_{2pt})
-  = \left( \frac{A(Z_{1k} \cap Z_{2pt})}{A(Z_{1k})} + \sum_{j} \frac{A(Z_{1k} \cap Z_{2j})}{A(Z_{1k})} \right)
-    \cdot \frac{V(L_{pt})}{\sum_n V(L_{n})}
-$$
-
-The non-spatial adjustment factors for the non-point zones, which interact with the same zone in the
-first zone system, are given by:
-
-$$
-F_{non-spatial}(Z_{1k} \rightarrow Z_{2m})
-  = \left( F_{spatial}(Z_{1k} \rightarrow Z_{2pt}) + \sum_{j} F_{spatial}(Z_{1k} \rightarrow Z_{2j}) \right)
-    \cdot \frac{\sum_l V(L_{l})}{\sum_n V(L_{n})}
-$$
-
-$$
-F_{non-spatial}(Z_{1k} \rightarrow Z_{2m})
-  = \left( \frac{A(Z_{1k} \cap Z_{2pt})}{A(Z_{1k})} + \sum_{j} \frac{A(Z_{1k} \cap Z_{2j})}{A(Z_{1k})} \right)
-    \cdot \frac{\sum_l V(L_{l})}{\sum_n V(L_{n})}
-$$
-
-where:
-
-- $Z_{2m} \in \{Z_{2j}\}$;
-- $L_{pt}$ is the LSOA which contains $Z_{2pt}$;
-- $V(L_{pt})$ is the LSOA data (in var column of the inputted employment CSV) for $L_{pt}$;
-- $\{L_n\}$ is the set of LSOAs which overlap with $Z_{1k}$; and
-- $\{L_l\}$ is the set of LSOAs which overlap with $Z_{2m}$, excluding $L_{pt}$.
-
-##### Point Handling Example
-![Point handling example](doc/images/point_handling_example.png "Point handling example")
-
-In the above example:
-
-$$
-A(GBFM_1 \cap NoHAM_{pt}) + A(GBFM_1 \cap NoHAM_1) = A(GBFM_1)
-$$
-
-so:
-
-$$
-F_{non-spatial}(GBFM_1 \rightarrow NoHAM_{pt}) = \frac{V(LSOA_4)}{\sum_{n=1}^6 V(LSOA_n)}
-$$
-
-$$
-F_{non-spatial}(GBFM_1 \rightarrow NoHAM_1) = \frac{\sum_{l=1,l \ne 4}^6 V(LSOA_l)}{\sum_{n=1}^6 V(LSOA_n)}
-$$
-
-#### Rounding (optional)
-When rounding or point handling is turned on, small overlaps (slithers) these are defined as
-satisfying both of the following:
-
-$$
-F_{spatial}(Z_{1i} \rightarrow Z_{2j}) < 1 - T
-$$
-
-$$
-F_{spatial}(Z_{2j} \rightarrow Z_{1i}) < 1 - T
-$$
-
-where $T$ is tolerance. If the above conditions are both satisfied then the row that features zone
-i from the first zone system and zone j from the second is removed from the zone correspondence. If
-rounding is off but point handling is on then these rows are removed for the point handling aspect
-of the calculations then reinserted.
-
-If only the first condition above is satisfied then the row is only removed if both zones in the
-pairing are present elsewhere in the correspondence output. The reason both conditions are used is
-because zones which have a large difference in size, between the two zone systems, could have a very
-small overlap in one direction even if they are completely within the other zone, see example below.
-
-![Example of zone pairing with small overlap in one direction](doc/images/rounding_slither_example.png "Example of zone pairing with small overlap in one direction")
-
-When rounding is on, the tool will also check that the first zone system to second zone system
-adjustment factors sum to 1 for all zones in the first zone system.
-
-- If a zone in the first zone system maps to a single zone in the second (after removing slithers)
-  the adjustment factor is set to 1.
-- If a zone in the first zone system ($Z_{1i}$) maps to multiple zones in the second ($\{Z_{2j}\}$),
-  and the sum of the adjustment factors is not 1, then it is adjusted according to:
-
-$$
-F_{adjusted}(Z_{1i} \rightarrow Z_{2k}) = F(Z_{1i} \rightarrow Z_{2k}) +
-  \frac{1-\sum_{j=0}^n F(Z_{1i} \rightarrow Z_{2j})}{n}
-$$
-
-- where:
-  - $Z_{2k} \in \{Z_{2j}\}$;
-  - $n$ is the number of zones in $\{Z_{2j}\}$; and
-  - $F(Z_{1i} \rightarrow Z_{2k})$ is the adjustment factor calculated prior to rounding, either
-    spatially or non-spatially.
-
-#### Missing Zones
-At the end of the process the zone IDs present in the zone correspondence lookup are compared to
-those in the input shapefiles and any missing zones are added to the log file. Missing zones are
-due to no overlap being found between zones in the two zone systems. The missing zones sheet of
-the zone correspondence log spreadsheet should be checked to find out where this has occurred and
-these should be fixed by manually updating the input or outputs.
-
-- The input zone system shapefiles could be updated to move the missing zones into a more sensible
-  location where they overlap with the other zone system; or
-- The output lookup could be manually updated to add in the correspondence for any missing zones
-  based on the user's understanding of the two zone systems.
-
-## 2: Time Profile Builder
+## Time Profile Builder
 
 This module is used to produce the time profile selection to be used as an input in the
-[Annual PCU to Model Time Period PCU](#4-annual-pcu-to-model-time-period-pcu) conversion. It enables
-the user to set up to seven different time profiles, including the name of the profile, days to use,
-the time period start and end hours, and the months. The months selected are used for all time
-profiles. The profile builder menu is shown below.
+[HGV Annual PCU to Model Time Period PCU](#hgv-annual-pcu-to-model-time-period-pcu) conversion. It
+enables the user to set up to seven different time profiles, including the name of the profile,
+days to use, the time period start and end hours, and the months. The months selected are used for
+all time profiles. The profile builder menu is shown below.
 
 ![Profile Builder GUI](doc/images/profile_builder_menu.PNG "Profile Builder GUI")
 
@@ -372,10 +126,10 @@ Table: Time Profile Builder output
 |                   |      | hr_end   | End hour of time profile                                           |
 |                   |      | months   | Months for all time profiles (this column is the same in all rows) |
 
-## 3: HGV Annual Tonne to Annual PCU Conversion
+## HGV Annual Tonne to Annual PCU Conversion
 
-The HGV Annual Tonne to Annual PCU Conversion module enables the split and conversion of GBFM HGV annual tonnage
-matrices into rigid and articulated annual PCU matrices. The interface is shown below.
+The HGV Annual Tonne to Annual PCU Conversion module enables the split and conversion of GBFM HGV
+annual tonnage matrices into rigid and articulated annual PCU matrices. The interface is shown below.
 
 ![Annual Tonne to Annual PCU GUI](doc/images/tonne_to_pcu_menu.PNG "Annual Tonne to Annual PCU GUI")
 
@@ -409,11 +163,11 @@ Table: Outputs for HGV annual tonne to annual PCU conversion module
 | rigid_total_annual_pcus | CSV  | Annual rigid PCUs csv with columns "origin", "destination" and "trips"                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
 | Tonne_to_pcu_log        | XLSX | Log of the process, containing a list of inputs provided, processes completed, errors if they occurred, and a summary of matrix statistics. Contains the following sheets:<br>- `process`: indicates which processes completed and any errors that occurred;<br>- `inputs`: a list of all the input files<br>- `matrix_summaries`: summaries of the four input HGV matrices, the rigid and articulated total annual trip matrices, and the rigid and articulated total annual PCU matrices<br>- `distance_bands`: the distance bands used<br>- `port_traffic`: the port traffic factors used<br>- `pcu_factors`: the PCU factors used |
 
+## HGV Annual PCU to Model Time Period PCU
 
-## 4: HGV Annual PCU to Model Time Period PCU
-This module converts the articulated and rigid matrices (created by module 3: [HGV Annual Tonne to
-Annual PCU Conversion](#3-hgv-annual-tonne-to-annual-pcu-conversion) from annual PCUs to model time
-period PCUs, based on the time periods defined by module 2: [Time Profile Builder](#2-time-profile-builder).
+This module converts the articulated and rigid matrices (created by [HGV Annual Tonne to
+Annual PCU Conversion](#hgv-annual-tonne-to-annual-pcu-conversion) from annual PCUs to model time
+period PCUs, based on the time periods defined by [Time Profile Builder](#time-profile-builder).
 
 ![Annual PCU to Model Time Period PCU Menu](doc/images/annual_to_time_period_menu.png "Annual PCU to Model Time Period PCU Menu")
 
@@ -452,7 +206,7 @@ Table: Outputs from the HGV annual PCU to model time period PCU module
 | `{time period}_intermediate/{time period}_HGV_rigid-{rezoned zone system name}`  |      CSV       | Time period PCUs matrix for rigid HGVs **after** rezoning to new zone system, contains origin, destination and trips columns.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
 | `{time period}_HGV_combined-{rezoned zone system name}`                          |      CSV       | Time period PCUs matrix for **both vehicle types** (articulated + rigid) **after** rezoning to the new zone system, contains origin, destination and trips columns.                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
 
-## 5: LGV Model
+## LGV Model
 
 This module contains the functionality for running the LGV model which includes calculating trip
 ends, using a gravity model to generate annual trip matrices and converting the annual matrices to
@@ -479,7 +233,7 @@ configuration file is shown below.
 ***Note:** help text for running the tool through the command line can be seen with `python -m
 LFT.lgv_model -h`.*
 
-```
+```plaintext
 [LGV File Paths]
 households data = \path\to\households data.csv
 households zone correspondence = \path\to\households zone correspondence.csv
@@ -521,8 +275,7 @@ Table: Required columns for the UK household projections data
 
 In addition to the households data the model also requires a zone correspondence file which provides
 the lookup between the MSOA and the model zones, the correspondence file requires three columns which
-are summarised in the table below. The zone correspondence file can be created using module
-[1: Produce Zone Correspondence](#1-produce-zone-correspondence).
+are summarised in the table below. The zone correspondence file can be created using CAF.Space.
 
 Table: Required columns for the UK household zone correspondence, column names are ignored the
 columns just need to be in the correct order.
@@ -577,7 +330,7 @@ listed will be ignored.
 In addition to the BRES data the model also requires a zone correspondence file which provides
 the lookup between the LSOA/data zones and the model zones, the correspondence file requires three
 columns which are summarised in the table below. The zone correspondence file can be created using
-module [1: Produce Zone Correspondence](#1-produce-zone-correspondence).
+[CAF Space](#caf-space).
 
 Table: Required columns for the BRES zone correspondence, column names are ignored the
 columns just need to be in the correct order.
@@ -637,7 +390,7 @@ column names and descriptions provided in the data specification report.
 In addition to the VOA data the model also requires a zone correspondence file which provides
 the lookup between the postcodes and the model zones, the correspondence file requires three
 columns which are summarised in the table below. The zone correspondence file can be created using
-module [1: Produce Zone Correspondence](#1-produce-zone-correspondence).
+[CAF space](#caf-space).
 
 Table: Required columns for the VOA zone correspondence, column names are ignored the columns just
 need to be in the correct order.
@@ -1187,7 +940,8 @@ period factor provided for each of the given time periods. The time period facto
 provided separately to respect the different time profiles for each of the model segments, the
 factors are provided in the [LGV Parameters Spreadsheet](#lgv-parameters-spreadsheet).
 
-## 6: Matrix Utilities
+## Matrix Utilities
+
 The matrix utilities module provides functionality for a variety of different operations which can
 be applied to an O-D matrix CSV file. This functionality has been developed to be extremely
 flexible and as such any number of operations can be turned off or on and the inputs can be any CSV
@@ -1255,7 +1009,7 @@ Table: Outputs from matrix utilities module
 | {input matrix}           | LPX            | Output if "Convert to UFM" is selected.                                                     | SATURN MX log file of the conversion from CSV to UFM.                                                                                                                                                                                                                                                                                                                                                                            |
 | {input matrix}_VDU       | VDU            | Output if "Convert to UFM" is selected.                                                     | SATURN MX VDU file of the conversion from CSV to UFM.                                                                                                                                                                                                                                                                                                                                                                            |
 
-## 7: Delta Process
+## Delta Process
 
 The Delta Process module provides the functionality for performing forecasting to calculate future
 year model demand. The calculations implemented within this module follow the delta approach to
@@ -1298,9 +1052,9 @@ Table: Outputs from the Delta Process module
 | `forecast_log`                        | Excel Workbook | Lists all the inputs provided, summarises the outputs and provides a log of the process, contains the following sheets:<br>- `inputs`: list of all the input parameters;<br>- `matrix_summaries`: provides summary statistics for the input and output matrices; and<br>- `process`: logs any errors that occur during the process. |
 | `model_forecast_demand_[growth_mode]` |      CSV       | O-D matrix for the assignment model forecast year demand, contains the following columns:<br>- `origin`: origin zone number;<br>- `destination`: destination zone number; and<br>- `trips`: forecasted trips for the OD pair.                                                                                                       |
 
-## 8: Cost Conversion
+## Cost Conversion
 
-This module uses a the zone correspondence produced with module 1: [Produce Zone Correspondence](#1-produce-zone-correspondence)
+This module uses a the zone correspondence produced with [CAF Space](#caf-space)
 to perform a demand-weighted conversion of costs in O-D format to the new zoning system. The
 interface is shown below.
 
