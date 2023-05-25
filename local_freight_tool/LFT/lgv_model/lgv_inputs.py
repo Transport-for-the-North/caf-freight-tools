@@ -146,7 +146,7 @@ class LGVInputPaths(caf.toolkit.BaseConfig):
     cost_matrix_path: types.FilePath
     """Path to CSV containing cost matrix, should be square matrix with
     zone numbers as column names and indices."""
-    calibration_matrix_path: types.FilePath
+    calibration_matrix_path: Optional[types.FilePath] = None
     """Path to CSV containing calibration matrix, should be square matrix
     with zone numbers as column names and indices."""
     trip_distributions_path: types.FilePath

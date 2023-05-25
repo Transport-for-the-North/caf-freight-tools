@@ -52,57 +52,6 @@ PA_MATRICES = [
 
 
 ##### CLASSES #####
-class LGVInputsUI:
-    """Handles reading UI inputs for the LGV Model.
-
-    Parameters
-    ----------
-    Dict[str, Path]
-        Dictionary containing all the parameters (keys)
-        and their values, contains the following keys:
-        hh_data, hh_zc, bres_data, bres_zc, voa_data,
-        voa_zc, parameters_path, trip_distributions_path,
-        qs606ew_path, qs606sc_path, sc_w_dwellings_path,
-        e_dwellings_path, ndr_floorspace_path, lsoa_lookup_path,
-        msoa_lookup_path, lad_lookup_path, model_study_area,
-        cost_matrix_path, calibration_matrix_path and output_folder.
-    """
-
-    input_paths: LGVInputPaths = None
-    """Paths to all the input files required for the LGV model."""
-
-    def __init__(self, parameters: dict):
-        """Initialises the class by creating LGVInputsPaths instance
-        from parameters dictionary."""
-        paths = {}
-        paths["household_paths"] = DataPaths(
-            "LGV Households",
-            parameters["hh_data"],
-            parameters["hh_zc"],
-        )
-        paths["bres_paths"] = DataPaths(
-            "LGV BRES",
-            parameters["bres_data"],
-            parameters["bres_zc"],
-        )
-        paths["warehouse_paths"] = DataPaths(
-            "LGV VOA",
-            parameters["warehouse_data"],
-            parameters["warehouse_zc"],
-        )
-        # All parameters in ignore are handled separately
-        ignore = ("hh_data", "hh_zc", "bres_data", "bres_zc", "warehouse_data", "warehouse_zc")
-        optional = ("calibration_matrix_path",)
-        for key in parameters:
-            if key in ignore:
-                continue
-            if key in optional:
-                paths[key] = parameters[key]
-            else:
-                paths[key] = parameters[key]
-        self.input_paths = LGVInputPaths(**paths)
-
-
 @dataclass
 class LGVTripEnds:
     """Dataclass to store the trip end data for all segments.
@@ -547,6 +496,8 @@ def main(input_paths: LGVInputPaths, message_hook: Callable = print):
         input_paths.output_folder / f"LGV Model Outputs - {datetime.now():%Y-%m-%d %H.%M.%S}"
     )
     output_folder.mkdir(exist_ok=True, parents=True)
+
+    input_paths.save_yaml(output_folder / "LGV_model_config.yml")
 
     message_hook("Calculating trip ends")
     trip_ends = calculate_trip_ends(
