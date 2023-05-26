@@ -6,11 +6,12 @@
 ##### IMPORTS #####
 # Standard imports
 from pathlib import Path
-from typing import Callable
 
 # Third party imports
 import pandas as pd
 import numpy as np
+import pydantic
+from pydantic import fields
 
 # Local imports
 from . import lgv_inputs
@@ -45,13 +46,31 @@ def zone_list(value: str) -> list[int]:
         raise TypeError(f"`value` should be string not {type(value)}")
     try:
         return [int(i) for i in value.split(",") if i.strip() != ""]
-    except ValueError as e:
+    except ValueError as error:
         raise ValueError(
             f"{value!r} cannot be converted to list of zones (integers)"
-        ) from e
+        ) from error
 
 
 ##### CLASSES #####
+class DeliveryParameters(pydantic.BaseModel):
+    """Parameters for delivery segment to read from input spreadsheet."""
+
+    trips_parcel_stem: float = fields.Field(
+        alias="Annual Trip Productions - Parcel Stem", ge=0, title="Test"
+    )
+    trips_parcel_bush: float = fields.Field(alias="Annual Trips - Parcel Bush", ge=0)
+    trips_grocery: float = fields.Field(alias="Annual Trips - Grocery Bush", ge=0)
+    b2c: float = fields.Field(alias="B2C vs B2B Weighting", ge=0, le=1)
+    depots_infill: list[int] = fields.Field(
+        alias="Depots Infill Zones", default_factory=list, unique_items=True
+    )
+
+    @pydantic.validator("depots_infill", pre=True)
+    def _split_str(cls, value: str) -> list:  # pylint: disable=no-self-argument
+        return value.split(",")
+
+
 class DeliveryTripEnds:
     """Functionality for generating the LGV delivery segment trip ends.
 
@@ -67,7 +86,7 @@ class DeliveryTripEnds:
           BRES data to the model zone system.
     household_paths : DataPaths
         - Path to the CSV containing the household projections data.
-        - Path to the zone correpondence file to convert household
+        - Path to the zone correspondence file to convert household
           data to the model zone system.
     parameters_path : Path
         Path to Excel Workbook containing sheet with the delivery
@@ -79,14 +98,6 @@ class DeliveryTripEnds:
     BRES_AGGREGATION = {"Employees": list(lgv_inputs.letters_range(end="U"))}
     PARAMETERS_SHEET = "Delivery Segment Parameters"
     PARAMETERS_HEADER = {"Parameter": str, "Value": str}
-    PARAMETERS: dict[str, tuple[str, Callable]] = {
-        "trips_parcel_stem": ("Annual Trip Productions - Parcel Stem", float),
-        "trips_parcel_bush": ("Annual Trips - Parcel Bush", float),
-        "trips_grocery": ("Annual Trips - Grocery Bush", float),
-        "b2c": ("B2C vs B2B Weighting", float),
-        "voa_fill_func": ("VOA Infill Function", str),
-        "depots_infill": ("Depots Infill Zones", zone_list),
-    }
 
     def __init__(
         self,
@@ -100,13 +111,12 @@ class DeliveryTripEnds:
         self._check_paths(warehouse_paths, bres_paths, household_paths, parameters_path)
         try:
             self._year = int(year)
-        except ValueError as e:
-            raise ValueError(f"year should be an integer not '{type(year)}'") from e
+        except ValueError as error:
+            raise ValueError(f"year should be an integer not '{type(year)}'") from error
         yr_range = (2000, 2100)
         if self._year < min(yr_range) or self._year > max(yr_range):
             raise ValueError(
-                f"`year` should be between {min(yr_range)} "
-                f"and {max(yr_range)} not {year}"
+                f"`year` should be between {min(yr_range)} " f"and {max(yr_range)} not {year}"
             )
         # Initialise instance variables
         self.depots = None
@@ -128,13 +138,13 @@ class DeliveryTripEnds:
     ):
         """Checks the input files exist and are the expected type."""
         extensions = (".csv", ".txt")
-        for nm, paths in (
+        for name, paths in (
             ("Warehouse", warehouse_paths),
             ("Households", household_paths),
             ("BRES", bres_paths),
         ):
-            utilities.check_file_path(paths.path, f"{nm} data", *extensions)
-            utilities.check_file_path(paths.zc_path, f"{nm} lookup", *extensions)
+            utilities.check_file_path(paths.path, f"{name} data", *extensions)
+            utilities.check_file_path(paths.zc_path, f"{name} lookup", *extensions)
 
         self._warehouse_paths = warehouse_paths
         self._household_paths = household_paths
@@ -149,19 +159,59 @@ class DeliveryTripEnds:
         return pd.DataFrame.from_dict(
             {
                 "Warehouse Data Path": str(self._warehouse_paths.path),
-                "Warehouse Zone Correpondence Path": str(self._warehouse_paths.zc_path),
+                "Warehouse Zone Correspondence Path": str(self._warehouse_paths.zc_path),
                 "BRES Data Path": str(self._bres_paths.path),
-                "BRES Zone Correpondence Path": str(self._bres_paths.zc_path),
+                "BRES Zone Correspondence Path": str(self._bres_paths.zc_path),
                 "Household Data Path": str(self._household_paths.path),
-                "Household Zone Correspondence Path": str(
-                    self._household_paths.zc_path
-                ),
+                "Household Zone Correspondence Path": str(self._household_paths.zc_path),
                 "Delivery Parameters Path": str(self._parameters_path),
                 "Model Year": self._year,
             },
             orient="index",
             columns=["Value"],
         )
+
+    def _infill_depots(self, depots: pd.DataFrame) -> pd.DataFrame:
+        depots.columns = ["Depots"]
+
+        if self.parameters.depots_infill is None:
+            return depots
+
+        missing = [i for i in self.parameters.depots_infill if i not in self.households.index]
+        if missing:
+            raise errors.MissingDataError("Households for zones", missing)
+
+        already_zones = []
+        update_zones = []
+        for zone in self.parameters.depots_infill:
+            if zone not in self.depots.index or self.depots.at[zone, "Depots"] == 0:
+                update_zones.append(zone)
+            else:
+                already_zones.append(zone)
+
+        if already_zones:
+            # TODO(MB) Add logging to LFT
+            print(
+                f"{len(already_zones)} zones already have "
+                "non-zero values so won't be infilled"
+            )
+
+        if len(update_zones) == 0:
+            return depots
+
+        # Calculate floorspace of depots per household
+        depots_per_hh: float = np.sum(
+            self.depots.loc[~self.depots.index.isin(update_zones)].values
+        ) / np.sum(self.households.loc[~self.households.index.isin(update_zones)].values)
+
+        new_depots: pd.DataFrame = self.households.loc[
+            self.households.index.isin(update_zones)
+        ].copy()
+        new_depots = new_depots * depots_per_hh
+
+        new_depots.columns = depots.columns
+        depots = pd.concat([depots, new_depots])
+        return depots
 
     def read(self):
         """Read the input data and perform any necessary conversions.
@@ -178,12 +228,13 @@ class DeliveryTripEnds:
         self.depots = lgv_inputs.load_warehouse_floorspace(
             self._warehouse_paths.path, self._warehouse_paths.zc_path
         )
-        self.depots.columns = ["Depots"]
 
         self.households = lgv_inputs.household_projections(
             self._household_paths.path, self._household_paths.zc_path
         )
         self.households.set_index("Zone", inplace=True)
+
+        self.depots = self._infill_depots(self.depots)
 
         self.bres = lgv_inputs.filtered_bres(
             self._bres_paths.path, self._bres_paths.zc_path, self.BRES_AGGREGATION
@@ -191,8 +242,8 @@ class DeliveryTripEnds:
         self.bres.set_index("Zone", inplace=True)
 
     @classmethod
-    def read_parameters(cls, path: Path) -> dict[str, float]:
-        """Extract expected `PARAMETERS` from the given spreadsheet.
+    def read_parameters(cls, path: Path) -> DeliveryParameters:
+        """Extract expected parameters from the given spreadsheet.
 
         Parameters
         ----------
@@ -202,47 +253,29 @@ class DeliveryTripEnds:
 
         Returns
         -------
-        dict[str, float]
-            Contains keys from `PARAMETERS` list with their
-            corresponding value from the input file.
+        DeliveryParameters
+            Delivery parameters with their corresponding values.
 
         Raises
         ------
         errors.MissingDataError
-            If any of `PARAMETERS` cannot be found in the input
-            worksheet.
+            If any parameters are missing from the spreadsheet.
 
         See Also
         --------
-        PARAMETERS: Lists all required parameter names and types
-            (values) and internal names (keys).
         PARAMETERS_SHEET: Expected name of the sheet in the workbook.
         PARAMETERS_HEADER: Expected column names and types in the sheet.
         """
-        df = utilities.read_multi_sheets(
-            path, {cls.PARAMETERS_SHEET: cls.PARAMETERS_HEADER}
-        )[cls.PARAMETERS_SHEET]
-        df["Parameter"] = df["Parameter"].str.lower().str.strip()
-        df.set_index("Parameter", inplace=True)
-        params = {}
-        missing = []
-        for nm, (p, type_func) in cls.PARAMETERS.items():
-            try:
-                # All values for type_func are callable
-                # pylint: disable=not-callable
-                params[nm] = type_func(df.at[p.lower().strip(), "Value"])
-            except KeyError:
-                missing.append(p)
-            except ValueError as e:
-                raise errors.IncorrectParameterError(
-                    df.at[p.lower().strip(), "Value"],
-                    parameter=p,
-                    # All values for type_func have __name__
-                    expected=type_func.__name__,  # pylint: disable=no-member
-                ) from e
-        if missing:
-            raise errors.MissingDataError("Delivery Parameters", missing)
-        return params
+        df = utilities.read_multi_sheets(path, {cls.PARAMETERS_SHEET: cls.PARAMETERS_HEADER})[
+            cls.PARAMETERS_SHEET
+        ]
+        header = list(cls.PARAMETERS_HEADER)
+        params: pd.Series = df.set_index(header[0])[header[1]]
+
+        try:
+            return DeliveryParameters.parse_obj(params.to_dict())
+        except pydantic.ValidationError as error:
+            raise errors.MissingDataError("Delivery Parameters", str(error)) from error
 
     @property
     def trip_proportions(self) -> pd.DataFrame:
@@ -271,8 +304,8 @@ class DeliveryTripEnds:
         """
         if self._parcel_proportions is None:
             # Use the business-to-customer weighting when adding the proportions
-            customer = self.trip_proportions["Households"] * self.parameters["b2c"]
-            business = self.trip_proportions["Employees"] * (1 - self.parameters["b2c"])
+            customer = self.trip_proportions["Households"] * self.parameters.b2c
+            business = self.trip_proportions["Employees"] * (1 - self.parameters.b2c)
             total = customer + business
             # Normalise the total
             self._parcel_proportions = total / total.sum()
@@ -294,14 +327,14 @@ class DeliveryTripEnds:
         if self._parcel_stem_trip_ends is None:
             self._check_parameters()
             trip_ends = []
-            for nm, data in (
+            for name, data in (
                 ("Attractions", self.parcel_proportions),
                 ("Productions", self.trip_proportions["Depots"]),
             ):
-                trip_ends.append(self.parameters["trips_parcel_stem"] * data)
+                trip_ends.append(self.parameters.trips_parcel_stem * data)
                 if isinstance(trip_ends[-1], pd.DataFrame):
                     trip_ends[-1] = trip_ends[-1].squeeze()
-                trip_ends[-1].name = nm
+                trip_ends[-1].name = name
             self._parcel_stem_trip_ends = pd.concat(trip_ends, axis=1)
             self._parcel_stem_trip_ends.fillna(0, inplace=True)
         return self._parcel_stem_trip_ends.copy()
@@ -313,7 +346,7 @@ class DeliveryTripEnds:
         """
         if self._parcel_bush_trip_ends is None:
             self._check_parameters()
-            trips = self.parameters["trips_parcel_bush"] * self.parcel_proportions
+            trips = self.parameters.trips_parcel_bush * self.parcel_proportions
             self._parcel_bush_trip_ends = pd.DataFrame(
                 {"Origins": trips, "Destinations": trips}
             )
@@ -326,9 +359,7 @@ class DeliveryTripEnds:
         """
         if self._grocery_bush_trip_ends is None:
             self._check_parameters()
-            trips = (
-                self.parameters["trips_grocery"] * self.trip_proportions["Households"]
-            )
+            trips = self.parameters.trips_grocery * self.trip_proportions["Households"]
             if isinstance(trips, pd.DataFrame):
                 trips = trips.squeeze()
             self._grocery_bush_trip_ends = pd.DataFrame(
