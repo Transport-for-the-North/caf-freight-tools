@@ -7,13 +7,15 @@
 ##### IMPORTS #####
 # Standard imports
 from __future__ import annotations
+import enum
 import re
 import string
 from pathlib import Path
-from typing import Any, Optional, Union
+from typing import Any, Callable, Optional, Union
 
 # Third party imports
 import caf.toolkit
+import numpy as np
 import pandas as pd
 from pydantic import types, dataclasses
 
@@ -178,6 +180,35 @@ class LGVInputPaths(caf.toolkit.BaseConfig):
 
         example = cls.construct(**data)
         example.save_yaml(path)
+
+
+InfillFunction = Callable[[np.ndarray], float]
+
+
+class InfillMethod(enum.Enum):
+    """Options for filling in NaN values in warehouse data."""
+
+    MIN = "minimum"
+    MEAN = "mean"
+    MEDIAN = "median"
+    NON_ZERO_MIN = "non-zero minimum"
+    ZERO = "zero"
+
+    @classmethod
+    @property
+    def method_lookup(cls) -> dict[InfillMethod, InfillFunction]:
+        """Lookup for the infill functions."""
+        return {
+            cls.MIN: np.nanmin,
+            cls.MEAN: np.nanmean,
+            cls.MEDIAN: np.nanmedian,
+            cls.NON_ZERO_MIN: lambda a: np.amin(a, where=a > 0, initial=np.inf),
+            cls.ZERO: lambda _: 0
+        }
+
+    def method(self) -> InfillFunction:
+        """Function to calculate infilling value."""
+        return self.method_lookup[self]
 
 
 ##### FUNCTIONS #####
@@ -348,7 +379,7 @@ def letters_range(start: str = "A", end: str = "Z") -> str:
         yield l
 
 
-def load_warehouse_floorspace(path: Path, zone_lookup: Path) -> pd.DataFrame:
+def load_warehouse_floorspace(path: Path, zone_lookup: Path, infill_method: InfillMethod | None = None) -> pd.DataFrame:
     """Load warehouse floorspace data and convert to model zone system.
 
     Parameters
@@ -376,7 +407,7 @@ def load_warehouse_floorspace(path: Path, zone_lookup: Path) -> pd.DataFrame:
     rezoned.rename(columns={lsoa_column: "Zone"}, inplace=True)
     grouped = rezoned.groupby("Zone").sum()
 
-    grouped = grouped.reindex(lookup["new"].unique(), fill_value=0)
+    grouped = grouped.reindex(lookup["new"].unique())
     return grouped
 
 

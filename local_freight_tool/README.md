@@ -716,7 +716,7 @@ other columns are ignored.
 |    zone     |     Integer      | The model zone number                                   |
 |  internal   | Integer (1 or 0) | If the zone is inside (1) or outside (0) the study area |
 
-**Note:** Any zones not given will be assumed to be outside the study area.
+**Note:** This should be a complete list of all zones.
 
 #### Cost Matrix
 

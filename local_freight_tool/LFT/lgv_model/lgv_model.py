@@ -271,12 +271,16 @@ def calculate_trip_ends(
         "LGV BRES Data", input_paths.bres_path, input_paths.lsoa_lookup_path
     )
 
+    model_zones: pd.Series = pd.read_csv(input_paths.model_study_area, usecols=["zone"])["zone"]
+    model_zones.name = "Zone"
+
     message_hook("Calculating Service trip ends")
     service = ServiceTripEnds(
         input_paths.household_paths,
         bres_paths,
         input_paths.parameters_path,
         lgv_growth,
+        model_zones,
     )
     service.read()
     service.trip_ends.to_csv(output_folder / "service_trip_ends.csv")
@@ -291,6 +295,7 @@ def calculate_trip_ends(
         input_paths.household_paths,
         input_paths.parameters_path,
         year,
+        model_zones,
     )
     delivery.read()
     delivery.parcel_stem_trip_ends.to_csv(output_folder / "delivery_parcel_stem_trip_ends.csv")
@@ -299,7 +304,7 @@ def calculate_trip_ends(
 
     # Calculate commuting trip ends and save output
     message_hook("Calculating Commuting trip ends")
-    commute = CommuteTripEnds(input_paths)
+    commute = CommuteTripEnds(input_paths, model_zones)
     commute_trips = commute.trips
     for key in commute_trips:
         commute_trips[key].to_csv(output_folder / Path(f"commute_{key}_trip_ends.csv"))

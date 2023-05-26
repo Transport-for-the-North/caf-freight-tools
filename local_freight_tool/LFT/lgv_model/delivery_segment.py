@@ -93,6 +93,8 @@ class DeliveryTripEnds:
         segment parameters.
     year : int
         Model year, should be between 2000 and 2100.
+    model_zones : pd.Series
+        Full list of model zones.
     """
 
     BRES_AGGREGATION = {"Employees": list(lgv_inputs.letters_range(end="U"))}
@@ -106,6 +108,7 @@ class DeliveryTripEnds:
         household_paths: data_utils.DataPaths,
         parameters_path: Path,
         year: int,
+        model_zones: pd.Series,
     ):
         """Initialise class by checking inputs files exist and are expected type."""
         self._check_paths(warehouse_paths, bres_paths, household_paths, parameters_path)
@@ -123,6 +126,7 @@ class DeliveryTripEnds:
         self.bres = None
         self.households = None
         self.parameters = None
+        self.model_zones = model_zones
         self._trip_proportions = None
         self._parcel_proportions = None
         self._parcel_stem_trip_ends = None
@@ -172,6 +176,7 @@ class DeliveryTripEnds:
         )
 
     def _infill_depots(self, depots: pd.DataFrame) -> pd.DataFrame:
+        depots = depots.copy()
         depots.columns = ["Depots"]
 
         if self.parameters.depots_infill is None:
@@ -184,7 +189,7 @@ class DeliveryTripEnds:
         already_zones = []
         update_zones = []
         for zone in self.parameters.depots_infill:
-            if zone not in self.depots.index or self.depots.at[zone, "Depots"] == 0:
+            if zone not in depots.index or np.isnan(depots.at[zone, "Depots"]):
                 update_zones.append(zone)
             else:
                 already_zones.append(zone)
@@ -192,17 +197,18 @@ class DeliveryTripEnds:
         if already_zones:
             # TODO(MB) Add logging to LFT
             print(
-                f"{len(already_zones)} zones already have "
-                "non-zero values so won't be infilled"
+                f"{len(already_zones)} zones already have non-zero "
+                "values in warehouse data so won't be infilled"
             )
 
+        print(f"warehouse data for {len(update_zones)} zones will be infilled")
         if len(update_zones) == 0:
             return depots
 
         # Calculate floorspace of depots per household
-        depots_per_hh: float = np.sum(
-            self.depots.loc[~self.depots.index.isin(update_zones)].values
-        ) / np.sum(self.households.loc[~self.households.index.isin(update_zones)].values)
+        depots_per_hh: float = np.nansum(
+            depots.loc[~depots.index.isin(update_zones)].values
+        ) / np.nansum(self.households.loc[~self.households.index.isin(update_zones)].values)
 
         new_depots: pd.DataFrame = self.households.loc[
             self.households.index.isin(update_zones)
@@ -210,8 +216,8 @@ class DeliveryTripEnds:
         new_depots = new_depots * depots_per_hh
 
         new_depots.columns = depots.columns
-        depots = pd.concat([depots, new_depots])
-        return depots
+        depots = pd.concat([depots.drop(new_depots.index, errors="ignore"), new_depots])
+        return depots.fillna(0)
 
     def read(self):
         """Read the input data and perform any necessary conversions.
@@ -337,6 +343,11 @@ class DeliveryTripEnds:
                 trip_ends[-1].name = name
             self._parcel_stem_trip_ends = pd.concat(trip_ends, axis=1)
             self._parcel_stem_trip_ends.fillna(0, inplace=True)
+
+            self._parcel_stem_trip_ends = self._parcel_stem_trip_ends.reindex(
+                index=pd.Index(self.model_zones), fill_value=0
+            )
+
         return self._parcel_stem_trip_ends.copy()
 
     @property
@@ -350,6 +361,11 @@ class DeliveryTripEnds:
             self._parcel_bush_trip_ends = pd.DataFrame(
                 {"Origins": trips, "Destinations": trips}
             )
+
+            self._parcel_bush_trip_ends = self._parcel_bush_trip_ends.reindex(
+                index=pd.Index(self.model_zones), fill_value=0
+            )
+
         return self._parcel_bush_trip_ends.copy()
 
     @property
@@ -365,4 +381,9 @@ class DeliveryTripEnds:
             self._grocery_bush_trip_ends = pd.DataFrame(
                 {"Origins": trips, "Destinations": trips}
             )
+
+            self._grocery_bush_trip_ends = self._grocery_bush_trip_ends.reindex(
+                index=pd.Index(self.model_zones), fill_value=0
+            )
+
         return self._grocery_bush_trip_ends.copy()

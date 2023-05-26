@@ -7,19 +7,37 @@
 # Standard imports
 from itertools import chain
 import re
+from typing import Optional
 
 # Third party imports
-import pandas as pd
 import numpy as np
+import pandas as pd
+import pydantic
+from pydantic import fields
 
 # Local imports
 from .. import utilities, errors
 from ..rezone import Rezone
 from . import lgv_inputs
-from .delivery_segment import zone_list
 
 
 ##### CLASSES #####
+class WarehouseParameters(pydantic.BaseModel):
+    """Parameters for warehouse data used in commute segment."""
+
+    medium: Optional[float] = fields.Field(alias="Weighting - Medium")
+    high: Optional[float] = fields.Field(alias="Weighting - High")
+    low: Optional[float] = fields.Field(alias="Weighting - Low")
+    zone_infill: list[int] = fields.Field(alias="Model Zone Infill", default_factory=list)
+    infill_method: Optional[lgv_inputs.InfillMethod] = fields.Field(
+        None, alias="Zone Infill Method"
+    )
+
+    @pydantic.validator("zone_infill", pre=True)
+    def _split_str(cls, value: str) -> list:  # pylint: disable=no-self-argument
+        return value.split(",")
+
+
 class CommuteTripEnds:
     """Functionality for generating the LGV commuting segment trip productions
     and attractions.
@@ -28,6 +46,8 @@ class CommuteTripEnds:
     ----------
     inputs : LGVInputPaths
         Dataclass storing paths to all the input files for the LGV model.
+    model_zones : pd.Series
+        Full list of model zones.
 
     See Also
     --------
@@ -38,7 +58,7 @@ class CommuteTripEnds:
         "Parameters": {"Parameter": str, "Value": float},
         "Commute trips by main usage": {"Main usage": str, "Trips": float},
         "Commute trips by land use": {"Land use at trip end": str, "Trips": float},
-        "Commute Warehouse weightings": {"Input": str, "Weight": float},
+        "Commute Warehouse Parameters": {"Parameter": str, "Value": str},
         "Delivery Segment Parameters": {"Parameter": str, "Value": str},
     }
 
@@ -83,13 +103,14 @@ class CommuteTripEnds:
     HH_PROJECTIONS_HEADER = {"Area Description": str, "HHs": float, "Jobs": float}
     HH_RENAME = {"Area Description": "zone", "HHs": "households", "Jobs": "jobs"}
 
-    def __init__(self, input_paths: lgv_inputs.LGVInputPaths):
+    def __init__(self, input_paths: lgv_inputs.LGVInputPaths, model_zones: pd.Series):
         """Initialise class by checking all input paths are in input dict and
         all input files exist"""
         self.paths = input_paths
+        self.model_zones = model_zones
 
         self.params = {}
-        self.warehouse_weightings: dict[str, float] = None
+        self.warehouse_parameters: WarehouseParameters | None = None
         self.zone_lookups = {}
         self.commute_trips_main_usage = {}
         self.commute_trips_land_use = {}
@@ -120,30 +141,19 @@ class CommuteTripEnds:
 
     def _read_commute_tables(self):
         """Read in commuting tables input XLSX."""
-        # read in XLSX
         commute_tables = utilities.read_multi_sheets(
             self.paths.parameters_path, sheets=self.COMMUTING_INPUTS_SHEET_HEADERS
         )
 
-        # write the input parameters to a dictionary
         self.params = utilities.to_dict(
             commute_tables["Parameters"], "Parameter", ("Value", float)
         )
         self.params["Model Year"] = int(self.params["Model Year"])
 
-        # Find list of Scottish zones to infill for VOA data
-        infill_zone_row = commute_tables["Delivery Segment Parameters"].loc[
-            commute_tables["Delivery Segment Parameters"]["Parameter"]
-            == "Depots Infill Zones",
-            "Value",
-        ]
-        infill_zone_str = infill_zone_row[infill_zone_row.index[0]]
-        self.infill_zones = zone_list(infill_zone_str)
-
-        # assign VOA weightings
-        warehouse_weightings = commute_tables["Commute Warehouse weightings"]
-        warehouse_weightings.set_index("Input", inplace=True)
-        self.warehouse_weightings = warehouse_weightings["Weight"].to_dict()
+        sheet = "Commute Warehouse Parameters"
+        headers = list(self.COMMUTING_INPUTS_SHEET_HEADERS[sheet])
+        warehouse_params: pd.Series = commute_tables[sheet].set_index(headers[0])[headers[1]]
+        self.warehouse_parameters = WarehouseParameters.parse_obj(warehouse_params.to_dict())
 
         # write the commute trips by main usage to a dictionary
         commute_trips_main_usage = utilities.to_dict(
@@ -534,29 +544,53 @@ class CommuteTripEnds:
             DataFrame of trip attractions with zones as indices and a "trips"
             column.
         """
-        if self.warehouse_weightings is None:
+        if self.warehouse_parameters is None:
             self._read_commute_tables()
 
         data_paths = [
-            ("medium", self.paths.commute_warehouse_paths.medium),
-            ("low", self.paths.commute_warehouse_paths.low),
-            ("high", self.paths.commute_warehouse_paths.high),
+            (
+                "medium",
+                self.paths.commute_warehouse_paths.medium,
+                self.warehouse_parameters.medium,
+            ),
+            ("low", self.paths.commute_warehouse_paths.low, self.warehouse_parameters.low),
+            ("high", self.paths.commute_warehouse_paths.high, self.warehouse_parameters.high),
         ]
         factored_data = []
 
-        for weight, path in data_paths:
-            if path is None and weight == "medium":
+        for name, path, weight in data_paths:
+            if path is None and name == "medium":
                 raise errors.MissingInputsError("commute warehouse path (medium)")
             if path is None:
                 continue
-            if weight not in self.warehouse_weightings:
-                raise errors.MissingInputsError(f"commute warehouse {weight} weighting factor")
+            if weight is None:
+                raise errors.MissingInputsError(f"commute warehouse {name} weighting factor")
 
             data = lgv_inputs.load_warehouse_floorspace(path, self.paths.lsoa_lookup_path)
-            data = data.fillna(0) * self.warehouse_weightings[weight]
+            data = data * weight
             factored_data.append(data)
 
-        warehouse_floorspace = pd.concat(factored_data, axis=1).sum(axis=1)
+        warehouse_floorspace = pd.concat(factored_data, axis=1)
+
+        # Sum will fill Nans with 0 but we need to keep Nan in rows which are all Nan for infilling
+        all_nans: pd.Series = warehouse_floorspace.isna().all(axis=1)
+        warehouse_floorspace: pd.Series = warehouse_floorspace.sum(axis=1, skipna=True)
+        warehouse_floorspace.loc[all_nans] = np.nan
+
+        if self.warehouse_parameters.zone_infill and all_nans.sum() > 0:
+            if self.warehouse_parameters.infill_method is None:
+                raise ValueError(
+                    f"{len(self.warehouse_parameters.zone_infill)} zones provided for infilling but no infill method is given"
+                )
+
+            infill_function = self.warehouse_parameters.infill_method.method()
+            infill_value = infill_function(warehouse_floorspace.dropna().values)
+
+        else:
+            infill_value = 0
+
+        warehouse_floorspace = warehouse_floorspace.fillna(infill_value)
+
         trips = (
             warehouse_floorspace / warehouse_floorspace.sum()
         ) * self.commute_trips_land_use["Employment"]
@@ -605,6 +639,10 @@ class CommuteTripEnds:
                 axis=1,
             )
             self.trip_ends[soc].columns = ["Productions", "Attractions"]
+
+            self.trip_ends[soc] = self.trip_ends[soc].reindex(
+                index=pd.Index(self.model_zones), fill_value=0
+            )
 
     @property
     def productions(self) -> pd.DataFrame:
