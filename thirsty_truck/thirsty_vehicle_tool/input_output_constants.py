@@ -7,7 +7,6 @@ from __future__ import annotations
 import pathlib
 import dataclasses
 from typing import NamedTuple, Optional
-import logging
 import glob
 import os
 
@@ -46,6 +45,14 @@ DEMAND_MATRIX_REQUIRED_COLUMNS = ["origin", "destination", "trips"]
 JUNCTION_REQUIRED_COLUMNS = ["number", "geometry"]
 MAP_LABELS_REQUIRED_COLUMNS = ["name", "geometry"]
 THRISTY_POINTS_REQUIRED_COLUMNS = ["easting", "northing", "trips"]
+PLOTTING_POINTS_REQUIRED_KEYS = [
+    "label",
+    "data_path",
+    "hover_column_name",
+    "colour",
+    "size",
+    "shape",
+]
 
 #   plotting visual const
 # UPDATING COLOUR MAP WILL NOT UPDATE BOKEH COLOURBAR!!!!
@@ -64,16 +71,15 @@ JUNCTION_SHAPE = "circle"
 OUTLINE_COLOUR = "deepskyblue"
 OUTLINE_WIDTH = 0.3
 
-SERVICES_SIZE = 7
-SERVICES_COLOUR = "blue"
-SERVICES_SHAPE = "diamond"
+DEFAULT_SIZE = 7
+DEFAULT_COLOURS = "blue"
+DEFAULT_SHAPES = "diamond"
 
 LABEL_SHAPE = "triangle"
 LABEL_TEXT_COLOUR = "white"
 LABEL_SHAPE_COLOUR = "white"
 LABEL_TEXT_SIZE = "8px"
 LABEL_SHAPE_SIZE = 5
-
 
 @dataclasses.dataclass
 class AnalysisInputs:
@@ -128,13 +134,29 @@ class AnalysisInputs:
             range=range_,
         )
 
-
 @dataclasses.dataclass
 class ODMatrixInputs:
+    "the input class for OD matrices"
     od_matrices_path: list[pathlib.Path]
 
+    def parse(self, keys: list[str]) -> dict[str, pd.DataFrame]:
+        """ parses OD matrices
 
-    def parse(self, keys) -> dict[str, pd.DataFrame]:
+        Parameters
+        ----------
+        keys : list[str]
+            keys that define the vehicle types of the inputted OD matrices
+
+        Returns
+        -------
+        dict[str, pd.DataFrame]
+            parsed OD matrices
+
+        Raises
+        ------
+        ValueError
+            if number of vehicle keys does not match the number of matrices
+        """
         if len(self.od_matrices_path) != len(keys):
             raise ValueError("OD matrix paths and keys must be the same length")
         od_matrices = {}
@@ -146,9 +168,27 @@ class ODMatrixInputs:
 
 @dataclasses.dataclass
 class ThirstyPointsInputs:
+    "input class for thirsty points"
     thirsty_points_paths: list[pathlib.Path]
 
-    def parse(self, keys) -> dict[str, gpd.GeoDataFrame]:
+    def parse(self, keys: list[str]) -> dict[str, gpd.GeoDataFrame]:
+        """parses thirsty points
+
+        Parameters
+        ----------
+        keys : list[str]
+            keys that define the vehicle types of the inputted thirsty points
+
+        Returns
+        -------
+        dict[str, pd.DataFrame]
+            parsed OD matrices
+
+        Raises
+        ------
+        ValueError
+            if number of vehicle keys does not match the number of thirsty points
+        """
         if len(self.thirsty_points_paths) != len(keys):
             raise ValueError("thirsty point paths and keys must be the same length")
         thirsty_points = {}
@@ -177,8 +217,8 @@ class PlottingInputs:
     network_path: pathlib.Path
     motorway_junction_path: pathlib.Path
     outlines_path: pathlib.Path
-    service_stations_path: pathlib.Path
     map_labels_path: pathlib.Path
+    plotting_points: list[dict[str, str]]
 
     def parse_plotting_inputs(self, operational: Operational) -> ParsedPlottingInputs:
         """Parses Plotting inputs
@@ -229,22 +269,26 @@ class PlottingInputs:
         # some remove any multilinestringgs
         outlines = outlines.explode()
 
-        services_stations = read_shape_file(
-            self.service_stations_path,
-            required_columns=SERVICES_REQUIRED_COLUMNS,
-        )
-
         map_labels = read_shape_file(
             self.map_labels_path,
             required_columns=MAP_LABELS_REQUIRED_COLUMNS,
         )
 
+        # parse plotting points
+        parsed_plotting_points = []
+        for row in self.plotting_points:
+            check_columns("plotting points", row.keys(), PLOTTING_POINTS_REQUIRED_KEYS)
+            row["points"] = read_shape_file(
+                row["data_path"], [row["hover_column_name"], "geometry"]
+            )
+            parsed_plotting_points.append(row)
+
         return ParsedPlottingInputs(
             roads=roads,
             junctions=junctions,
             outlines=outlines,
-            service_stations=services_stations,
             map_labels=map_labels,
+            plotting_points=parsed_plotting_points,
         )
 
 
@@ -262,8 +306,8 @@ class ParsedPlottingInputs(NamedTuple):
     roads: gpd.GeoDataFrame
     junctions: gpd.GeoDataFrame
     outlines: gpd.GeoDataFrame
-    service_stations: gpd.GeoDataFrame
     map_labels: gpd.GeoDataFrame
+    plotting_points: list[dict]
 
 
 class ParsedAnalysisInputs(NamedTuple):
@@ -727,7 +771,7 @@ class HexTilling:
             centres_x=centres_x,
             centres_y=centres_y,
             count=count,
-            relative_count = relative_count, 
+            relative_count=relative_count,
             rgb=rgb,
             vertices_x=vertices_x,
             vertices_y=vertices_y,

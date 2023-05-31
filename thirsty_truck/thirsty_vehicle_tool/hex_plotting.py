@@ -5,6 +5,7 @@ Creates hexbin plot with road network overlayed
 from __future__ import annotations
 import pathlib
 from typing import Optional
+
 # third party imports
 
 import matplotlib.pyplot as plt
@@ -31,23 +32,30 @@ def hexbin_plot(
 ) -> input_output_constants.HexTilling:
     """Create hexbin plot and saves as a PNG
 
-    create hex bin plot using matplotlib.pyplot hexbin,
+    create hexbin plot using matplotlib.pyplot hexbin,
     overlays a road network onto plot
     shows plot if user selected show_plots=True
     saves plot as .png
+
     Parameters
     ----------
     points : gpd.GeoDataFrame
-        points to hexbin
-    road_network : gpd.GeoDataFrame
-        road network to overlay
-    vehicle_range : float
-        vehicle range defined in config file
+        points to create hexbin plot
+    plotting_inputs : input_output_constants.ParsedPlottingInputs
+        plotting inputs parsed from the config file
     title : str
-        title of plot
-    operational : input_outputs.Operational
-        operational inputs
+        title of the plot
+    operational : input_output_constants.Operational
+        operational inputs from the config file
+    max_colour_bar_scale : Optional[float], optional
+        maximum colour bar value, if left blank it is automatically scaled, by default None
+
+    Returns
+    -------
+    input_output_constants.HexTilling
+        hextilling calulated for plot
     """
+
     LOG.info(f"Producing {title}")
     fig, ax = plt.subplots(figsize=(10, 8))
     ax.set_title(title)
@@ -85,7 +93,7 @@ def hexbin_plot(
             extent=(x_min, x_max, y_min, y_max),
             reduce_C_function=np.sum,
             vmin=0,
-            vmax = max_colour_bar_scale,
+            vmax=max_colour_bar_scale,
         )
     # create output
     hex_binning_params = input_output_constants.HexTilling.from_polycollection(
@@ -123,25 +131,27 @@ def hexbin_plot(
 
 
 def create_hex_bin_html(
-    hex_bin: input_output_constants.HexTilling | dict[str, input_output_constants.HexTilling],
+    hex_bin: input_output_constants.HexTilling
+    | dict[str, input_output_constants.HexTilling],
     plotting_inputs: input_output_constants.ParsedPlottingInputs,
     title: str,
     operational: input_output_constants.Operational,
 ) -> None:
     """create a bokeh html file thirsty vehicle map
 
-    has hex system, road network and motorway junction with hover functionality
+    has hex system, road network and motorway junction and service station
+     with hover functionality
 
     Parameters
     ----------
-    hex_bin : input_output_constants.HexTilling
-        hexbinning system to plot
+    hex_bin : input_output_constants.HexTilling | dict[str, input_output_constants.HexTilling]
+        hextilling(s) for plot, if dict is used keys will be used for legend labels 
     plotting_inputs : input_output_constants.ParsedPlottingInputs
-        plotting inputs containing road network and junctions
+        plotting inputs - parsed from config
     title : str
         title of plot
     operational : input_output_constants.Operational
-        operational inputs
+        operational inputs from config
     """
     # get data sources
     #   road network
@@ -174,25 +184,27 @@ def create_hex_bin_html(
 
     #   hex data
     if isinstance(hex_bin, input_output_constants.HexTilling):
-        hex_source = {"Hexs":plotting.ColumnDataSource(
-            {
-                "x": hex_bin.vertices_x,
-                "y": hex_bin.vertices_y,
-                "c": hex_bin.rgb,
-                "count": hex_bin.relative_count.round(),
-            }
-        )}
+        hex_source = {
+            "Hexs": plotting.ColumnDataSource(
+                {
+                    "x": hex_bin.vertices_x,
+                    "y": hex_bin.vertices_y,
+                    "c": hex_bin.rgb,
+                    "count": hex_bin.relative_count.round(),
+                }
+            )
+        }
     else:
         hex_source = {}
         for key, value in hex_bin.items():
-            hex_source[f"{key} Hexs"] = plotting.ColumnDataSource(
-            {
-                "x": value.vertices_x,
-                "y": value.vertices_y,
-                "c": value.rgb,
-                "count": value.relative_count.round(),
-            }
-        )
+            hex_source[f"{key.capitalize()} Hexs"] = plotting.ColumnDataSource(
+                {
+                    "x": value.vertices_x,
+                    "y": value.vertices_y,
+                    "c": value.rgb,
+                    "count": value.relative_count.round(),
+                }
+            )
     #   junction source
 
     junction_source = get_points_glyph_source(
@@ -203,15 +215,19 @@ def create_hex_bin_html(
     )
     junction_source.data["number"] = plotting_inputs.junctions["number"]
 
-    #   services source
-    services_source = get_points_glyph_source(
-        plotting_inputs.service_stations,
-        input_output_constants.SERVICES_SHAPE,
-        input_output_constants.SERVICES_SIZE,
-        input_output_constants.SERVICES_COLOUR,
-    )
-    services_source.data["name"] = plotting_inputs.service_stations["name"]
 
+    # plotting points source
+    points_source = {}
+    for points in plotting_inputs.plotting_points:
+        temp_points_source = get_points_glyph_source(
+        points["points"],
+        points["shape"],
+        points["size"],
+        points["colour"],
+    )
+
+        temp_points_source.data["name"] = points["points"][points["hover_column_name"]]
+        points_source[points["label"]] = temp_points_source
     #   labels source
     labels_source = get_points_glyph_source(
         plotting_inputs.map_labels,
@@ -267,7 +283,9 @@ def create_hex_bin_html(
         outlines_source,
         line_glyph,
     )
-    legend_items.append(models.LegendItem(label="outlines", renderers=[outlines_renederer]))
+    legend_items.append(
+        models.LegendItem(label="outlines", renderers=[outlines_renederer])
+    )
 
     # plot roads
 
@@ -278,7 +296,9 @@ def create_hex_bin_html(
     )
     plot.add_tools(road_hover)
     legend_items.append(models.LegendItem(label="A Roads", renderers=[a_road_renderer]))
-    legend_items.append(models.LegendItem(label="Motorways", renderers=[motorway_renderer]))
+    legend_items.append(
+        models.LegendItem(label="Motorways", renderers=[motorway_renderer])
+    )
     # plot junctions
 
     junctions_renderer = plot.add_glyph(junction_source, scatter_glyph)
@@ -286,17 +306,23 @@ def create_hex_bin_html(
         renderers=[junctions_renderer], tooltips=[("Junction", "@number")]
     )
     plot.add_tools(junction_hover)
-    legend_items.append(models.LegendItem(label="Junctions", renderers=[junctions_renderer]))
-
-    # plot services
-
-    services_renderer = plot.add_glyph(services_source, scatter_glyph)
-    services_hover = models.HoverTool(
-        renderers=[services_renderer], tooltips=[("Services Station", "@name")]
+    legend_items.append(
+        models.LegendItem(label="Junctions", renderers=[junctions_renderer])
     )
-    plot.add_tools(services_hover)
 
-    legend_items.append(models.LegendItem(label="Services", renderers=[services_renderer]))
+    #plot points
+    if len(points_source) != 0:
+        for key, value in points_source.items():
+            points_renderer = plot.add_glyph(value, scatter_glyph)
+            points_hover = models.HoverTool(
+                renderers=[points_renderer], tooltips=[(key, "@name")]
+            )
+            plot.add_tools(points_hover)
+
+            legend_items.append(
+                models.LegendItem(label=key, renderers=[points_renderer])
+            )
+
 
     # plot labels
 
@@ -309,13 +335,12 @@ def create_hex_bin_html(
         x_offset=0,
         y_offset=5,
         source=labels_source,
-        text_font_size = input_output_constants.LABEL_TEXT_SIZE,
-        text_color = input_output_constants.LABEL_TEXT_COLOUR ,
+        text_font_size=input_output_constants.LABEL_TEXT_SIZE,
+        text_color=input_output_constants.LABEL_TEXT_COLOUR,
     )
     plot.add_layout(labels_renderer)
 
     # legend
-
 
     plot.add_layout(models.Legend(items=legend_items))
 
@@ -436,7 +461,7 @@ def get_points_glyph_source(
     -------
     plotting.ColumnDataSource
         points data source
-    """    
+    """
     points["colour"] = point_colour
     points["size"] = size
     points["shape"] = shape
