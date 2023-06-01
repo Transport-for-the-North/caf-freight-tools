@@ -44,7 +44,7 @@ COMBINED_KEY = "Combined"
 
 LFT_KEYS = ["artic", "rigid"]
 
-DISAGG_KEY_SEP = ":--:"
+DISAGG_KEY_SEP = "--"
 @dataclasses.dataclass
 class TonneToPCUInputs:
     """contains the paths for the tonne to PCU process"""
@@ -81,7 +81,7 @@ class AnalysisInputs:
     """analysis inputs for the config file"""
 
     vehicle_keys: list[str]
-    vehicle_ranges: list[float]
+    vehicle_ranges: dict[str, dict[str,float]]
     zone_centroids_path: pathlib.Path
     laden_status_factors_path: pathlib.Path
     tonne_to_pcu_inputs: Optional[TonneToPCUInputs] = None
@@ -136,8 +136,14 @@ class AnalysisInputs:
             raise ValueError("vehicle ranges and keys must be same length")
         ranges = {}
 
-        for i, range_ in enumerate(self.vehicle_ranges):
-            ranges[vehicle_keys[i]] = range_
+        for vehicle_key, input_ranges in self.vehicle_ranges.items():
+            for status_key, range_ in input_ranges.items():
+                if vehicle_key.lower() not in vehicle_keys:
+                    raise KeyError("range vehicle key not present in inputted vehicle keys")
+                if status_key.lower() not in laden_status_factors.index:
+                    raise KeyError("range status key not present in inputted laden status factors index")
+                ranges[vehicle_key.lower()+DISAGG_KEY_SEP+status_key.lower()] = range_
+        #TODO check for missing values
 
         # parse centroids
         zone_centroids = gpd.read_file(self.zone_centroids_path)
@@ -172,7 +178,7 @@ class AnalysisInputs:
                     ],
                 )
             )
-            return ParsedAnalysisInputs(
+            output = ParsedAnalysisInputs(
                 laden_status_factors=laden_status_factors,
                 lft_inputs=paths_dict,
                 zone_centroids=zone_centroids,
@@ -181,9 +187,9 @@ class AnalysisInputs:
         elif self.od_matrices_inputs is not None and self.thirsty_points_inputs is None:
             LOG.info("Proceeding analysis with OD matrix input")
 
-            od_matrices = self.od_matrices_inputs.parse(self.vehicle_keys)
+            od_matrices = self.od_matrices_inputs.parse(vehicle_keys)
 
-            return ParsedAnalysisInputs(
+            output = ParsedAnalysisInputs(
                 laden_status_factors=laden_status_factors,
                 od_matrices=od_matrices,
                 zone_centroids=zone_centroids,
@@ -192,14 +198,51 @@ class AnalysisInputs:
 
         else:
             LOG.info("Proceeding analysis with thirsty points input")
-            thirsty_points = self.thirsty_points_inputs.parse(self.vehicle_keys)
+            thirsty_points = self.thirsty_points_inputs.parse(vehicle_keys)
 
-            return ParsedAnalysisInputs(
+            output = ParsedAnalysisInputs(
                 thirsty_points=thirsty_points,
                 laden_status_factors=laden_status_factors,
                 zone_centroids=zone_centroids,
                 ranges=ranges,
             )
+
+        self.create_output_summary()
+        return output
+    
+
+    def create_output_summary(self)->None:
+        range_output = "Range Inputs\n"
+        for vehicle_key, ranges in self.vehicle_ranges.items():
+            range_output += f"    {vehicle_key}:\n"
+            for status_key, range_ in ranges.items():
+                range_output += f"        {status_key} = {range_:.3e} metres\n"
+        LOG.info(range_output)
+        LOG.info(f"Centroids Input - {self.zone_centroids_path}\n")
+        LOG.info(f"Laden Status Factors Input - {self.laden_status_factors_path}\n")
+
+        if self.thirsty_points_inputs is not None:
+            thirsty_points_output = "Thirsty Points Inputs\n"
+            for i, path in enumerate(self.thirsty_points_inputs.thirsty_points_paths):
+                thirsty_points_output += f"    {self.vehicle_keys[i]} - {path}\n"
+            LOG.info(thirsty_points_output)
+        elif self.od_matrices_inputs is not None:
+            od_matrices_output = "OD Matrices Inputs\n"
+            for i, path in enumerate(self.od_matrices_inputs.od_matrices_path):
+                od_matrices_output += f"    {self.vehicle_keys[i]} - {path}\n"
+            LOG.info(od_matrices_output)
+        else:
+            tonne_to_pcu_output = "Tonne to PCU Inputs\n"
+            tonne_to_pcu_output += f"   domestic_bulk_port_path - {self.tonne_to_pcu_inputs.domestic_bulk_port_path}\n"
+            tonne_to_pcu_output += f"   unitised_eu_imports_path - {self.tonne_to_pcu_inputs.unitised_eu_imports_path}\n"
+            tonne_to_pcu_output += f"   unitised_eu_exports_path - {self.tonne_to_pcu_inputs.unitised_eu_exports_path}\n"
+            tonne_to_pcu_output += f"   unitised_non_eu_path - {self.tonne_to_pcu_inputs.unitised_non_eu_path}\n"
+            tonne_to_pcu_output += f"   ports_path - {self.tonne_to_pcu_inputs.ports_path}\n"
+            tonne_to_pcu_output += f"   distance_bands_path - {self.tonne_to_pcu_inputs.distance_bands_path}\n"
+            tonne_to_pcu_output += f"   gbfm_distance_matrix_path - {self.tonne_to_pcu_inputs.gbfm_distance_matrix_path}\n"
+            tonne_to_pcu_output += f"   port_traffic_proportions_path - {self.tonne_to_pcu_inputs.port_traffic_proportions_path}\n"
+            tonne_to_pcu_output += f"   pcu_factors_path - {self.tonne_to_pcu_inputs.pcu_factors_path}\n"
+            LOG.info(tonne_to_pcu_output)
 
 
 class ThristyTruckConfig(caf.toolkit.BaseConfig):
@@ -219,8 +262,10 @@ class ThristyTruckConfig(caf.toolkit.BaseConfig):
             factor for to m conversion (e.g. 1000 if variables are in km)
         """
         self.operational.hex_bin_width = self.operational.hex_bin_width * to_m_factor
-        for i, range in enumerate(self.analysis_inputs.vehicle_ranges):
-            self.analysis_inputs.vehicle_ranges[i] = range * to_m_factor
+        for vehicle_key, ranges in self.analysis_inputs.vehicle_ranges.items():
+            for status_key, range_ in ranges.items():
+                self.analysis_inputs.vehicle_ranges[vehicle_key][status_key] = range_ * to_m_factor
+
 
 
 def convert_lft_keys(

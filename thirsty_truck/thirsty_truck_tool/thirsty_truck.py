@@ -92,11 +92,12 @@ def thirsty_truck(
         operational inputs from the config file
     """
     # handle LFT input
-
+    annual_tonne_to_trip_folder = operational.output_folder / "annual_tonne_to_pcu_conversion"
+    annual_tonne_to_trip_folder.mkdir(exist_ok=True)
     if analysis_inputs.lft_inputs is not None:
         LOG.info("Parsing LFT inputs and converting to annual PCU")
         trip_conversion_obj = hgv_annual_tonne_to_pcu.tonne_to_pcu(
-            analysis_inputs.lft_inputs, operational.output_folder
+            analysis_inputs.lft_inputs, annual_tonne_to_trip_folder
         )
         unformatted_od_matrices = trip_conversion_obj.total_trips
         od_matrices = {}
@@ -117,31 +118,41 @@ def thirsty_truck(
         thirsty_points = analysis_inputs.thirsty_points
 
     else:
-
-        matrices = disagg_laden_status(od_matrices, analysis_inputs.laden_status_factors)
+        original_keys = od_matrices.keys()
+        disagg_matrices = disagg_laden_status(od_matrices, analysis_inputs.laden_status_factors)
 
         thirsty_points = {}
+
+        thirsty_points_folder = operational.output_folder / "thirsty_points"
+
+        thirsty_points_folder.mkdir(exist_ok=True)
 
         with concurrent.futures.ThreadPoolExecutor() as executor:
             futures = [
                 executor.submit(
                     process_matrix,
                     key,
-                    matrix,
+                    matrices,
                     analysis_inputs.zone_centroids,
                     analysis_inputs.ranges[key],
-                    operational.output_folder,
+                    thirsty_points_folder,
                 )
-                for key, matrix in od_matrices.items()
+                for key, matrices in disagg_matrices.items()
             ]
 
             for future in concurrent.futures.as_completed(futures):
                 key, temp_thirsty_points = future.result()
                 thirsty_points[key] = temp_thirsty_points
 
+        thirsty_points = aggregate_laden_status(thirsty_points, original_keys)
+
     thirsty_points[ioc.COMBINED_KEY] = pd.concat(list(thirsty_points.values()))
 
     all_hex_bins = {}
+
+    hexbin_shapefile_folder = operational.output_folder / "hexbin_shapefiles"
+
+    hexbin_shapefile_folder.mkdir(exist_ok=True)
 
     for key, value in thirsty_points.items():
         LOG.info(f"Creating thirsty {key} hexs")
@@ -152,7 +163,7 @@ def thirsty_truck(
 
         LOG.info(f"Creating thirsty {key} hex shapefile")
         hex_plotting.create_hex_shapefile(
-            hex_bins, f"thirsty_{key.lower()}_hexs.shp", operational.output_folder
+            hex_bins, f"thirsty_{key.lower()}_hexs.shp", hexbin_shapefile_folder
         )
         all_hex_bins[key] = hex_bins
 
