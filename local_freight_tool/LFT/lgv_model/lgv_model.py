@@ -184,7 +184,7 @@ class LGVMatrices:
             "commuting_drivers",
             "commuting_skilled_trades",
         )
-        index = pd.Int64Index([])
+        index = pd.Index([], dtype=int)
         for nm in dataframes:
             index = index.union(getattr(self, nm).index)
             index = index.union(getattr(self, nm).columns)

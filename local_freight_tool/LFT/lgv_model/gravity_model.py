@@ -243,14 +243,17 @@ class CalibrateGravityModel:
         """Calculates distribution of costs normalised to sum to 1."""
         if self._internal_zones and internal_area:
             # Filters matrix and costs to only include internal-internal trips
+            internal_zones = list(self._internal_zones)
+
             try:
-                matrix = matrix.loc[self._internal_zones, self._internal_zones]
-                costs = self.costs.loc[self._internal_zones, self._internal_zones]
-            except KeyError as e:
-                missing = [i for i in self._internal_zones if i not in matrix.index]
-                raise errors.MissingDataError("trip matrix zones", missing) from e
+                matrix = matrix.loc[internal_zones, internal_zones]
+                costs = self.costs.loc[internal_zones, internal_zones]
+            except KeyError as error:
+                missing = [i for i in internal_zones if i not in matrix.index]
+                raise errors.MissingDataError("trip matrix zones", missing) from error
         else:
             costs = self.costs
+
         hist, _ = np.histogram(costs, bins=self._bin_edges, weights=matrix)
         return hist / np.sum(hist)
 
@@ -343,13 +346,11 @@ class CalibrateGravityModel:
 
         non_finite = ~np.isfinite(self.trip_matrix.values)
         if np.any(non_finite):
-            raise ValueError(
-                f"Final trip matrix has {np.sum(non_finite)} non-finite values"
-            )
+            raise ValueError(f"Final trip matrix has {np.sum(non_finite)} non-finite values")
         for col, int_area in (("calibration area", True), ("whole matrix", False)):
-            self.trip_distribution[
-                f"{col} proportions"
-            ] = self._normalised_distribution(self.trip_matrix, internal_area=int_area)
+            self.trip_distribution[f"{col} proportions"] = self._normalised_distribution(
+                self.trip_matrix, internal_area=int_area
+            )
         self.results = CalibrationResults(
             function,
             popt,
@@ -385,9 +386,7 @@ class CalibrateGravityModel:
             the `results`.
         """
         if self.results is None:
-            raise ValueError(
-                "run `calibrate_gravity_model` before attempting to plot results"
-            )
+            raise ValueError("run `calibrate_gravity_model` before attempting to plot results")
         fig, ax = plt.subplots(figsize=(15, 10))
         fig.set_tight_layout(True)
         # Plot distribution data points for any proportions columns
@@ -458,9 +457,7 @@ def _check_numeric(**kwargs) -> None:
     """
     for nm, val in kwargs.items():
         if not isinstance(val, (int, float)):
-            raise ValueError(
-                f"{nm} should be a scalar number (float or int) not {type(val)}"
-            )
+            raise ValueError(f"{nm} should be a scalar number (float or int) not {type(val)}")
 
 
 def tanner(cost: np.ndarray, alpha: float, beta: float) -> np.ndarray:
@@ -493,9 +490,7 @@ def tanner(cost: np.ndarray, alpha: float, beta: float) -> np.ndarray:
     _check_numeric(alpha=alpha, beta=beta)
     # Don't do 0 to the power in case alpha is negative
     # 0^x where x is anything (other than 0) is always 0
-    power = np.float_power(
-        cost, alpha, out=np.zeros_like(cost, dtype=float), where=cost != 0
-    )
+    power = np.float_power(cost, alpha, out=np.zeros_like(cost, dtype=float), where=cost != 0)
     exp = np.exp(beta * cost)
     return power * exp
 
@@ -533,7 +528,7 @@ def log_normal(cost: np.ndarray, sigma: float, mu: float) -> np.ndarray:
     _check_numeric(sigma=sigma, mu=mu)
     frac = 1 / (cost * sigma * np.sqrt(2 * np.pi))
     exp_numerator = (np.log(cost) - mu) ** 2
-    exp_denominator = 2 * sigma ** 2
+    exp_denominator = 2 * sigma**2
     exp = np.exp(-exp_numerator / exp_denominator)
     return frac * exp
 
@@ -567,8 +562,7 @@ def _get_cost_function(name: str) -> tuple[Callable, tuple[list, list]]:
         func, bounds = FUNCTION_LOOKUP[name.lower().strip()]
     except KeyError as e:
         raise KeyError(
-            f"unknown function {name!r}, should be "
-            f"one of {list(FUNCTION_LOOKUP.keys())}"
+            f"unknown function {name!r}, should be " f"one of {list(FUNCTION_LOOKUP.keys())}"
         ) from e
     return func, bounds
 
@@ -681,9 +675,7 @@ def gravity_model(
     elif constraint is FurnessConstraint.DOUBLE:
         # Check trip_ends has the correct names
         trip_ends.rename(columns=lambda nm: nm.strip().lower(), inplace=True)
-        missing = [
-            c for c in ("attractions", "productions") if c not in trip_ends.columns
-        ]
+        missing = [c for c in ("attractions", "productions") if c not in trip_ends.columns]
         if missing:
             errors.MissingColumnsError("gravity model trip ends", missing)
         matrix, results = furness_2d(
@@ -728,7 +720,9 @@ def calculate_vehicle_kms(
     vehicle_kms = {"All Trips": np.sum((matrix * distances).values)}
     if internals:
         internals = set(internals)
-        externals = set(matrix.index) - internals
+        externals = list(set(matrix.index) - internals)
+        internals = list(internals)
+
         filters = {
             "Internal-Internal": (internals, internals),
             "Internal-External": (internals, externals),
@@ -745,9 +739,7 @@ def calculate_vehicle_kms(
     )
     if internals:
         for c in df.columns.get_level_values(0):
-            df.loc[:, (c, "Percentage")] = (
-                df[(c, "Value")] / df.loc["All Trips", (c, "Value")]
-            )
+            df.loc[:, (c, "Percentage")] = df[(c, "Value")] / df.loc["All Trips", (c, "Value")]
         df.sort_index(axis=1, level=0, sort_remaining=False, inplace=True)
     return df
 
