@@ -81,6 +81,7 @@ LABEL_SHAPE_COLOUR = "white"
 LABEL_TEXT_SIZE = "8px"
 LABEL_SHAPE_SIZE = 5
 
+
 @dataclasses.dataclass
 class AnalysisInputs:
     """Input data file paths
@@ -134,13 +135,14 @@ class AnalysisInputs:
             range=range_,
         )
 
+
 @dataclasses.dataclass
 class ODMatrixInputs:
     "the input class for OD matrices"
     od_matrices_path: list[pathlib.Path]
 
     def parse(self, keys: list[str]) -> dict[str, pd.DataFrame]:
-        """ parses OD matrices
+        """parses OD matrices
 
         Parameters
         ----------
@@ -291,6 +293,30 @@ class PlottingInputs:
             plotting_points=parsed_plotting_points,
         )
 
+    def create_input_summary(self) -> None:
+        """creates an input summary for the plotting inputs
+        Returns
+        -------
+        str
+            output summary
+        """
+        output = "\nPlotting Inputs\n"
+        output += f"Road Network Input - {self.network_path}\n"
+        output += f"Motorway Junctions Input - {self.motorway_junction_path}\n"
+        output += f"Outlines Input - {self.outlines_path}\n"
+        output += f"Map Labels Input - {self.map_labels_path}\n"
+        plotting_points_output = "Plotting Points Input\n"
+        for input in self.plotting_points:
+            plotting_points_output += f"    Label - {input['label']}\n"
+            plotting_points_output += f"    Data - {input['data_path']}\n"
+            plotting_points_output += f"    Hover data - {input['hover_column_name']}\n"
+            plotting_points_output += f"    Point Size - {input['size']}\n"
+            plotting_points_output += f"    Point Shape - {input['shape']}\n"
+            plotting_points_output += f"    Point Colour - {input['colour']}\n"
+            plotting_points_output += "\n"
+        output += plotting_points_output
+        return output
+
 
 class ParsedPlottingInputs(NamedTuple):
     """for storing parsed plotting inputs
@@ -348,6 +374,20 @@ class Operational:
     a_roads: bool
     show_plots: bool
     hex_bin_width: float
+
+    def create_input_summary(self) -> str:
+        """Creates an summary output of the operational input
+
+        Returns
+        -------
+        str
+            output summary
+        """
+        output = "\nOperational Inputs\n"
+        output += f"Output Folder - {self.output_folder}\n"
+        output += f"A-roads shown = {self.a_roads}\n"
+        output += f"Approx Hexbin Width = {self.hex_bin_width:.3e} metres\n"
+        return output
 
 
 class ThirstyVehicleConfig(caf.toolkit.BaseConfig):
@@ -451,11 +491,11 @@ def read_shape_file(
     Parameters
     ----------
     file : pathlib.Path
-        _description_
+        file to read
     required_columns : Optional[list[str]], optional
-        _description_, by default None
+        columns to check are in file if None give check is not done, by default None
     precision : Optional[float], optional
-        _description_, by default None
+        precision to use when simplifying, if not give simply is not performed, by default None
 
     Returns
     -------
@@ -692,6 +732,22 @@ def write_to_csv(file_path: pathlib.Path, output: pd.DataFrame) -> None:
         data to write
     """
     output.to_csv(file_path)
+
+
+@output_file_checks
+def write_txt(file_path: pathlib.Path, output: str) -> None:
+    """Writes output to a txt file
+
+    Parameters
+    ----------
+    file_path : pathlib.Path
+        file path
+    output : str
+        output txt
+    """
+    file = open(file_path, "w")
+    file.write(output)
+    file.close()
 
 
 @dataclasses.dataclass

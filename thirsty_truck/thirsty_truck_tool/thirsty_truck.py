@@ -69,6 +69,13 @@ def run(log: tv_logging.ThirstyVehicleLog, args: argparse.Namespace) -> None:
 
     analysis_inputs = config.analysis_inputs.parse_analysis_inputs()
     plotting_inputs = config.plotting_inputs.parse_plotting_inputs(config.operational)
+    #write input summary
+    input_summary = "Inputs\n"
+    input_summary += config.operational.create_input_summary()
+    input_summary += config.analysis_inputs.create_input_summary()
+    input_summary += config.plotting_inputs.create_input_summary()
+    input_output_constants.write_txt(config.operational.output_folder / "input_summary.txt", input_summary)
+    LOG.info(input_summary)
 
     thirsty_truck(analysis_inputs, plotting_inputs, config.operational)
 
@@ -92,7 +99,9 @@ def thirsty_truck(
         operational inputs from the config file
     """
     # handle LFT input
-    annual_tonne_to_trip_folder = operational.output_folder / "annual_tonne_to_pcu_conversion"
+    annual_tonne_to_trip_folder = (
+        operational.output_folder / "annual_tonne_to_pcu_conversion"
+    )
     annual_tonne_to_trip_folder.mkdir(exist_ok=True)
     if analysis_inputs.lft_inputs is not None:
         LOG.info("Parsing LFT inputs and converting to annual PCU")
@@ -119,7 +128,9 @@ def thirsty_truck(
 
     else:
         original_keys = od_matrices.keys()
-        disagg_matrices = disagg_laden_status(od_matrices, analysis_inputs.laden_status_factors)
+        disagg_matrices = disagg_laden_status(
+            od_matrices, analysis_inputs.laden_status_factors
+        )
 
         thirsty_points = {}
 
@@ -211,25 +222,66 @@ def process_matrix(
 
     return key, thirsty_points
 
-def disagg_laden_status(matrices: dict[str, pd.DataFrame], factors: pd.DataFrame)->dict[str, pd.DataFrame]:
+
+def disagg_laden_status(
+    matrices: dict[str, pd.DataFrame], factors: pd.DataFrame
+) -> dict[str, pd.DataFrame]:
+    """disaggregate the matrices by laden status
+
+    creates new key by vehicle type and laden status seperated by 
+    ioc.DISAGG_KEY_SEP
+
+    Parameters
+    ----------
+    matrices : dict[str, pd.DataFrame]
+        matrices to disaggregate
+    factors : pd.DataFrame
+        factors to disaggregate matrices by
+
+    Returns
+    -------
+    dict[str, pd.DataFrame]
+        disaggregated matrices
+    """
     disagg_matrices = {}
     for key, matrix in matrices.items():
         for status in factors.index:
             f = factors.loc[status, key]
             mod_matrix = matrix.copy()
-            mod_matrix["trips"] = mod_matrix["trips"]*f
-            disagg_matrices[key+ioc.DISAGG_KEY_SEP+status] = mod_matrix
+            mod_matrix["trips"] = mod_matrix["trips"] * f
+            disagg_matrices[key + ioc.DISAGG_KEY_SEP + status] = mod_matrix
     return disagg_matrices
 
-def aggregate_laden_status(thirsty_points: dict[str, gpd.GeoDataFrame], original_keys: list[str])->dict[str, gpd.GeoDataFrame]:
-    split_keys = {x:x.split(ioc.DISAGG_KEY_SEP) for x in thirsty_points.keys()}
+
+def aggregate_laden_status(
+    thirsty_points: dict[str, gpd.GeoDataFrame], original_keys: list[str]
+) -> dict[str, gpd.GeoDataFrame]:
+    """aggregates the laden statuses
+
+    assumes the thirsty points have keys generated from disagg_laden_status
+    will split the keys using the defined key seperator 
+    will join by the original_keys found in the split keys
+
+    Parameters
+    ----------
+    thirsty_points : dict[str, gpd.GeoDataFrame]
+        thirsty points with disaggregated keys to aggregates
+    original_keys : list[str]
+        keys to aggregate by
+
+    Returns
+    -------
+    dict[str, gpd.GeoDataFrame]
+        aggregated thirsty points
+    """
+    split_keys = {x: x.split(ioc.DISAGG_KEY_SEP) for x in thirsty_points.keys()}
     agg_thirsty_points = {}
     for key in original_keys:
         to_agg = []
         for disagg_key, split_disagg_key in split_keys.items():
             if key in split_disagg_key:
                 to_agg.append(thirsty_points[disagg_key])
-        agg_thirsty_points[key] = gpd.GeoDataFrame(pd.concat(to_agg, ignore_index=True), crs=input_output_constants.CRS)
+        agg_thirsty_points[key] = gpd.GeoDataFrame(
+            pd.concat(to_agg, ignore_index=True), crs=input_output_constants.CRS
+        )
     return agg_thirsty_points
-    
-
