@@ -5,6 +5,7 @@ import dataclasses
 import pathlib
 from typing import Optional
 
+
 # third party packages
 import caf.toolkit
 import geopandas as gpd
@@ -44,6 +45,7 @@ COMBINED_KEY = "Combined"
 
 LFT_KEYS = ["artic", "rigid"]
 
+#this must only contain chars that are suitable for a file name but do not appear in either sets of keys
 DISAGG_KEY_SEP = "--"
 
 
@@ -134,10 +136,13 @@ class AnalysisInputs:
         # format ranges
 
         if len(vehicle_keys) != len(self.vehicle_ranges):
-            raise ValueError("vehicle ranges and keys must be same length")
+            raise KeyError("vehicle ranges and keys must be same length")
         ranges = {}
 
         for vehicle_key, input_ranges in self.vehicle_ranges.items():
+            if len(input_ranges.keys()) != len(laden_status_factors.index):
+                raise IndexError("range status keys must have same length as inputted laden status factors index")
+            
             for status_key, range_ in input_ranges.items():
                 if vehicle_key.lower() not in vehicle_keys:
                     raise KeyError(
@@ -150,7 +155,6 @@ class AnalysisInputs:
                 ranges[
                     vehicle_key.lower() + DISAGG_KEY_SEP + status_key.lower()
                 ] = range_
-        # TODO check for missing values
 
         # parse centroids
         zone_centroids = gpd.read_file(self.zone_centroids_path)
@@ -223,26 +227,40 @@ class AnalysisInputs:
         str
             output summary
         """
-        output = "\nAnalysis Inputs\n"    
+        output = "\nAnalysis Inputs\n"
+        
+        #create range input summary
+        
         range_output = "Range Inputs\n"
         for vehicle_key, ranges in self.vehicle_ranges.items():
             range_output += f"    {vehicle_key}:\n"
             for status_key, range_ in ranges.items():
                 range_output += f"        {status_key} = {range_:.3e} metres\n"
         output+=range_output
+
+        #centroids and laden status factors summary
+
         output+=f"Centroids Input - {self.zone_centroids_path}\n"
         output+=f"Laden Status Factors Input - {self.laden_status_factors_path}\n"
 
+        #thirsty points inputs summary
+
         if self.thirsty_points_inputs is not None:
             thirsty_points_output = "Thirsty Points Inputs\n"
-            for i, path in enumerate(self.thirsty_points_inputs.thirsty_points_paths):
-                thirsty_points_output += f"    {self.vehicle_keys[i]} - {path}\n"
+            for key, path in self.thirsty_points_inputs.thirsty_points_paths.items():
+                thirsty_points_output += f"    {key} - {path}\n"
             output+=thirsty_points_output
+
+        # OD matrices inputs summary
+
         elif self.od_matrices_inputs is not None:
             od_matrices_output = "OD Matrices Inputs\n"
-            for i, path in enumerate(self.od_matrices_inputs.od_matrices_path):
-                od_matrices_output += f"    {self.vehicle_keys[i]} - {path}\n"
+            for key, path in self.od_matrices_inputs.od_matrices_path.items():
+                od_matrices_output += f"    {key} - {path}\n"
             output+=od_matrices_output
+
+        # Tonne to PCU inputs summary
+
         else:
             tonne_to_pcu_output = "Tonne to PCU Inputs\n"
             tonne_to_pcu_output += ("   domestic_bulk_port_path - "

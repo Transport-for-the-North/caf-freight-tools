@@ -6,14 +6,18 @@ heatmap which indicates where the vehicle will run out of fuel/power
 Kieran Fishwick: kieran.fishwick@wsp.com
 """
 # standard imports
-import logging
 import argparse
 
 # third party imports
 from tqdm.contrib import logging as tqdm_log
 
 # local imports
-from thirsty_vehicle_tool import input_output_constants, tv_logging, geospatial_analysis, hex_plotting
+from thirsty_vehicle_tool import (
+    input_output_constants,
+    tv_logging,
+    geospatial_analysis,
+    hex_plotting,
+)
 
 LOG_FILE = "thirsty_vehicle.log"
 LOG = tv_logging.get_logger(__package__)
@@ -65,7 +69,7 @@ def thirsty_vehicle_process(
 ) -> None:
     """handles thirsty truck process taking in data inputs
 
-    creates thirsty points 
+    creates thirsty points
 
     Parameters
     ----------
@@ -78,22 +82,23 @@ def thirsty_vehicle_process(
     thirsty_points = geospatial_analysis.get_thirsty_points(
         analysis_inputs, operational.output_folder
     )
-    #create hexbins object and create png
+    # create hexbins object and create png
     hex_bins = hex_plotting.hexbin_plot(
         thirsty_points,
         plotting_inputs,
         "Thirsty Truck Hex Map",
         operational,
     )
-    #html plot
+    # html plot
     hex_plotting.create_hex_bin_html(
         hex_bins,
         plotting_inputs,
         "Thirsty Truck Hex Map",
-        operational,)
-    #create hex shapefile
+        operational,
+    )
+    # create hex shapefile
     hex_plotting.create_hex_shapefile(
         hex_bins,
         "Thirsty_Truck_Hex.shp",
-        operational.output_folder/"thristy_truck_hex",
-        )
+        operational.output_folder / "thristy_truck_hex",
+    )

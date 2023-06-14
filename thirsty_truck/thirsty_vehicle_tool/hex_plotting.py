@@ -256,7 +256,7 @@ def create_hex_bin_html(
         width=graph_width,
         height=plot_height,
         match_aspect=True,
-        tools=["pan", "box_zoom", "wheel_zoom", "undo", "reset", "save"],
+        tools=["wheel_zoom", "undo", "reset", "save"],
     )
 
     plot.background_fill_color = "black"

@@ -35,8 +35,6 @@ ROADS_REQUIRED_COLUMNS = [
     "identifier",
     "class",
     "roadnumber",
-    "startnode",
-    "endnode",
     "geometry",
 ]
 ZONE_CENTROIDS_REQUIRED_COLUMNS = ["uniqueid", "geometry"]
@@ -139,7 +137,7 @@ class AnalysisInputs:
 @dataclasses.dataclass
 class ODMatrixInputs:
     "the input class for OD matrices"
-    od_matrices_path: list[pathlib.Path]
+    od_matrices_path: dict[str, pathlib.Path]
 
     def parse(self, keys: list[str]) -> dict[str, pd.DataFrame]:
         """parses OD matrices
@@ -159,19 +157,23 @@ class ODMatrixInputs:
         ValueError
             if number of vehicle keys does not match the number of matrices
         """
-        if len(self.od_matrices_path) != len(keys):
+        if len(self.od_matrices_path.keys()) != len(keys):
             raise ValueError("OD matrix paths and keys must be the same length")
         od_matrices = {}
-        for i, path in enumerate(self.od_matrices_path):
+        lower_keys = [x.lower() for x in keys]
+        for key, path in self.od_matrices_path.items():
+            if key.lower() not in lower_keys:
+                raise KeyError("Keys for matrices do not match vehicle keys")
+            key_index = lower_keys.index(key.lower())
             matrix = pd.read_csv(path)
-            od_matrices[keys[i]] = check_and_format_demand_matrix(matrix)
+            od_matrices[keys[key_index]] = check_and_format_demand_matrix(matrix)
         return od_matrices
 
 
 @dataclasses.dataclass
 class ThirstyPointsInputs:
     "input class for thirsty points"
-    thirsty_points_paths: list[pathlib.Path]
+    thirsty_points_paths: dict[str, pathlib.Path]
 
     def parse(self, keys: list[str]) -> dict[str, gpd.GeoDataFrame]:
         """parses thirsty points
@@ -194,10 +196,14 @@ class ThirstyPointsInputs:
         if len(self.thirsty_points_paths) != len(keys):
             raise ValueError("thirsty point paths and keys must be the same length")
         thirsty_points = {}
-        for i, path in enumerate(self.thirsty_points_paths):
+        lower_keys = [x.lower() for x in keys]
+        for key, path in self.thirsty_points_paths.items():
+            if key.lower() not in lower_keys:
+                raise KeyError("Keys for thirsty points do not match vehicle keys")
+            key_index = lower_keys.index(key.lower())
             points = pd.read_csv(path)
             check_columns(path, points.columns, THRISTY_POINTS_REQUIRED_COLUMNS)
-            thirsty_points[keys[i]] = gpd.GeoDataFrame(
+            thirsty_points[keys[key_index]] = gpd.GeoDataFrame(
                 points,
                 geometry=gpd.points_from_xy(
                     points["easting"], points["northing"], crs=CRS
@@ -235,7 +241,6 @@ class PlottingInputs:
         if self.network_path.is_dir():
             roads = read_in_network_folder(
                 self.network_path,
-                operational.a_roads,
                 operational.output_folder,
             )
         else:
@@ -243,7 +248,7 @@ class PlottingInputs:
                 self.network_path,
                 required_columns=ROADS_REQUIRED_COLUMNS,
             )
-            roads = format_roads(roads, operational.a_roads)
+            roads = format_roads(roads)
 
         if len(roads) == 0:
             LOG.warning(
@@ -371,7 +376,6 @@ class Operational:
     """
 
     output_folder: pathlib.Path
-    a_roads: bool
     show_plots: bool
     hex_bin_width: float
 
@@ -385,7 +389,6 @@ class Operational:
         """
         output = "\nOperational Inputs\n"
         output += f"Output Folder - {self.output_folder}\n"
-        output += f"A-roads shown = {self.a_roads}\n"
         output += f"Approx Hexbin Width = {self.hex_bin_width:.3e} metres\n"
         return output
 
@@ -515,7 +518,6 @@ def read_shape_file(
 
 def read_in_network_folder(
     network_folder_path: pathlib.Path,
-    a_road: bool,
     output_file: pathlib.Path,
 ) -> gpd.GeoDataFrame:
     """Proccesses road folder containing the road links
@@ -560,7 +562,7 @@ def read_in_network_folder(
     roads = pd.concat(roads_list, ignore_index=True)
 
     # filter for required roads
-    roads = format_roads(roads, a_road)
+    roads = format_roads(roads)
 
     roads_file = output_file / "aggregated_filtered_road_network"
     roads_file.mkdir(exist_ok=True)
@@ -568,7 +570,7 @@ def read_in_network_folder(
     return roads
 
 
-def format_roads(roads: gpd.GeoDataFrame, a_road: bool) -> gpd.GeoDataFrame:
+def format_roads(roads: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
     """format and simplify road network
 
     simplifies the input road network
@@ -589,10 +591,9 @@ def format_roads(roads: gpd.GeoDataFrame, a_road: bool) -> gpd.GeoDataFrame:
 
     # filter
     LOG.info("Filtering road network")
-    keep = roads["class"] == MOTORWAY_LABEL
-    if a_road:
-        a_road = roads["class"] == A_ROAD_LABEL
-        keep = (pd.DataFrame([keep, a_road]).transpose()).any(axis=1)
+    motorway = roads["class"] == MOTORWAY_LABEL
+    a_road = roads["class"] == A_ROAD_LABEL
+    keep = (pd.DataFrame([motorway, a_road]).transpose()).any(axis=1)
     keep_roads = roads.loc[keep]
 
     LOG.info("Reorder road links")

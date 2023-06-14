@@ -21,7 +21,7 @@ LOG = tv_logging.get_logger(__name__)
 def get_thirsty_points(
     data_inputs: input_output_constants.ParsedAnalysisInputs,
     output_folder: pathlib.Path,
-    file_name: str = "thirsty_points",
+    file_name: str = "thirsty_points.shp",
     logging_tag: str = "",
 ) -> gpd.GeoDataFrame:
     """finds the points at which the vehicle will run out of range

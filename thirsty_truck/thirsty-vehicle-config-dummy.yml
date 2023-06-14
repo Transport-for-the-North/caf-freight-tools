@@ -14,6 +14,11 @@ plotting_inputs:
   network_path: C:\Users\UKKXF022\Documents\Midlands_connect_freight\midlands_road_links_shapefile\aggregated_filtered_road_network.shp 
   motorway_junction_path: C:\Users\UKKXF022\Documents\Midlands_connect_freight\shape_files\os_motorway_junction
   outlines_path: C:\Users\UKKXF022\Documents\Midlands_connect_freight\shape_files\useful_for_hexbin\England_regions\england_regions.shp
-  service_stations_path: C:\Users\UKKXF022\Documents\Midlands_connect_freight\shape_files\motorway_services_HGV_access\motorway_services.shp
   map_labels_path: C:\Users\UKKXF022\Documents\Midlands_connect_freight\shape_files\notable_places\notable_places_easting_northing.shp
-ignore: C:\Users\UKKXF022\Documents\Midlands_connect_freight\shape_files\os_road_links\
+  plotting_points:
+    - label: "Services"
+      data_path: C:\Users\UKKXF022\Documents\Midlands_connect_freight\shape_files\motorway_services_HGV_access\motorway_services.shp
+      hover_column_name: "name"
+      colour: "blue"
+      shape: "diamond"
+      size: 7
