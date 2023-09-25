@@ -29,7 +29,7 @@ from .furnessing import FurnessConstraint
 ##### CONSTANTS #####
 HH_PROJECTIONS_HEADER = {"Area Description": str, "HHs": float}
 """Column names (and data types) for input CSV to `household_projections` function."""
-BRES_HEADER = {
+BRES_HEADER: dict[str, type] = {
     "Area": str,
     "mnemonic": str,
     "A : Agriculture, forestry and fishing": float,

@@ -525,7 +525,7 @@ def main(input_paths: LGVInputPaths, message_hook: Callable = print):
         input_paths.parameters_path,
         output_folder / "time period matrices",
     )
-    message_hook("Done")
+    message_hook("Done, it is now safe to close the tool")
 
 
 def lgv_arg_parser() -> argparse.ArgumentParser:
