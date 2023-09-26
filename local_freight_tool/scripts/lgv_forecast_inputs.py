@@ -35,7 +35,7 @@ from LFT.lgv_model import commute_segment, lgv_inputs
 
 ##### CONSTANTS #####
 LOG = logging.getLogger("LFT.lgv_forecast_inputs")
-CONFIG_PATH = pathlib.Path("local_freight_tool/scripts/lgv_forecast_inputs.yml")
+CONFIG_PATH = pathlib.Path("scripts/lgv_forecast_inputs.yml")
 BASE_LGV_GROWTH_FACTOR = 1.51
 LGV_SURVEY_YEAR = 2003
 
