@@ -1,0 +1,8 @@
+base_model_config: U:\Lot3_LFT\2.LGV Model\LGV Model Inputs\10.Test configs\LGV_config-20230524.yml
+base_year: 2018
+forecast_year: 2028
+output_folder: U:\Lot3_LFT\2.LGV Model\LGV Model Forecasting Inputs\Grown with NTEM
+oa_lookup_path: U:\Lot3_LFT\2.LGV Model\LGV Model Inputs\0.Lookups\Postcode_to_Output_Area_to_Lower_Layer_Super_Output_Area_to_Middle_Layer_Super_Output_Area_to_Local_Authority_District_November_2018_Lookup_in_the_UK\Postcode_to_Output_Area_to_Lower_Layer_Super_Output_Area_to_Middle_Layer_Super_Output_Area_to_Local_Authority_District_November_2018_Lookup_in_the_UK.csv
+base_planning_path: U:\Lot3_LFT\2.LGV Model\LGV Model Forecasting Inputs\2028\TEMPro_projections-2018.csv
+forecast_planning_path: U:\Lot3_LFT\2.LGV Model\LGV Model Forecasting Inputs\2028\TEMPro_projections-2028.csv
+forecasted_vehicle_kms: U:\Lot3_LFT\2.LGV Model\LGV Model Forecasting Inputs\Forecasting Calculations - MB\english-welsh-growth-speed-kilometres.xlsx

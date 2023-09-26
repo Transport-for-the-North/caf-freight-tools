@@ -6,6 +6,7 @@
 ##### IMPORTS #####
 # Standard imports
 from itertools import chain
+import pathlib
 import re
 from typing import Optional
 
@@ -19,6 +20,35 @@ from pydantic import fields
 from .. import utilities, errors
 from ..rezone import Rezone
 from . import lgv_inputs
+
+##### CONSTANTS #####
+BUSINESS_FLOORSPACE_HEADER: dict[str, type] = {"AREA_CODE": str}
+BUSINESS_FLOORSPACE_RENAME = {"AREA_CODE": "zone"}
+BUSINESS_CATEGORIES = ["Retail", "Office", "Industrial", "Other"]
+BUSINESS_FLOORSPACE_REMOVE_ROWS = ["K", "E9", "W9", "E1"]
+E_DWELLINGS_HEADER = [
+    "Current\nONS code",
+    "Lower and Single Tier Authority Data",
+    "Demolitions",
+    "Net Additions",
+]
+E_DWELLINGS_NEW_COLS = {"Current\nONS code": "zone"}
+
+QS606_BASE_HEADERS = {
+    "mnemonic": str,
+    "All categories: Occupation": float,
+    "51. Skilled agricultural and related trades": float,
+    "52. Skilled metal, electrical and electronic trades": float,
+    "53. Skilled construction and building trades": float,
+}
+QS606_HEADERS: dict[str, dict[str, type]] = {
+    "EW": {**QS606_BASE_HEADERS, "821. Road Transport Drivers": float},
+    "SC": {
+        **QS606_BASE_HEADERS,
+        "82. Transport and mobile machine drivers and operatives": float,
+    },
+}
+QS606_HEADER_FOOTER = (7, 5)
 
 
 ##### CLASSES #####
@@ -70,35 +100,6 @@ class CommuteTripEnds:
             )
         )
     }
-
-    QS606_HEADER = {
-        "mnemonic": str,
-        "All categories: Occupation": float,
-        "51. Skilled agricultural and related trades": float,
-        "52. Skilled metal, electrical and electronic trades": float,
-        "53. Skilled construction and building trades": float,
-    }
-    QS606_HEADERS = {}
-    S8_CATEGORIES = {
-        "EW": "821. Road Transport Drivers",
-        "SC": "82. Transport and mobile machine drivers and operatives",
-    }
-    for key in S8_CATEGORIES:
-        QS606_HEADERS[key] = QS606_HEADER.copy()
-        QS606_HEADERS[key][S8_CATEGORIES[key]] = float
-
-    E_DWELLINGS_HEADER = [
-        "Current\nONS code",
-        "Lower and Single Tier Authority Data",
-        "Demolitions",
-        "Net Additions",
-    ]
-    E_DWELLINGS_NEW_COLS = {"Current\nONS code": "zone"}
-
-    BUSINESS_FLOORSPACE_HEADER = {"AREA_CODE": str}
-    BUSINESS_FLOORSPACE_RENAME = {"AREA_CODE": "zone"}
-    BUSINESS_CATEGORIES = ["Retail", "Office", "Industrial", "Other"]
-    BUSINESS_FLOORSPACE_REMOVE_ROWS = ["K", "E9", "W9", "E1"]
 
     HH_PROJECTIONS_HEADER = {"Area Description": str, "HHs": float, "Jobs": float}
     HH_RENAME = {"Area Description": "zone", "HHs": "households", "Jobs": "jobs"}
@@ -181,18 +182,6 @@ class CommuteTripEnds:
 
     def _read_qs606(self):
         """Read in and rezone Census occupation data."""
-
-        def rename_cols(name: str) -> str:
-            """Renames the occupation data columns"""
-            match = re.match("^(5[1-3])|(82)[1]?", name)
-            if match:
-                return match.group(0)
-            if name.startswith("mnemonic"):
-                return "zone"
-            if name.startswith("All"):
-                return "total"
-            return name
-
         # If haven't yet read in parameters and zone lookups, read in
         if not self.params:
             self._read_commute_tables()
@@ -200,23 +189,7 @@ class CommuteTripEnds:
         if not self.zone_lookups:
             self._read_zone_lookups()
 
-        # Read in both E&W and Scottish data
-        qs606 = {}
-        for key in self.S8_CATEGORIES:
-            qs606[key] = (
-                (
-                    utilities.read_csv(
-                        getattr(self.paths, f"qs606{key}_path".lower()),
-                        columns=self.QS606_HEADERS[key],
-                        skiprows=7,
-                        skipfooter=5,
-                        engine="python",
-                    )
-                )
-                .dropna(axis=1, how="all")
-                .dropna(axis=0, how="any")
-            )
-            qs606[key] = qs606[key].rename(columns=rename_cols)
+        qs606 = read_qs606(self.paths.qs606ew_path, self.paths.qs606sc_path)
 
         # Scottish data doesn't include SOC821, so calculate from SOC82
         qs606["SC"]["821"] = qs606["SC"]["82"] * self.params["Scotland SOC821/SOC82"]
@@ -252,30 +225,10 @@ class CommuteTripEnds:
         # Read in additional dwellings data for England
         if not self.params:
             self._read_commute_tables()
-        sheet = f"{self.params['Model Year']}-{self.params['Model Year'] - 2000 + 1}"
-        e_dwellings = (
-            utilities.read_excel(
-                self.paths.e_dwellings_path,
-                columns=self.E_DWELLINGS_HEADER,
-                skiprows=3,
-                sheet_name=sheet,
-            )
-            .dropna(axis=1, how="all")
-            .dropna(axis=0, how="any")
-            .rename(columns=self.E_DWELLINGS_NEW_COLS)
-            .drop(axis=1, labels=["Lower and Single Tier Authority Data"])
+
+        e_dwellings, _ = read_english_dwellings(
+            self.paths.e_dwellings_path, self.params["Model Year"]
         )
-        for col in ["Demolitions", "Net Additions"]:
-            try:
-                e_dwellings[col] = e_dwellings[col].astype(float)
-            except ValueError as err:
-                match = re.match(r"could not convert \w+ to float", str(err), re.IGNORECASE)
-                if match:
-                    raise errors.NonNumericDataError(
-                        name=f"{self.paths.e_dwellings_path.stem} column",
-                        non_numeric=str(col),
-                    )
-                raise
 
         # Calculate total additional construction (net additions + demolitions)
         e_dwellings["additional dwellings"] = (
@@ -287,14 +240,8 @@ class CommuteTripEnds:
             e_dwellings["additional dwellings"].sum() / e_dwellings["Net Additions"].sum()
         )
 
-        # Read in Welsh and Scottish dwellings data
-        sc_w_header = {
-            "zone": str,
-            str(self.params["Model Year"]): int,
-            str(self.params["Model Year"] + 1): int,
-        }
-        sc_w_dwellings = utilities.read_csv(
-            self.paths.sc_w_dwellings_path, columns=sc_w_header
+        sc_w_dwellings, _ = read_sc_w_dwellings(
+            self.paths.sc_w_dwellings_path, self.params["Model Year"]
         )
 
         # Calculate additional construction
@@ -339,24 +286,7 @@ class CommuteTripEnds:
         if not self.params:
             self._read_commute_tables()
 
-        # Get years for NDR business floorspace columns from Model Year
-        for column_start in [
-            f"Floorspace_{self.params['Model Year']-1}-{str(self.params['Model Year'])[2:]}_",
-            f"Floorspace_{self.params['Model Year']}-{int(str(self.params['Model Year'])[2:])+1}_",
-        ]:
-            for category in self.BUSINESS_CATEGORIES:
-                self.BUSINESS_FLOORSPACE_HEADER[column_start + category] = float
-
-        # Read in NDR data
-        ndr = utilities.read_csv(
-            self.paths.ndr_floorspace_path, columns=self.BUSINESS_FLOORSPACE_HEADER
-        ).rename(columns=self.BUSINESS_FLOORSPACE_RENAME)
-
-        # Remove rows that are not LAD
-        conditional = ndr.zone.str.startswith(self.BUSINESS_FLOORSPACE_REMOVE_ROWS[0])
-        for row in self.BUSINESS_FLOORSPACE_REMOVE_ROWS[1:]:
-            conditional = conditional | ndr.zone.str.startswith(row)
-        ndr = ndr[~conditional]
+        ndr, _ = read_ndr_floorspace(self.paths.ndr_floorspace_path, self.params["Model Year"])
 
         # distinguish columns by year
         previous_yr = [col for col in ndr.columns if str(self.params["Model Year"] - 1) in col]
@@ -373,7 +303,7 @@ class CommuteTripEnds:
             ).abs()
 
         # Sum all differences
-        ndr["floorspace"] = ndr[self.BUSINESS_CATEGORIES].sum(axis=1)
+        ndr["floorspace"] = ndr[BUSINESS_CATEGORIES].sum(axis=1)
 
         # only include relevant columns
         ndr = ndr[["zone", "floorspace"]]
@@ -670,3 +600,115 @@ class CommuteTripEnds:
         if not self.trip_ends:
             self.calc_trip_ends()
         return self.trip_ends
+
+
+##### FUNCTIONS #####
+def read_ndr_floorspace(
+    path: pathlib.Path,
+    model_year: int,
+    rename_columns: dict[str, str] = BUSINESS_FLOORSPACE_RENAME,
+) -> tuple[pd.DataFrame, list[str]]:
+    # TODO Write docstring
+    zone_col = "AREA_CODE"
+    columns = BUSINESS_FLOORSPACE_HEADER.copy()
+
+    data_columns = {}
+    for column_start in [
+        f"Floorspace_{model_year-1}-{str(model_year)[2:]}_",
+        f"Floorspace_{model_year}-{str(model_year + 1)[2:]}_",
+    ]:
+        for category in BUSINESS_CATEGORIES:
+            data_columns[column_start + category] = float
+    columns.update(data_columns)
+
+    ndr = utilities.read_csv(path, columns=columns).rename(rename_columns)
+
+    if zone_col in rename_columns:
+        zone_col = rename_columns[zone_col]
+
+    # Remove rows that are not LAD
+    conditional = ndr[zone_col].str.startswith(BUSINESS_FLOORSPACE_REMOVE_ROWS[0])
+    for row in BUSINESS_FLOORSPACE_REMOVE_ROWS[1:]:
+        conditional = conditional | ndr[zone_col].str.startswith(row)
+    ndr = ndr[~conditional]
+
+    return ndr, list(data_columns.keys())
+
+
+def read_sc_w_dwellings(path: pathlib.Path, model_year: int) -> tuple[pd.DataFrame, list[str]]:
+    # TODO Write docstring
+    data_columns = [str(model_year + i) for i in (0, 1)]
+    sc_w_header = {"zone": str, **dict.fromkeys(data_columns, int)}
+    sc_w_dwellings = utilities.read_csv(path, columns=sc_w_header)
+    return sc_w_dwellings, data_columns
+
+
+def read_english_dwellings(
+    path: pathlib.Path,
+    model_year: int,
+    rename_columns: dict[str, str] = E_DWELLINGS_NEW_COLS,
+    drop_lad_name: bool = True,
+) -> tuple[pd.DataFrame, list[str]]:
+    sheet = f"{model_year}-{model_year - 2000 + 1}"
+    dwellings = (
+        utilities.read_excel(
+            path,
+            columns=E_DWELLINGS_HEADER,
+            skiprows=3,
+            sheet_name=sheet,
+        )
+        .dropna(axis=1, how="all")
+        .dropna(axis=0, how="any")
+        .rename(columns=rename_columns)
+    )
+
+    if drop_lad_name:
+        dwellings.drop(axis=1, labels=["Lower and Single Tier Authority Data"], inplace=True)
+
+    data_columns = ["Demolitions", "Net Additions"]
+    for col in data_columns:
+        try:
+            dwellings.loc[:, col] = dwellings[col].astype(float)
+        except ValueError as err:
+            match = re.match(r"could not convert \w+ to float", str(err), re.IGNORECASE)
+            if match:
+                raise errors.NonNumericDataError(
+                    name=f"{path.stem} column", non_numeric=str(col)
+                )
+            raise
+
+    return dwellings, data_columns
+
+
+def read_qs606(
+    ew_path: pathlib.Path, sc_path: pathlib.Path, rename: bool = True
+) -> dict[str, pd.DataFrame]:
+    def rename_cols(name: str) -> str:
+        """Renames the occupation data columns"""
+        match = re.match("^(5[1-3])|(82)[1]?", name)
+        if match:
+            return match.group(0)
+        if name.startswith("mnemonic"):
+            return "zone"
+        if name.startswith("All"):
+            return "total"
+        return name
+
+    qs606: dict[str, pd.DataFrame] = {}
+    for key, path in (("EW", ew_path), ("SC", sc_path)):
+        qs606[key] = (
+            utilities.read_csv(
+                path,
+                columns=QS606_HEADERS[key],
+                skiprows=QS606_HEADER_FOOTER[0],
+                skipfooter=QS606_HEADER_FOOTER[1],
+                engine="python",
+            )
+            .dropna(axis=1, how="all")
+            .dropna(axis=0, how="any")
+        )
+
+        if rename:
+            qs606[key] = qs606[key].rename(columns=rename_cols)
+
+    return qs606
