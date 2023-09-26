@@ -12,7 +12,7 @@ import datetime as dt
 import logging
 import pathlib
 import sys
-from typing import Any, Iterator
+from typing import Any, Callable, Iterator
 
 # Third party imports
 import caf.toolkit
@@ -658,15 +658,15 @@ def grow_warehouse_data(
     return output_paths
 
 
-def _recursive_str(data: dict[str, Any]) -> dict[str, Any]:
+def _recursive_apply(data: dict[str, Any], func: Callable) -> dict[str, Any]:
     # TODO Docstring
     for key, value in data.items():
         if isinstance(value, dict):
-            data[key] = _recursive_str(value)
+            data[key] = _recursive_apply(value, func)
         elif isinstance(value, (list, tuple)):
-            data[key] = [str(i) for i in value]
+            data[key] = [func(i) for i in value]
         else:
-            data[key] = str(value)
+            data[key] = func(value)
 
     return data
 
@@ -678,7 +678,7 @@ def write_forecast_log(
     forecast_year: int,
 ) -> None:
     # TODO Docstring
-    yaml = strictyaml.as_document(_recursive_str(paths)).as_yaml()
+    yaml = strictyaml.as_document(_recursive_apply(paths, str)).as_yaml()
 
     with open(output_path, "wt", encoding="utf-8") as file:
         file.write(
@@ -759,7 +759,8 @@ def calculate_growth_factor(
 
     return {
         "RTF growth to base": base_growth,
-        "RTF growth to forecast": forecast_year,
+        "RTF growth to forecast": forecast_growth,
+        "LGV growth adjustment factor": growth_adjust,
         f"LGV growth factor to forecast {forecast_year}": growth_factor,
     }
 
@@ -845,6 +846,7 @@ def main(params: ForecastInputsConfig) -> None:
         params.forecast_year,
         grown_inputs_folder,
     )
+    forecast_paths = _recursive_apply(forecast_paths, lambda x: x.relative_to(output_folder))
 
     # TODO Add function to calculate growth factor using fleet projections
     growth_factors = calculate_growth_factor(
