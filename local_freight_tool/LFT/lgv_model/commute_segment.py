@@ -48,7 +48,7 @@ QS606_HEADERS: dict[str, dict[str, type]] = {
         "82. Transport and mobile machine drivers and operatives": float,
     },
 }
-QS606_HEADER_FOOTER = {"EW": (7, 5), "SC": (6, 5)}
+QS606_HEADER_FOOTER = {"EW": (8, 5), "SC": (7, 5)}
 
 
 ##### CLASSES #####
@@ -323,6 +323,9 @@ class CommuteTripEnds:
             name="Household projections",
             columns=self.HH_PROJECTIONS_HEADER,
         ).rename(columns=self.HH_RENAME)
+
+        # Authority and County found in TEMPro outputs as well as MSOAs
+        households = households.loc[~households["zone"].isin(["Authority", "County"]), :]
 
         # get sum of jobs
         self.TEMPro_data["EW jobs"] = households[
@@ -621,7 +624,7 @@ def read_ndr_floorspace(
             data_columns[column_start + category] = float
     columns.update(data_columns)
 
-    ndr = utilities.read_csv(path, columns=columns).rename(rename_columns)
+    ndr = utilities.read_csv(path, columns=columns).rename(columns=rename_columns)
 
     if zone_col in rename_columns:
         zone_col = rename_columns[zone_col]
