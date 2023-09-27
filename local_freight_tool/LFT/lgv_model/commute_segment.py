@@ -48,7 +48,7 @@ QS606_HEADERS: dict[str, dict[str, type]] = {
         "82. Transport and mobile machine drivers and operatives": float,
     },
 }
-QS606_HEADER_FOOTER = (7, 5)
+QS606_HEADER_FOOTER = {"EW": (7, 5), "SC": (6, 5)}
 
 
 ##### CLASSES #####
@@ -700,8 +700,8 @@ def read_qs606(
             utilities.read_csv(
                 path,
                 columns=QS606_HEADERS[key],
-                skiprows=QS606_HEADER_FOOTER[0],
-                skipfooter=QS606_HEADER_FOOTER[1],
+                skiprows=QS606_HEADER_FOOTER[key][0],
+                skipfooter=QS606_HEADER_FOOTER[key][1],
                 engine="python",
             )
             .dropna(axis=1, how="all")

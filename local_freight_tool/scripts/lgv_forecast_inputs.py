@@ -542,7 +542,7 @@ def grow_occupation_data(
         meta_rows[key] = ""
 
         with open(path, "rt", encoding="utf-8") as file:
-            for _ in range(commute_segment.QS606_HEADER_FOOTER[0] + 1):
+            for _ in range(commute_segment.QS606_HEADER_FOOTER[key][0] + 1):
                 line = file.readline()
                 if "Date" in line:
                     line = line[: line.rfind('"')] + f' grown to {forecast_year}"\n'
