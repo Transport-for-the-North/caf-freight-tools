@@ -162,7 +162,6 @@ def _load_planning_data(base_path: pathlib.Path, forecast_path: pathlib.Path):
         )
         data = data.rename(columns=rename_columns)
         data.columns = pd.MultiIndex.from_product([[name], data.columns.str.lower()])
-        data.index.name = "msoa"
         dataframes.append(data)
 
     return pd.concat(dataframes, axis=1)
@@ -581,12 +580,13 @@ def grow_occupation_data(
     # TODO Use more spatially disaggregate values for Scotland
     # Use single average growth factor for Scotland because they're datazones not LSOAs
     key = "SC"
-    avg_growth = growth.lad[factor_col]
+    scot_growth_mask = growth.lad.index.str.lower().str.startswith("s")
+    avg_growth = growth.lad.loc[scot_growth_mask, factor_col].mean()
     for column in data_columns[key]:
-        qs_data[key].loc[:, column] = qs_data[key] * avg_growth
+        qs_data[key].loc[:, column] = qs_data[key][column] * avg_growth
     LOG.info(
-        "Growing Scotland occupation from %s to %s using average %s "
-        "because Scotland data is given by datazone instead of LSOA",
+        "Growing Scotland occupation from %s to %s using average Scottish growth "
+        "(%s) because Scotland data is given by datazone instead of LSOA",
         base_year,
         forecast_year,
         factor_col,
