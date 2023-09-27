@@ -385,10 +385,6 @@ def grow_ndr_floorspace(
     factor_col = growth.jobs_col
     base_ndr, data_columns = commute_segment.read_ndr_floorspace(base_path, base_year, {})
 
-    new_years = []
-    for i in range(-1, 2):
-        new_years.append(tuple(str(y - 2000 + i) for y in (base_year, forecast_year)))
-
     area_col = list(commute_segment.BUSINESS_FLOORSPACE_HEADER.keys())[0]
     forecast_ndr = base_ndr.merge(
         growth.lad[factor_col],
@@ -413,7 +409,13 @@ def grow_ndr_floorspace(
     for column in data_columns:
         forecast_ndr.loc[:, column] = forecast_ndr[column] * forecast_ndr[factor_col]
 
-    forecast_ndr.drop(columns=[factor_col, "_merge"]).to_csv(output_path, index=False)
+    years_replace = [
+        (str(base_year - 2000 + i), str(forecast_year - 2000 + i)) for i in (-1, 0, 1)
+    ]
+    forecast_ndr = forecast_ndr.drop(columns=[factor_col, "_merge"])
+    forecast_ndr.columns = [str_replace(i, years_replace) for i in forecast_ndr.columns]
+
+    forecast_ndr.to_csv(output_path, index=False)
     LOG.info(
         "Grown NDR floorspace from %s to %s using %s and saved to: %s",
         base_year,
@@ -511,7 +513,12 @@ def grow_sc_w_dwellings_data(
             avg_growth,
         )
 
-    dwellings.drop(columns=[factor_col, "_merge"]).to_csv(output_path, index=False)
+    dwellings = dwellings.drop(columns=[factor_col, "_merge"])
+    dwellings.rename(
+        columns=dict(zip(data_columns, [str(forecast_year + i) for i in (0, 1)])), inplace=True
+    )
+
+    dwellings.to_csv(output_path, index=False)
     LOG.info(
         "Grown Scotland and Wales dwellings from %s to %s using %s and saved to: %s",
         base_year,
@@ -542,7 +549,7 @@ def grow_occupation_data(
         meta_rows[key] = ""
 
         with open(path, "rt", encoding="utf-8") as file:
-            for _ in range(commute_segment.QS606_HEADER_FOOTER[key][0] + 1):
+            for _ in range(commute_segment.QS606_HEADER_FOOTER[key][0]):
                 line = file.readline()
                 if "Date" in line:
                     line = line[: line.rfind('"')] + f' grown to {forecast_year}"\n'
