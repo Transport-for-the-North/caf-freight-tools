@@ -203,7 +203,7 @@ class InfillMethod(enum.Enum):
             cls.MEAN: np.nanmean,
             cls.MEDIAN: np.nanmedian,
             cls.NON_ZERO_MIN: lambda a: np.amin(a, where=a > 0, initial=np.inf),
-            cls.ZERO: lambda _: 0
+            cls.ZERO: lambda _: 0,
         }
 
     def method(self) -> InfillFunction:
@@ -283,9 +283,13 @@ def household_projections(path: Path, zone_lookup: Path) -> pd.DataFrame:
     households = utilities.read_csv(
         path, "Household projections", columns=HH_PROJECTIONS_HEADER
     )
+
+    # Authority and County found in TEMPro outputs as well as MSOAs
+    columns = list(HH_PROJECTIONS_HEADER.keys())
+    households = households.loc[~households[columns[0]].isin(["Authority", "County"]), :]
+
     lookup = Rezone.read(zone_lookup, None)
-    cols = list(HH_PROJECTIONS_HEADER.keys())
-    rezoned = Rezone.rezoneOD(households, lookup, dfCols=(cols[0],), rezoneCols=cols[1])
+    rezoned = Rezone.rezoneOD(households, lookup, dfCols=(columns[0],), rezoneCols=columns[1])
     rezoned.columns = ["Zone", "Households"]
     return rezoned
 
@@ -379,7 +383,9 @@ def letters_range(start: str = "A", end: str = "Z") -> str:
         yield l
 
 
-def load_warehouse_floorspace(path: Path, zone_lookup: Path, infill_method: InfillMethod | None = None) -> pd.DataFrame:
+def load_warehouse_floorspace(
+    path: Path, zone_lookup: Path, infill_method: InfillMethod | None = None
+) -> pd.DataFrame:
     """Load warehouse floorspace data and convert to model zone system.
 
     Parameters
