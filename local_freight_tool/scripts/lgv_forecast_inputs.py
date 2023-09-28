@@ -311,7 +311,7 @@ def grow_bres(
     output_path: pathlib.Path,
     growth: NTEMGrowthData,
     forecast_year: int,
-) -> pathlib.Path:
+) -> tuple[pathlib.Path, pd.DataFrame]:
     # TODO Docstring
     factor_col = growth.jobs_col
 
@@ -364,7 +364,7 @@ def grow_bres(
         output_path,
     )
 
-    return output_path
+    return output_path, compare_column_totals(base_bres, forecast_bres)
 
 
 def str_replace(text: str, replace: list[tuple[str, str]]) -> str:
@@ -380,7 +380,7 @@ def grow_ndr_floorspace(
     forecast_year: int,
     growth: NTEMGrowthData,
     output_path: pathlib.Path,
-) -> pathlib.Path:
+) -> tuple[pathlib.Path, pd.DataFrame]:
     # TODO Docstring
     factor_col = growth.jobs_col
     base_ndr, data_columns = commute_segment.read_ndr_floorspace(base_path, base_year, {})
@@ -409,6 +409,8 @@ def grow_ndr_floorspace(
     for column in data_columns:
         forecast_ndr.loc[:, column] = forecast_ndr[column] * forecast_ndr[factor_col]
 
+    comparison = compare_column_totals(base_ndr, forecast_ndr)
+
     years_replace = [
         (str(base_year - 2000 + i), str(forecast_year - 2000 + i)) for i in (-1, 0, 1)
     ]
@@ -424,7 +426,7 @@ def grow_ndr_floorspace(
         output_path,
     )
 
-    return output_path
+    return output_path, comparison
 
 
 def grow_english_dwellings_data(
@@ -433,14 +435,14 @@ def grow_english_dwellings_data(
     base_year: int,
     forecast_year: int,
     growth: NTEMGrowthData,
-) -> pathlib.Path:
+) -> tuple[pathlib.Path, pd.DataFrame]:
     # TODO Docstring
     factor_col = growth.households_col
-    dwellings, data_columns = commute_segment.read_english_dwellings(
+    base_dwellings, data_columns = commute_segment.read_english_dwellings(
         base_path, base_year, {}, False
     )
 
-    dwellings = dwellings.merge(
+    dwellings = base_dwellings.merge(
         growth.lad[factor_col],
         how="left",
         left_on=commute_segment.E_DWELLINGS_HEADER[0],
@@ -455,10 +457,10 @@ def grow_english_dwellings_data(
     for column in data_columns:
         dwellings.loc[:, column] = (dwellings[column] * dwellings[factor_col]).round()
 
+    dwellings = dwellings.drop(columns=[factor_col, "_merge"])
+
     forecast_sheet = f"{forecast_year}-{forecast_year - 1999}"
-    dwellings.drop(columns=[factor_col, "_merge"]).to_excel(
-        output_path, sheet_name=forecast_sheet, index=False, startrow=3
-    )
+    dwellings.to_excel(output_path, sheet_name=forecast_sheet, index=False, startrow=3)
     LOG.info(
         "Grown English dwellings from %s to %s using %s, saved to '%s' sheet '%s'",
         base_year,
@@ -468,7 +470,7 @@ def grow_english_dwellings_data(
         forecast_sheet,
     )
 
-    return output_path
+    return output_path, compare_column_totals(base_dwellings, dwellings)
 
 
 def grow_sc_w_dwellings_data(
@@ -477,17 +479,17 @@ def grow_sc_w_dwellings_data(
     base_year: int,
     forecast_year: int,
     growth: NTEMGrowthData,
-) -> pathlib.Path:
+) -> tuple[pathlib.Path, pd.DataFrame]:
     # TODO Docstring
     factor_col = growth.households_col
-    dwellings, data_columns = commute_segment.read_sc_w_dwellings(base_path, base_year)
+    base_dwellings, data_columns = commute_segment.read_sc_w_dwellings(base_path, base_year)
 
-    zone_col = [i for i in dwellings.columns if i not in data_columns]
+    zone_col = [i for i in base_dwellings.columns if i not in data_columns]
     if len(zone_col) != 1:
         raise ValueError(f"{len(zone_col)} zone columns but expected 1: {zone_col}")
     zone_col = zone_col[0]
 
-    dwellings = dwellings.merge(
+    dwellings = base_dwellings.merge(
         growth.lad[factor_col],
         how="left",
         left_on=zone_col,
@@ -514,6 +516,8 @@ def grow_sc_w_dwellings_data(
         )
 
     dwellings = dwellings.drop(columns=[factor_col, "_merge"])
+    comparison = compare_column_totals(base_dwellings, dwellings)
+
     dwellings.rename(
         columns=dict(zip(data_columns, [str(forecast_year + i) for i in (0, 1)])), inplace=True
     )
@@ -527,7 +531,7 @@ def grow_sc_w_dwellings_data(
         output_path,
     )
 
-    return output_path
+    return output_path, comparison
 
 
 def grow_occupation_data(
@@ -537,7 +541,7 @@ def grow_occupation_data(
     base_year: int,
     forecast_year: int,
     output_folder: pathlib.Path,
-) -> dict[str, pathlib.Path]:
+) -> tuple[dict[str, pathlib.Path], dict[str, pd.DataFrame]]:
     # TODO Docstring
     def filter_float(data: dict[str, type]) -> list[str]:
         return [k for k, v in data.items() if v is float]
@@ -556,10 +560,11 @@ def grow_occupation_data(
 
                 meta_rows[key] += line
 
-    qs_data = commute_segment.read_qs606(ew_path, sc_path, False)
+    base_data = commute_segment.read_qs606(ew_path, sc_path, False)
 
+    qs_data = {}
     # Use LSOA growth factors for England & Wales
-    qs_data["EW"] = qs_data["EW"].merge(
+    qs_data["EW"] = base_data["EW"].merge(
         growth.lsoa[factor_col],
         how="left",
         left_on=list(commute_segment.QS606_BASE_HEADERS.keys())[0],
@@ -587,6 +592,7 @@ def grow_occupation_data(
     # TODO Use more spatially disaggregate values for Scotland
     # Use single average growth factor for Scotland because they're datazones not LSOAs
     key = "SC"
+    qs_data[key] = base_data[key]
     scot_growth_mask = growth.lad.index.str.lower().str.startswith("s")
     avg_growth = growth.lad.loc[scot_growth_mask, factor_col].mean()
     for column in data_columns[key]:
@@ -600,18 +606,20 @@ def grow_occupation_data(
     )
 
     output_paths: dict[str, pathlib.Path] = {}
+    comparisons = {}
     for key, data in qs_data.items():
         output_paths[key] = output_folder / f"QS606{key}_grown_{forecast_year}.csv"
+        data = data.drop(columns=[factor_col, "_merge"], errors="ignore")
+
+        comparisons[key] = compare_column_totals(base_data[key], data)
 
         with open(output_paths[key], "wt", encoding="utf-8", newline="") as file:
             file.write(meta_rows[key])
-            data.drop(columns=[factor_col, "_merge"], errors="ignore").to_csv(
-                file, index=False
-            )
+            data.to_csv(file, index=False)
 
         LOG.info("Written grown occupation data to: %s", output_paths[key].name)
 
-    return output_paths
+    return output_paths, comparisons
 
 
 def grow_warehouse_data(
@@ -621,7 +629,7 @@ def grow_warehouse_data(
     base_year: int,
     forecast_year: int,
     output_folder: pathlib.Path,
-) -> dict[str, pathlib.Path]:
+) -> tuple[dict[str, pathlib.Path], dict[str, pd.DataFrame]]:
     # TODO Docstring
     factor_col = growth.jobs_col
     zone_col = "LSOA11CD"
@@ -634,11 +642,12 @@ def grow_warehouse_data(
         ("commute_low", commute_paths.low),
     ]
     output_paths: dict[str, pathlib.Path] = {}
+    comparisons: dict[str, pd.DataFrame] = {}
 
     for name, path in paths:
-        data = utilities.read_csv(path, columns={zone_col: str, data_col: float})
+        base_data = utilities.read_csv(path, columns={zone_col: str, data_col: float})
 
-        data = data.merge(
+        data = base_data.merge(
             growth.lsoa[factor_col],
             how="left",
             left_on=zone_col,
@@ -650,9 +659,12 @@ def grow_warehouse_data(
             data, f"growing {name} warehouse", "LSOAs", f"{name} warehouse", "LSOA growth"
         )
         data.loc[:, data_col] = data[data_col] * data[factor_col]
+        data = data.drop(columns=[factor_col, "_merge"])
+
+        comparisons[name] = compare_column_totals(base_data, data)
 
         output_paths[name] = output_folder / f"{name}_grown_{forecast_year}.csv"
-        data.drop(columns=[factor_col, "_merge"]).to_csv(output_paths[name], index=False)
+        data.to_csv(output_paths[name], index=False)
         LOG.info(
             "Grown %s from %s to %s with %s, written to %s",
             name,
@@ -662,7 +674,7 @@ def grow_warehouse_data(
             output_paths[name].name,
         )
 
-    return output_paths
+    return output_paths, comparisons
 
 
 def _recursive_apply(data: dict[str, Any], func: Callable) -> dict[str, Any]:
@@ -772,6 +784,20 @@ def calculate_growth_factor(
     }
 
 
+def compare_column_totals(base: pd.DataFrame, forecast: pd.DataFrame) -> pd.DataFrame:
+    # TODO Docstring
+    base.loc[:, "Rows"] = 1
+    forecast.loc[:, "Rows"] = 1
+
+    data = pd.concat([base.sum(numeric_only=True), forecast.sum(numeric_only=True)], axis=1)
+    data.columns = ["Base", "Forecast"]
+
+    data.loc[:, "Diff"] = data["Forecast"] - data["Base"]
+    data.loc[:, "% Diff"] = (data["Forecast"] / data["Base"]) - 1
+
+    return data
+
+
 def main(params: ForecastInputsConfig) -> None:
     # TODO Docstring
     output_folder = params.output_folder / f"LGV Forecast Inputs - {params.forecast_year}"
@@ -803,17 +829,21 @@ def main(params: ForecastInputsConfig) -> None:
         LOG.info("Written: %s", out_path.relative_to(output_folder))
 
     forecast_paths: dict[str, Any] = {}
+    totals_comparison: dict[str, pd.DataFrame] = {}
 
     grown_inputs_folder = output_folder / "grown_inputs"
     grown_inputs_folder.mkdir(exist_ok=True)
-    forecast_paths["bres_data"] = grow_bres(
+
+    name = "bres_data"
+    forecast_paths[name], totals_comparison[name] = grow_bres(
         base_config.bres_path,
         grown_inputs_folder / f"grown_BRES_{params.forecast_year}.csv",
         growth,
         params.forecast_year,
     )
 
-    forecast_paths["ndr_floorspace"] = grow_ndr_floorspace(
+    name = "ndr_floorspace"
+    forecast_paths[name], totals_comparison[name] = grow_ndr_floorspace(
         base_config.ndr_floorspace_path,
         params.base_year,
         params.forecast_year,
@@ -821,14 +851,16 @@ def main(params: ForecastInputsConfig) -> None:
         grown_inputs_folder / f"grown_NDR_floorspace_{params.forecast_year}.csv",
     )
 
-    forecast_paths["dwellings_england"] = grow_english_dwellings_data(
+    name = "dwellings_england"
+    forecast_paths[name], totals_comparison[name] = grow_english_dwellings_data(
         base_config.e_dwellings_path,
         grown_inputs_folder / f"grown_english_dwelling_{params.forecast_year}.xlsx",
         params.base_year,
         params.forecast_year,
         growth,
     )
-    forecast_paths["dwellings_scotland_wales"] = grow_sc_w_dwellings_data(
+    name = "dwellings_scotland_wales"
+    forecast_paths[name], totals_comparison[name] = grow_sc_w_dwellings_data(
         base_config.sc_w_dwellings_path,
         grown_inputs_folder / f"grown_scotland_wales_dwelling_{params.forecast_year}.csv",
         params.base_year,
@@ -836,7 +868,7 @@ def main(params: ForecastInputsConfig) -> None:
         growth,
     )
 
-    forecast_paths["QS606_data"] = grow_occupation_data(
+    forecast_paths["QS606_data"], comparisons = grow_occupation_data(
         base_config.qs606ew_path,
         base_config.qs606sc_path,
         growth,
@@ -844,8 +876,9 @@ def main(params: ForecastInputsConfig) -> None:
         params.forecast_year,
         grown_inputs_folder,
     )
+    totals_comparison.update({f"QS606{k}": v for k, v in comparisons.items()})
 
-    forecast_paths["warehouse_data"] = grow_warehouse_data(
+    forecast_paths["warehouse_data"], comparisons = grow_warehouse_data(
         base_config.warehouse_path,
         base_config.commute_warehouse_paths,
         growth,
@@ -853,6 +886,8 @@ def main(params: ForecastInputsConfig) -> None:
         params.forecast_year,
         grown_inputs_folder,
     )
+    totals_comparison.update(comparisons)
+
     forecast_paths = _recursive_apply(forecast_paths, lambda x: x.relative_to(output_folder))
 
     # TODO Add function to calculate growth factor using fleet projections
@@ -870,6 +905,12 @@ def main(params: ForecastInputsConfig) -> None:
         params.base_year,
         params.forecast_year,
     )
+
+    output_path = grown_inputs_folder / "grown_input_comparisons.xlsx"
+    with pd.ExcelWriter(output_path, engine="openpyxl") as excel:
+        for name, data in totals_comparison.items():
+            data.to_excel(excel, sheet_name=name)
+    LOG.info("Written summaries to: %s", output_path.relative_to(output_folder))
 
 
 ##### MAIN #####

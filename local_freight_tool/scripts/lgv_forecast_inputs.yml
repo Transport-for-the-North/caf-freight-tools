@@ -1,4 +1,4 @@
-base_model_config: U:\Lot3_LFT\2.LGV Model\LGV Model Inputs\10.Test configs\LGV_config-20230524.yml
+base_model_config: U:\Lot3_LFT\2.LGV Model\Outputs\LGV Model Outputs - 2023-06-01 16.46.43\LGV_model_config.yml
 base_year: 2018
 forecast_year: 2028
 output_folder: U:\Lot3_LFT\2.LGV Model\LGV Model Forecasting Inputs\Grown with NTEM
