@@ -146,6 +146,7 @@ class CommuteTripEnds:
             self.paths.parameters_path, sheets=self.COMMUTING_INPUTS_SHEET_HEADERS
         )
 
+        # TODO Create a pydantic dataclass to store / validate the parameters
         self.params = utilities.to_dict(
             commute_tables["Parameters"], "Parameter", ("Value", float)
         )
@@ -168,7 +169,7 @@ class CommuteTripEnds:
         )
 
         self.commute_trips_main_usage = {
-            k: v * self.params["LAD growth"] for k, v in self.commute_trips_main_usage.items()
+            k: v * self.params["LGV growth"] for k, v in self.commute_trips_main_usage.items()
         }
         print(f"Grown {self.commute_trips_main_usage=}")
 
@@ -179,7 +180,7 @@ class CommuteTripEnds:
         )
 
         self.commute_trips_land_use = {
-            k: v * self.params["LAD growth"] for k, v in self.commute_trips_land_use.items()
+            k: v * self.params["LGV growth"] for k, v in self.commute_trips_land_use.items()
         }
         print(f"Grown {self.commute_trips_land_use=}")
 

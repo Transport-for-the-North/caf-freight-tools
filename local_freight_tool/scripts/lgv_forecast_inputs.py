@@ -759,16 +759,25 @@ def calculate_growth_factor(
     fit = _GrowthFactorLinRegress(rtf_veh_kms.loc["England", "All", "LGV"])
     _plot_linear_fit(fit, base_year, forecast_year, plot_path)
 
-    base_growth = fit.year_value(base_year) / fit.year_value(LGV_SURVEY_YEAR)
-    forecast_growth = fit.year_value(forecast_year) / fit.year_value(LGV_SURVEY_YEAR)
+    base_projection = fit.year_value(base_year)
+    survey_projection = fit.year_value(LGV_SURVEY_YEAR)
+    forecast_projection = fit.year_value(forecast_year)
+
+    base_growth = base_projection / survey_projection
+    forecast_growth = forecast_projection / survey_projection
     growth_adjust = BASE_LGV_GROWTH_FACTOR / base_growth
-    growth_factor = growth_adjust * forecast_growth
 
     return {
-        "RTF growth to base": base_growth,
-        "RTF growth to forecast": forecast_growth,
-        "LGV growth adjustment factor": growth_adjust,
-        f"LGV growth factor to forecast {forecast_year}": growth_factor,
+        "Survey year": LGV_SURVEY_YEAR,
+        "Base year": base_year,
+        "Forecast year": forecast_year,
+        "Projection growth to base": base_growth,
+        "Projection growth to forecast": forecast_growth,
+        "Base growth factor": BASE_LGV_GROWTH_FACTOR,
+        "Growth adjustment factor": growth_adjust,
+        "Growth factor survey to forecast": growth_adjust * forecast_growth,
+        "Growth factor base to forecast": fit.year_value(forecast_year)
+        / fit.year_value(base_year),
     }
 
 
