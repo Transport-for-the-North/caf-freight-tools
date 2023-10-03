@@ -109,6 +109,7 @@ class DeliveryTripEnds:
         parameters_path: Path,
         year: int,
         model_zones: pd.Series,
+        growth_factor: float,
     ):
         """Initialise class by checking inputs files exist and are expected type."""
         self._check_paths(warehouse_paths, bres_paths, household_paths, parameters_path)
@@ -127,6 +128,7 @@ class DeliveryTripEnds:
         self.households = None
         self.parameters = None
         self.model_zones = model_zones
+        self.growth_factor = growth_factor
         self._trip_proportions = None
         self._parcel_proportions = None
         self._parcel_stem_trip_ends = None
@@ -230,7 +232,7 @@ class DeliveryTripEnds:
         .lgv_inputs.filtered_bres
             Reads, filters and converts the BRES input CSV.
         """
-        self.parameters = self.read_parameters(self._parameters_path)
+        self.parameters = self.read_parameters(self._parameters_path, self.growth_factor)
         self.depots = lgv_inputs.load_warehouse_floorspace(
             self._warehouse_paths.path, self._warehouse_paths.zc_path
         )
@@ -248,7 +250,7 @@ class DeliveryTripEnds:
         self.bres.set_index("Zone", inplace=True)
 
     @classmethod
-    def read_parameters(cls, path: Path) -> DeliveryParameters:
+    def read_parameters(cls, path: Path, growth_factor: float) -> DeliveryParameters:
         """Extract expected parameters from the given spreadsheet.
 
         Parameters
@@ -279,9 +281,15 @@ class DeliveryTripEnds:
         params: pd.Series = df.set_index(header[0])[header[1]]
 
         try:
-            return DeliveryParameters.parse_obj(params.to_dict())
+            params: DeliveryParameters = DeliveryParameters.parse_obj(params.to_dict())
         except pydantic.ValidationError as error:
             raise errors.MissingDataError("Delivery Parameters", str(error)) from error
+
+        params.trips_parcel_stem *= growth_factor
+        params.trips_parcel_bush *= growth_factor
+        params.trips_grocery *= growth_factor
+
+        return params
 
     @property
     def trip_proportions(self) -> pd.DataFrame:
