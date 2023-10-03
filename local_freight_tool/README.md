@@ -459,9 +459,10 @@ written.
 
 | Parameter                             |      Data Type       | Description                                                                                                                                                    |
 | :------------------------------------ | :------------------: | :------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Annual Trip Productions - Parcel Stem |       Integer        | The total annual trip productions for the delivery parcel stem segment from the DfT van survey, for the **model year**.                                        |
-| Annual Trips - Parcel Bush            |       Integer        | The total annual trips for the delivery parcel bush segment from the DfT van survey, for the **model year**.                                                   |
-| Annual Trips - Grocery Bush           |       Integer        | The total annual trips for the delivery grocery bush segment from the DfT van survey, for the **model year**.                                                  |
+| Annual Trip Productions - Parcel Stem |       Integer        | The total annual trip productions for the delivery parcel stem segment from the DfT van survey, for the **base year**.                                         |
+| Annual Trips - Parcel Bush            |       Integer        | The total annual trips for the delivery parcel bush segment from the DfT van survey, for the **base year**.                                                    |
+| Annual Trips - Grocery Bush           |       Integer        | The total annual trips for the delivery grocery bush segment from the DfT van survey, for the **base year**.                                                   |
+| Delivery Growth Factor                |      Real (> 0)      | Growth factor to apply to the annual delivery trips to factor to forecast year.                                                                                |
 | B2C vs B2B Weighting                  |     Real (0 - 1)     | The ratio of business-to-customer vs business-to-business delivery trips                                                                                       |
 | Depots Infill Zones                   | Comma-separated list | List of all zones in areas that aren't covered by the warehouse dataset (e.g. Scotland), these zones will have depots allocated based on number of households. |
 
@@ -875,6 +876,7 @@ origin / destination trip ends. The flowchart below outlines the methodology for
 trip ends for all three types of delivery trip, more details of this methodology can be found in
 section 6 of Ian Williams' technical note[^lgvn_design].
 
+***TODO** Update flowchart to show trips are factored using delivery growth factor*
 ![LGV delivery parcel and grocery trip ends methodology - flowchart](doc/images/LGV_methodology-Delivery.png "LGV delivery parcel and grocery trip ends methodology - flowchart")
 
 ##### Commuting Trip Ends
@@ -890,6 +892,7 @@ Both commuting segments are calculated as productions and attractions, these met
 split into two flowcharts below, one for each type of trip end. More details on the commuting
 methodology is given in section 4 of Ian Williams' technical note[^lgvn_design].
 
+***TODO** Update flowchart to show trips are factored using growth factor*
 ![LGV commuting attractions trip ends methodology - flowchart](doc/images/LGV_methodology-Commuting-Attractions.png "LGV commuting attractions trip ends methodology - flowchart")
 
 ![LGV commuting productions trip ends methodology - flowchart](doc/images/LGV_methodology-Commuting-Productions.png "LGV commuting productions trip ends methodology - flowchart")
