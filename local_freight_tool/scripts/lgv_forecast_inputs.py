@@ -783,7 +783,10 @@ def calculate_growth_factor(
 
 def main(params: ForecastInputsConfig) -> None:
     # TODO Docstring
-    output_folder = params.output_folder / f"LGV Forecast Inputs - {params.forecast_year}"
+    output_folder = (
+        params.output_folder / f"LGV Forecast Inputs {params.forecast_year} "
+        f"- {dt.date.today():%Y%m%d}"
+    )
     output_folder.mkdir(exist_ok=True)
 
     # TODO(MB) Use LogHelper class from caf.toolkit
