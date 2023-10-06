@@ -6,3 +6,4 @@ oa_lookup_path: U:\Lot3_LFT\2.LGV Model\LGV Model Inputs\0.Lookups\PC_OA_LSOA_MS
 base_planning_path: U:\Lot3_LFT\2.LGV Model\LGV Model Forecasting Inputs\2028\TEMPro_projections-2018.csv
 forecast_planning_path: U:\Lot3_LFT\2.LGV Model\LGV Model Forecasting Inputs\2028\TEMPro_projections-2028.csv
 forecasted_vehicle_kms: U:\Lot3_LFT\2.LGV Model\LGV Model Forecasting Inputs\Forecasting Calculations - MB\english-welsh-growth-speed-kilometres.xlsx
+fleet_growth: U:\Lot3_LFT\2.LGV Model\LGV Model Forecasting Inputs\Forecasting Calculations\NoCARB_fleet_projections.csv
