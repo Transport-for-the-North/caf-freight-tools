@@ -3,13 +3,15 @@ creates OD lines between each OD pair
 """
 # standard imports
 import pathlib
+from typing import Optional
 
 # third party imports
 import geopandas as gpd
 import pandas as pd
-from shapely import geometry
+from shapely import geometry, ops
 import numpy as np
 from tqdm import tqdm
+import networkx as nx
 
 # local imports
 from thirsty_vehicle_tool import input_output_constants, tv_logging
@@ -51,7 +53,12 @@ def get_thirsty_points(
 
     # create a linestring between each OD pair, with the trips as an atribute
     od_lines = create_od_lines(
-        od_matrix, data_inputs.zone_centroids, data_inputs.range, logging_tag
+        od_matrix,
+        data_inputs.zone_centroids,
+        data_inputs.range,
+        logging_tag,
+        data_inputs.network,
+        data_inputs.network_nodes,
     )
 
     # replace od lines geometry with a list points along line in steps of given range
@@ -116,6 +123,8 @@ def create_od_lines(
     centroids: gpd.GeoDataFrame,
     range_: float,
     logging_tag: str,
+    network: Optional[gpd.GeoDataFrame] = None,
+    network_nodes: Optional[gpd.GeoDataFrame] = None,
 ) -> gpd.GeoDataFrame:
     """creates linestring for each OD pair
 
@@ -128,10 +137,14 @@ def create_od_lines(
         demand matrix for which to create the OD line
     centroids : gpd.GeoDataFrame
         centroids for the corresponding zone system for the OD matrix
+    network : gpd.GeoDataFrame
+
     range_: float
         range of vehicle (used to filter out trips short than this)
     logging_tag: str
         tag to indentify which process has called function
+    network: Optional[gpd.GeoDataFrame] default None
+        network to snap bendy routes to. if None, straightline process will be used
 
     Returns
     -------
@@ -145,6 +158,7 @@ def create_od_lines(
         joining ODs to the centroid based on IDs. this implies there is an issue
         with either the IDs in the od_trip_matrix or in the centroids.
     """
+    # TODO KF add nodes to docstring and add checks for nodes
     # create origin and destination point
     origin_points = (
         od_trip_matrix["origin"]
@@ -227,13 +241,30 @@ def create_od_lines(
         f"{logging_tag}: {len(filtered_od_geom_matrix):.3e} OD pairs remaining which contains "
         f"{filtered_trips:.3e} trips of average length: {mean_length:.0f}km"
     )
-    line_end_points = filtered_od_geom_matrix.loc[
-        :, ["geometry_origin", "geometry_destination"]
-    ]
+
     # Create OD lines, format & tidy up
     LOG.info(f"{logging_tag}: Creating OD lines")
 
-    filtered_od_geom_matrix["geometry"] = od_lines(line_end_points, logging_tag)
+    if network is not None:
+        line_end_points_id = filtered_od_geom_matrix.loc[:, ["origin", "destination"]]
+        network.loc[
+            network["spdlimit"] == 0, "spdlimit"
+        ] = input_output_constants.DEFAULT_SPEED_LIMIT
+
+        network["link_time"] = network["distance"] / network["spdlimit"]
+
+        network_graph = create_graph(network, network_nodes)
+        filtered_od_geom_matrix["geometry"] = od_bendy_lines(
+            line_end_points_id, network_graph, network, network_nodes, logging_tag
+        )
+
+    else:
+        line_end_points_geom = filtered_od_geom_matrix.loc[
+            :, ["geometry_origin", "geometry_destination"]
+        ]
+        filtered_od_geom_matrix["geometry"] = od_lines(
+            line_end_points_geom, logging_tag
+        )
 
     filtered_od_geom_matrix.drop(
         columns=["geometry_origin", "geometry_destination", "distance"], inplace=True
@@ -244,6 +275,29 @@ def create_od_lines(
     LOG.debug("OD linestrings created")
 
     return filtered_od_geom_matrix
+
+
+def create_graph(
+    network: gpd.GeoDataFrame, network_nodes: gpd.GeoDataFrame
+) -> nx.DiGraph:
+    network_graph = nx.DiGraph()
+    network_nodes.set_index("n", inplace=True)
+
+    edges = [
+        ((row["a"]), int(row["b"]), {"time": row["link_time"]})
+        for _, row in network.iterrows()
+    ]
+    network_graph.add_edges_from(edges)
+
+    # set node attributes
+
+    
+
+    nodes_geom = network_nodes["geometry"]
+
+    nx.set_node_attributes(network_graph, nodes_geom, name="coords")
+
+    return network_graph
 
 
 def drop_points(line: geometry.LineString, step: float) -> list[geometry.Point]:
@@ -293,6 +347,43 @@ def od_lines(
     for start, end in tqdm(line_end_points.values, desc=f"{logging_tag} OD lines"):
         lines.append(geometry.LineString([start, end]))
     return lines
+
+
+def od_bendy_lines(
+    line_end_points: pd.DataFrame,
+    network: nx.Graph,
+    network_geom: gpd.GeoDataFrame,
+    network_nodes: gpd.GeoDataFrame,
+    logging_tag: str,
+) -> list[geometry.LineString]:
+    
+    network_geom.set_index(["a", "b"], inplace=True)
+
+    def calc_distance(a, b) -> float:
+        return network_nodes.loc[a, "geometry"].distance(network_nodes.loc[b, "geometry"])
+
+    lines = []
+
+    for start, end in tqdm(
+        line_end_points.values, desc=f"{logging_tag} OD bendy lines"
+    ):
+        
+        shortest_path = nx.astar_path(
+            network, start, end, heuristic=calc_distance, weight="link_time"
+        )
+        shortest_path_links = zip(shortest_path[:-1], shortest_path[1:])
+        #shortest_path_links = [
+        #    (shortest_path[i], shortest_path[i + 1])
+        #    for i in range(len(shortest_path) - 1)
+        #]
+        shortest_path_geom = ops.linemerge(
+            network_geom.loc[shortest_path_links, "geometry"].tolist()
+        )
+        lines.append(shortest_path_geom)
+    return lines
+
+
+
 
 
 def weighted_avg(values: pd.Series, weights: pd.Series) -> float:

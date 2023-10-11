@@ -30,6 +30,8 @@ GEOSPATIAL_PRECISION = 1000
 A_ROAD_LABEL = "A Road"
 MOTORWAY_LABEL = "Motorway"
 TO_M_FACTOR = 1000
+DEFAULT_SPEED_LIMIT = 48
+
 ROADS_REQUIRED_COLUMNS = [
     "fictitious",
     "identifier",
@@ -50,6 +52,19 @@ PLOTTING_POINTS_REQUIRED_KEYS = [
     "colour",
     "size",
     "shape",
+]
+
+ANALYSIS_NETWORK_NODES_REQUIRED_COLUMNS = [
+    "n",
+    "geometry",
+]
+
+ANALYSIS_NETWORK_REQUIRED_COLUMNS = [
+    "a",
+    "b",
+    "distance",
+    "spdlimit",
+    "geometry",
 ]
 
 #   plotting visual const
@@ -93,7 +108,8 @@ class AnalysisInputs:
     range: float
         range of vehicle
     """
-
+    analysis_network_path: pathlib.Path
+    analysis_network_nodes_path: pathlib.Path
     od_demand_matrix_path: pathlib.Path
     zone_centroids_path: pathlib.Path
     range: float
@@ -123,12 +139,21 @@ class AnalysisInputs:
             zone_centroids, ZONE_CENTROIDS_REQUIRED_COLUMNS
         )
 
+        LOG.info("Parsing network")
+        network =gpd.read_file(self.analysis_network_path)
+        network = check_and_format_analysis_network(network)
+
+        network_nodes = gpd.read_file(self.analysis_network_nodes_path)
+        network_nodes = check_and_format_analysis_network_nodes(network_nodes)
+
         LOG.info("Parsing OD demand matrix")
         demand_matrix = pd.read_csv(self.od_demand_matrix_path)
         demand_matrix = check_and_format_demand_matrix(demand_matrix)
 
         return ParsedAnalysisInputs(
             demand_marix=demand_matrix,
+            network=network,
+            network_nodes= network_nodes, 
             zone_centroids=zone_centroids,
             range=range_,
         )
@@ -355,6 +380,8 @@ class ParsedAnalysisInputs(NamedTuple):
     """
 
     demand_marix: pd.DataFrame
+    network: gpd.GeoDataFrame
+    network_nodes: gpd.GeoDataFrame
     zone_centroids: gpd.GeoDataFrame
     range: float
 
@@ -478,6 +505,17 @@ def check_and_format_demand_matrix(demand_matrix: pd.DataFrame) -> pd.DataFrame:
     # removed additional columns
     return demand_matrix.loc[:, DEMAND_MATRIX_REQUIRED_COLUMNS]
 
+def check_and_format_analysis_network(analysis_network:gpd.GeoDataFrame)->gpd.GeoDataFrame:
+    #TODO(KF) Docstring
+    analysis_network.columns = analysis_network.columns.str.lower()
+    check_columns("Analysis Network", analysis_network.columns,ANALYSIS_NETWORK_REQUIRED_COLUMNS)
+    return analysis_network
+
+def check_and_format_analysis_network_nodes(network_nodes: gpd.GeoDataFrame)->gpd.GeoDataFrame:
+    #TODO(KF) Docstring
+    network_nodes.columns = network_nodes.columns.str.lower()
+    check_columns("Analysis Network", network_nodes.columns,ANALYSIS_NETWORK_NODES_REQUIRED_COLUMNS)
+    return network_nodes
 
 def read_shape_file(
     file: pathlib.Path,

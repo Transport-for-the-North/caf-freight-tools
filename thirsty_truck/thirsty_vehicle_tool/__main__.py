@@ -14,7 +14,7 @@ parser.add_argument(
     "-c",
     "--config",
     help="Config file path",
-    default="thirsty-vehicle-config.yml",
+    default="thirsty_truck\thirsty-vehicle-config.yml",
     type=str,
 )
 args = parser.parse_args()
