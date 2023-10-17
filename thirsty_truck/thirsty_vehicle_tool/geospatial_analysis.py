@@ -12,6 +12,7 @@ from shapely import geometry, ops
 import numpy as np
 from tqdm import tqdm
 import networkx as nx
+import multiprocessing
 
 # local imports
 from thirsty_vehicle_tool import input_output_constants, tv_logging
@@ -59,6 +60,7 @@ def get_thirsty_points(
         logging_tag,
         data_inputs.network,
         data_inputs.network_nodes,
+        output_folder / "od_routes.shp"
     )
 
     # replace od lines geometry with a list points along line in steps of given range
@@ -125,6 +127,7 @@ def create_od_lines(
     logging_tag: str,
     network: Optional[gpd.GeoDataFrame] = None,
     network_nodes: Optional[gpd.GeoDataFrame] = None,
+    output_path: Optional[pathlib.Path] = None,
 ) -> gpd.GeoDataFrame:
     """creates linestring for each OD pair
 
@@ -266,6 +269,7 @@ def create_od_lines(
             line_end_points_geom, logging_tag
         )
 
+    
     filtered_od_geom_matrix.drop(
         columns=["geometry_origin", "geometry_destination", "distance"], inplace=True
     )
@@ -273,6 +277,9 @@ def create_od_lines(
         filtered_od_geom_matrix, geometry="geometry"
     )
     LOG.debug("OD linestrings created")
+    if output_path is not None:
+        LOG.info(f"Writing OD routes to {output_path}")
+        input_output_constants.to_shape_file(output_path, filtered_od_geom_matrix)
 
     return filtered_od_geom_matrix
 
@@ -290,8 +297,6 @@ def create_graph(
     network_graph.add_edges_from(edges)
 
     # set node attributes
-
-    
 
     nodes_geom = network_nodes["geometry"]
 
@@ -356,34 +361,101 @@ def od_bendy_lines(
     network_nodes: gpd.GeoDataFrame,
     logging_tag: str,
 ) -> list[geometry.LineString]:
-    
     network_geom.set_index(["a", "b"], inplace=True)
 
     def calc_distance(a, b) -> float:
-        return network_nodes.loc[a, "geometry"].distance(network_nodes.loc[b, "geometry"])
+        return network_nodes.loc[a, "geometry"].distance(
+            network_nodes.loc[b, "geometry"]
+        )
 
     lines = []
 
-    for start, end in tqdm(
-        line_end_points.values, desc=f"{logging_tag} OD bendy lines"
+    for start in tqdm(
+        line_end_points["origin"].unique(), desc=f"{logging_tag} OD bendy lines"
     ):
-        
-        shortest_path = nx.astar_path(
-            network, start, end, heuristic=calc_distance, weight="link_time"
-        )
-        shortest_path_links = zip(shortest_path[:-1], shortest_path[1:])
-        #shortest_path_links = [
-        #    (shortest_path[i], shortest_path[i + 1])
-        #    for i in range(len(shortest_path) - 1)
-        #]
-        shortest_path_geom = ops.linemerge(
-            network_geom.loc[shortest_path_links, "geometry"].tolist()
-        )
-        lines.append(shortest_path_geom)
+        one_to_all_shortest_path = nx.single_source_dijkstra_path(network, start)
+
+        for end in line_end_points.loc[line_end_points["origin"]==start, "destination"]:
+            try:
+                shortest_path = one_to_all_shortest_path[end]
+                shortest_path_links = zip(shortest_path[:-1], shortest_path[1:])
+                shortest_path_geom = ops.linemerge(
+                    network_geom.loc[shortest_path_links, "geometry"].tolist()
+                )
+                lines.append(shortest_path_geom)
+            except KeyError:
+                LOG.warning(f"missing bendy links between {start} and {end} nodes")
+
+    #    shortest_path = nx.astar_path(
+    #        network, start, end, heuristic=calc_distance, weight="link_time"
+    #    )
+    #    shortest_path_links = zip(shortest_path[:-1], shortest_path[1:])
+    #    shortest_path_geom = ops.linemerge(
+    #        network_geom.loc[shortest_path_links, "geometry"].tolist()
+    #    )
+    #    lines.append(shortest_path_geom)
     return lines
 
 
+def od_bendy_lines_mp(
+    line_end_points: pd.DataFrame,
+    network: nx.Graph,
+    network_geom: gpd.GeoDataFrame,
+    network_nodes: gpd.GeoDataFrame,
+    logging_tag: str,
+) -> list[geometry.LineString]:
+    network_geom.set_index(["a", "b"], inplace=True)
 
+    # Split the line_end_points DataFrame into chunks for parallel processing
+    num_processes = multiprocessing.cpu_count()
+    chunk_size = len(line_end_points) // num_processes
+    chunks = [
+        {
+            "end_points": line_end_points[i : i + chunk_size],
+            "network": network,
+            "nodes": network_nodes,
+            "geom": network_geom,
+        }
+        for i in range(0, len(line_end_points), chunk_size)
+    ]
+
+    # Create a multiprocessing pool
+    pool = multiprocessing.Pool(processes=num_processes)
+
+    # Calculate shortest paths concurrently using multiprocessing
+    lines = pool.map(
+        parallel_process, tqdm(chunks, desc=f"{logging_tag} OD bendy lines")
+    )
+
+    pool.close()
+    pool.join()
+
+    return lines
+
+
+def calculate_shortest_path(start, end, network, network_nodes, network_geom):
+    def calc_distance(a, b) -> float:
+        return network_nodes.loc[a, "geometry"].distance(
+            network_nodes.loc[b, "geometry"]
+        )
+
+    shortest_path = nx.astar_path(
+        network, start, end, heuristic=calc_distance, weight="link_time"
+    )
+    shortest_path_links = zip(shortest_path[:-1], shortest_path[1:])
+    shortest_path_geom = ops.linemerge(
+        network_geom.loc[shortest_path_links, "geometry"].tolist()
+    )
+    return shortest_path_geom
+
+
+# Define a function for parallel processing
+def parallel_process(args):
+    start, end = args["end_points"]
+    network = args["network"]
+    nodes = args["nodes"]
+    geom = args["geom"]
+    return calculate_shortest_path(start, end, network, nodes, geom)
 
 
 def weighted_avg(values: pd.Series, weights: pd.Series) -> float:
