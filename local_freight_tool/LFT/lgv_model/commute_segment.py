@@ -8,7 +8,7 @@
 from itertools import chain
 import pathlib
 import re
-from typing import Optional
+from typing import Optional, Union
 
 # Third party imports
 import numpy as np
@@ -58,7 +58,9 @@ class WarehouseParameters(pydantic.BaseModel):
     medium: Optional[float] = fields.Field(alias="Weighting - Medium")
     high: Optional[float] = fields.Field(alias="Weighting - High")
     low: Optional[float] = fields.Field(alias="Weighting - Low")
-    zone_infill: list[int] = fields.Field(alias="Model Zone Infill", default_factory=list)
+    zone_infill: list[Union[int, str]] = fields.Field(
+        alias="Model Zone Infill", default_factory=list
+    )
     infill_method: Optional[lgv_inputs.InfillMethod] = fields.Field(
         None, alias="Zone Infill Method"
     )

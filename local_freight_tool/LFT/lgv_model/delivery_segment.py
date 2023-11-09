@@ -6,6 +6,7 @@
 ##### IMPORTS #####
 # Standard imports
 from pathlib import Path
+from typing import Union
 
 # Third party imports
 import pandas as pd
@@ -63,7 +64,7 @@ class DeliveryParameters(pydantic.BaseModel):
     trips_grocery: float = fields.Field(alias="Annual Trips - Grocery Bush", ge=0)
     growth_factor: float = fields.Field(alias="Delivery Growth Factor", ge=0)
     b2c: float = fields.Field(alias="B2C vs B2B Weighting", ge=0, le=1)
-    depots_infill: list[int] = fields.Field(
+    depots_infill: list[Union[int, str]] = fields.Field(
         alias="Depots Infill Zones", default_factory=list, unique_items=True
     )
 
