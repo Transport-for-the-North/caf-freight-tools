@@ -156,19 +156,31 @@ class CalibrateGravityModel:
             self.trip_ends = utilities.read_csv(
                 trip_ends_path,
                 "Trip Ends CSV",
-                {0: int, 1: float, 2: float},
+                {0: str, 1: float, 2: float},
                 index_col=0,
             )
+
+        self.trip_ends.index = pd.to_numeric(
+            self.trip_ends.index, downcast="unsigned", errors="ignore"
+        )
         self.trip_ends.columns = ["attractions", "productions"]
+
         # Read costs and calibration and use first column as index
         if isinstance(cost_path, pd.DataFrame):
             self.costs = cost_path.copy()
         else:
             self.costs = utilities.read_csv(cost_path, "Cost matrix", index_col=0)
-        self.costs.columns = pd.to_numeric(self.costs.columns, downcast="integer")
+        self.costs.columns = pd.to_numeric(
+            self.costs.columns, downcast="unsigned", errors="ignore"
+        )
+        self.costs.index = pd.to_numeric(
+            self.costs.index, downcast="unsigned", errors="ignore"
+        )
+
         zero_cost = self.costs.values == 0
         if np.any(zero_cost):
             raise ValueError(f"costs contains {np.sum(zero_cost)} cells with 0 cost")
+
         if calibration_path is None:
             self.calibration = None
         else:
@@ -179,8 +191,12 @@ class CalibrateGravityModel:
                     calibration_path, "Gravity model calibration matrix", index_col=0
                 )
             self.calibration.columns = pd.to_numeric(
-                self.calibration.columns, downcast="integer"
+                self.calibration.columns, downcast="unsigned", errors="ignore"
             )
+            self.calibration.index = pd.to_numeric(
+                self.calibration.index, downcast="unsigned", errors="ignore"
+            )
+
         # Read trip distributions name from top row of Excel file
         td_info = utilities.read_excel(
             trip_distribution_path[0],
