@@ -6,6 +6,7 @@
 ##### IMPORTS #####
 # Standard imports
 from pathlib import Path
+from typing import Union
 
 # Third party imports
 import pandas as pd
@@ -61,8 +62,9 @@ class DeliveryParameters(pydantic.BaseModel):
     )
     trips_parcel_bush: float = fields.Field(alias="Annual Trips - Parcel Bush", ge=0)
     trips_grocery: float = fields.Field(alias="Annual Trips - Grocery Bush", ge=0)
+    growth_factor: float = fields.Field(alias="Delivery Growth Factor", ge=0)
     b2c: float = fields.Field(alias="B2C vs B2B Weighting", ge=0, le=1)
-    depots_infill: list[int] = fields.Field(
+    depots_infill: list[Union[int, str]] = fields.Field(
         alias="Depots Infill Zones", default_factory=list, unique_items=True
     )
 
@@ -279,9 +281,15 @@ class DeliveryTripEnds:
         params: pd.Series = df.set_index(header[0])[header[1]]
 
         try:
-            return DeliveryParameters.parse_obj(params.to_dict())
+            params: DeliveryParameters = DeliveryParameters.parse_obj(params.to_dict())
         except pydantic.ValidationError as error:
             raise errors.MissingDataError("Delivery Parameters", str(error)) from error
+
+        params.trips_parcel_stem *= params.growth_factor
+        params.trips_parcel_bush *= params.growth_factor
+        params.trips_grocery *= params.growth_factor
+
+        return params
 
     @property
     def trip_proportions(self) -> pd.DataFrame:

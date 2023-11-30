@@ -482,9 +482,10 @@ def read_study_area(path: Path) -> set:
     Any zones not given are assumed to be outside
     the study area.
     """
-    columns = {"zone": int, "internal": int}
+    columns = {"zone": str, "internal": int}
     df = utilities.read_csv(path, "Model Study Area CSV", columns)
-    df["internal"] = df["internal"].astype(bool)
+    df.loc[:, "zone"] = pd.to_numeric(df["zone"], downcast="unsigned", errors="ignore")
+    df.loc[:, "internal"] = df["internal"].astype(bool)
     internal = df.loc[df.internal, "zone"].tolist()
     return set(internal)
 

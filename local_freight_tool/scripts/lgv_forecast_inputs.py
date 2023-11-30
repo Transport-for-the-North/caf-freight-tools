@@ -38,6 +38,7 @@ LOG = logging.getLogger("LFT.lgv_forecast_inputs")
 CONFIG_PATH = pathlib.Path("scripts/lgv_forecast_inputs.yml")
 BASE_LGV_GROWTH_FACTOR = 1.51
 LGV_SURVEY_YEAR = 2003
+CSV_COMMENT_CHARACTER = "#"
 
 
 ##### CLASSES #####
@@ -50,6 +51,7 @@ class ForecastInputsConfig(caf.toolkit.BaseConfig):
     base_planning_path: types.FilePath
     forecast_planning_path: types.FilePath
     forecasted_vehicle_kms: types.FilePath
+    fleet_growth: types.FilePath
 
 
 @dataclasses.dataclass(config={"arbitrary_types_allowed": True})
@@ -91,6 +93,10 @@ class _GrowthFactorLinRegress:
     def __init__(self, data: pd.Series) -> None:
         self._data = data
         self._results = stats.linregress(data.index, data.values)
+
+    @property
+    def name(self) -> str:
+        return self._data.name
 
     def line(self, x: np.ndarray) -> np.ndarray:
         return (self._results.slope * x) + self._results.intercept
@@ -715,9 +721,11 @@ def _plot_linear_fit(
     # TODO Docstring
     fig, ax = plt.subplots(figsize=(10, 10))
     fig.set_tight_layout(True)
-    ax.set_ylabel("LGV Vehicle Kilometres (billions)")
+    ax.set_ylabel(fit.name)
     ax.set_xlabel("Year")
-    ax.set_title("LGV Forecasted Vehicle Kilometres", fontsize="x-large")
+    ax.set_title(
+        f"Linear Regression of {fit.name}\nto Recalculate Growth Factors", fontsize="x-large"
+    )
 
     ax.scatter(fit.data.index, fit.data.values, label="RTF Data", c="C0")
     ax.plot(
@@ -736,11 +744,12 @@ def _plot_linear_fit(
             f"{nm} Year\n({yr})",
             (yr, val),
             arrowprops=dict(arrowstyle="->", color="C2"),
-            xytext=(yr + 1, val - 5),
+            xytext=(yr + 2, val * 0.9),
             bbox=dict(fc=(0.8, 1, 0.8, 0.5), alpha=0.5, ec="C2", boxstyle="Round"),
         )
 
     ax.set_ylim(0, None)
+    ax.set_xlim(min(LGV_SURVEY_YEAR, base_year, forecast_year, fit.data.index.min()) - 1, None)
     ax.xaxis.set_minor_locator(ticker.AutoMinorLocator())
     ax.yaxis.set_minor_locator(ticker.AutoMinorLocator())
     ax.grid()
@@ -752,7 +761,34 @@ def _plot_linear_fit(
     LOG.info("Written: %s", output_path.name)
 
 
-def calculate_growth_factor(
+def _calculate_growth_factors(
+    fit: _GrowthFactorLinRegress, base_year: int, forecast_year: int, plot_path: pathlib.Path
+) -> dict[str, float]:
+    _plot_linear_fit(fit, base_year, forecast_year, plot_path)
+
+    base_projection = fit.year_value(base_year)
+    survey_projection = fit.year_value(LGV_SURVEY_YEAR)
+    forecast_projection = fit.year_value(forecast_year)
+
+    base_growth = base_projection / survey_projection
+    forecast_growth = forecast_projection / survey_projection
+    growth_adjust = BASE_LGV_GROWTH_FACTOR / base_growth
+
+    return {
+        "Survey year": LGV_SURVEY_YEAR,
+        "Base year": base_year,
+        "Forecast year": forecast_year,
+        "Projection growth to base": base_growth,
+        "Projection growth to forecast": forecast_growth,
+        "Base growth factor": BASE_LGV_GROWTH_FACTOR,
+        "Growth adjustment factor": growth_adjust,
+        "Growth factor survey to forecast": growth_adjust * forecast_growth,
+        "Growth factor base to forecast": fit.year_value(forecast_year)
+        / fit.year_value(base_year),
+    }
+
+
+def calculate_veh_km_growth_factor(
     veh_kms_path: pathlib.Path, base_year: int, forecast_year: int, plot_path: pathlib.Path
 ) -> dict[str, float]:
     # TODO Docstring
@@ -766,22 +802,32 @@ def calculate_growth_factor(
     index_cols = ["Region", "Area type", "Vehicle Type"]
     rtf_veh_kms.loc[:, index_cols] = rtf_veh_kms[index_cols].fillna(method="ffill")
     rtf_veh_kms.set_index(index_cols, inplace=True)
-    rtf_veh_kms.columns = pd.to_numeric(rtf_veh_kms.columns, downcast="integer")
+    rtf_veh_kms.columns = pd.to_numeric(rtf_veh_kms.columns, downcast="unsigned")
 
-    fit = _GrowthFactorLinRegress(rtf_veh_kms.loc["England", "All", "LGV"])
-    _plot_linear_fit(fit, base_year, forecast_year, plot_path)
+    data: pd.Series = rtf_veh_kms.loc["England", "All", "LGV"]
+    data.name = "LGV Vehicle Kilometres (billions)"
 
-    base_growth = fit.year_value(base_year) / fit.year_value(LGV_SURVEY_YEAR)
-    forecast_growth = fit.year_value(forecast_year) / fit.year_value(LGV_SURVEY_YEAR)
-    growth_adjust = BASE_LGV_GROWTH_FACTOR / base_growth
-    growth_factor = growth_adjust * forecast_growth
+    fit = _GrowthFactorLinRegress(data)
+    return _calculate_growth_factors(fit, base_year, forecast_year, plot_path)
 
-    return {
-        "RTF growth to base": base_growth,
-        "RTF growth to forecast": forecast_growth,
-        "LGV growth adjustment factor": growth_adjust,
-        f"LGV growth factor to forecast {forecast_year}": growth_factor,
-    }
+
+def calculate_fleet_projections_growth_factor(
+    projections_path: pathlib.Path, base_year: int, forecast_year: int, plot_path: pathlib.Path
+) -> dict[str, float]:
+    data = pd.read_csv(projections_path, comment=CSV_COMMENT_CHARACTER, index_col=0)
+    data.columns = pd.to_numeric(data.columns, downcast="unsigned")
+    data.index = data.index.str.strip().str.upper()
+
+    lgv_projections: pd.Series = data.loc["LGV"]
+    lgv_projections.name = "LGV Fleet Growth Projections from NoCARB"
+
+    # Growth factors are given as cumulative product relative increase
+    # so need combining to calculate actual growth factors per year
+    lgv_projections += 1
+    lgv_projections = lgv_projections.cumprod()
+
+    fit = _GrowthFactorLinRegress(lgv_projections)
+    return _calculate_growth_factors(fit, base_year, forecast_year, plot_path)
 
 
 def compare_column_totals(base: pd.DataFrame, forecast: pd.DataFrame) -> pd.DataFrame:
@@ -800,7 +846,10 @@ def compare_column_totals(base: pd.DataFrame, forecast: pd.DataFrame) -> pd.Data
 
 def main(params: ForecastInputsConfig) -> None:
     # TODO Docstring
-    output_folder = params.output_folder / f"LGV Forecast Inputs - {params.forecast_year}"
+    output_folder = (
+        params.output_folder / f"LGV Forecast Inputs {params.forecast_year} "
+        f"- {dt.date.today():%Y%m%d}"
+    )
     output_folder.mkdir(exist_ok=True)
 
     # TODO(MB) Use LogHelper class from caf.toolkit
@@ -890,14 +939,20 @@ def main(params: ForecastInputsConfig) -> None:
 
     forecast_paths = _recursive_apply(forecast_paths, lambda x: x.relative_to(output_folder))
 
-    # TODO Add function to calculate growth factor using fleet projections
-    growth_factors = calculate_growth_factor(
+    growth_factors = calculate_veh_km_growth_factor(
         params.forecasted_vehicle_kms,
         params.base_year,
         params.forecast_year,
         output_folder / "LGV_growth_factor_plot.pdf",
     )
-    forecast_paths.update({"growth factors": growth_factors})
+    forecast_paths.update({"Vehicle km based growth factors": growth_factors})
+    growth_factors = calculate_fleet_projections_growth_factor(
+        params.fleet_growth,
+        params.base_year,
+        params.forecast_year,
+        output_folder / "LGV_fleet_projections_growth_factor_plot.pdf",
+    )
+    forecast_paths.update({"NoCARB fleet projections based growth factors": growth_factors})
 
     write_forecast_log(
         forecast_paths,

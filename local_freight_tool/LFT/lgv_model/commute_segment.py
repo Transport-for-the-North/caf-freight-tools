@@ -8,7 +8,7 @@
 from itertools import chain
 import pathlib
 import re
-from typing import Optional
+from typing import Optional, Union
 
 # Third party imports
 import numpy as np
@@ -58,7 +58,9 @@ class WarehouseParameters(pydantic.BaseModel):
     medium: Optional[float] = fields.Field(alias="Weighting - Medium")
     high: Optional[float] = fields.Field(alias="Weighting - High")
     low: Optional[float] = fields.Field(alias="Weighting - Low")
-    zone_infill: list[int] = fields.Field(alias="Model Zone Infill", default_factory=list)
+    zone_infill: list[Union[int, str]] = fields.Field(
+        alias="Model Zone Infill", default_factory=list
+    )
     infill_method: Optional[lgv_inputs.InfillMethod] = fields.Field(
         None, alias="Zone Infill Method"
     )
@@ -146,6 +148,7 @@ class CommuteTripEnds:
             self.paths.parameters_path, sheets=self.COMMUTING_INPUTS_SHEET_HEADERS
         )
 
+        # TODO Create a pydantic dataclass to store / validate the parameters
         self.params = utilities.to_dict(
             commute_tables["Parameters"], "Parameter", ("Value", float)
         )
@@ -167,11 +170,21 @@ class CommuteTripEnds:
             commute_trips_main_usage["S"] + commute_trips_main_usage["C"]
         )
 
+        self.commute_trips_main_usage = {
+            k: v * self.params["LGV growth"] for k, v in self.commute_trips_main_usage.items()
+        }
+        print(f"Grown {self.commute_trips_main_usage=}")
+
         self.commute_trips_land_use = utilities.to_dict(
             commute_tables["Commute trips by land use"],
             key_col="Land use at trip end",
             val_col=("Trips", int),
         )
+
+        self.commute_trips_land_use = {
+            k: v * self.params["LGV growth"] for k, v in self.commute_trips_land_use.items()
+        }
+        print(f"Grown {self.commute_trips_land_use=}")
 
     def _read_zone_lookups(self):
         for key, value in self.paths.dict().items():
@@ -428,7 +441,6 @@ class CommuteTripEnds:
                 0.5
                 * qs606uk.loc[:, occupation]
                 * self.commute_trips_main_usage[occupation]
-                * self.params["LGV growth"]
                 / totals[occupation]
             )
 
@@ -457,10 +469,13 @@ class CommuteTripEnds:
             for category in factors_missing:
                 self.ATTRACTION_FUNCTIONS[category]()
 
-        # calculate skilled attractions
+        # calculate skilled attractions, using just residential and construction
+        # because employment is used for drivers
         skilled_attractions = {}
-        for key, value in self.commute_trips_land_use.items():
-            skilled_attractions[key] = value * self.attractor_factors[key]
+        for key in ["Residential", "Construction"]:
+            skilled_attractions[key] = (
+                self.commute_trips_land_use[key] * self.attractor_factors[key]
+            )
 
         skilled_attractions = sum(skilled_attractions.values()).rename(
             columns={"factor": "trips"}
@@ -513,7 +528,8 @@ class CommuteTripEnds:
         if self.warehouse_parameters.zone_infill and all_nans.sum() > 0:
             if self.warehouse_parameters.infill_method is None:
                 raise ValueError(
-                    f"{len(self.warehouse_parameters.zone_infill)} zones provided for infilling but no infill method is given"
+                    f"{len(self.warehouse_parameters.zone_infill)} zones "
+                    "provided for infilling but no infill method is given"
                 )
 
             infill_function = self.warehouse_parameters.infill_method.method()
