@@ -1,5 +1,5 @@
-Python Module Documentation
-===========================
+Module Documentation
+====================
 
 This section shows the documentation for the Python code used to create this tool,
 last updated on |today|.

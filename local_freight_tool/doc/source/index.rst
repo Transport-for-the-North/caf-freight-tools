@@ -3,13 +3,27 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Local Freight Tool's Python Coding Documentation
-================================================
+Local Freight Tool's Documentation
+==================================
+
+This document outlines all the Python modules, classes and functions
+that are used to make up the Local Freight Tool. It is provided as a
+reference guide for the Python coding and not as a guide on how to use
+the Local Freight Tool, that guide is available separately.
+
+Contents
+--------
 
 .. toctree::
-   :maxdepth: 3
-   :caption: Contents:
+   :maxdepth: 2
 
-   introduction
    coding_doc
+   readme
 
+
+Indices
+-------
+
+* :ref:`genindex`
+* :ref:`modindex`
+* :ref:`search`
