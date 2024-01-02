@@ -113,6 +113,8 @@ class AnalysisInputs:
     od_demand_matrix_path: pathlib.Path
     zone_centroids_path: pathlib.Path
     range: float
+    od_lines: Optional[OdLinesInputs]=None
+
 
     def parse_analysis_inputs(self) -> ParsedAnalysisInputs:
         """parses inputs into a named tuple
@@ -193,6 +195,17 @@ class ODMatrixInputs:
             matrix = pd.read_csv(path)
             od_matrices[keys[key_index]] = check_and_format_demand_matrix(matrix)
         return od_matrices
+
+@dataclasses.dataclass
+class OdLinesInputs:
+    thirsty_lines: dict[str, pathlib.Path]
+
+    def parse(self)->dict[str, gpd.GeoDataFrame]:
+        output = {}
+        for key, path in self.thirsty_lines:
+            output[key] = gpd.read_file(path)
+        return output
+    
 
 
 @dataclasses.dataclass

@@ -379,12 +379,17 @@ def od_bendy_lines(
             try:
                 shortest_path = one_to_all_shortest_path[end]
                 shortest_path_links = zip(shortest_path[:-1], shortest_path[1:])
+                
                 shortest_path_geom = ops.linemerge(
                     network_geom.loc[shortest_path_links, "geometry"].tolist()
                 )
                 lines.append(shortest_path_geom)
             except KeyError:
                 LOG.warning(f"missing bendy links between {start} and {end} nodes")
+
+            except Exception as e:
+                LOG.warning(f"failed to create route, due to: {e}")
+
 
     #    shortest_path = nx.astar_path(
     #        network, start, end, heuristic=calc_distance, weight="link_time"
@@ -407,7 +412,7 @@ def od_bendy_lines_mp(
     network_geom.set_index(["a", "b"], inplace=True)
 
     # Split the line_end_points DataFrame into chunks for parallel processing
-    num_processes = multiprocessing.cpu_count()
+    num_processes = 500
     chunk_size = len(line_end_points) // num_processes
     chunks = [
         {
@@ -420,12 +425,11 @@ def od_bendy_lines_mp(
     ]
 
     # Create a multiprocessing pool
-    pool = multiprocessing.Pool(processes=num_processes)
+    pool = multiprocessing.Pool(processes=multiprocessing.cpu_count()-1)
 
     # Calculate shortest paths concurrently using multiprocessing
-    lines = pool.map(
-        parallel_process, tqdm(chunks, desc=f"{logging_tag} OD bendy lines")
-    )
+    lines = list(tqdm(pool.imap(
+        parallel_process, chunks,),  desc=f"{logging_tag} OD bendy lines", total = num_processes))
 
     pool.close()
     pool.join()
@@ -433,29 +437,30 @@ def od_bendy_lines_mp(
     return lines
 
 
-def calculate_shortest_path(start, end, network, network_nodes, network_geom):
+def calculate_shortest_path(end_points, network, network_nodes, network_geom):
     def calc_distance(a, b) -> float:
         return network_nodes.loc[a, "geometry"].distance(
             network_nodes.loc[b, "geometry"]
         )
-
-    shortest_path = nx.astar_path(
-        network, start, end, heuristic=calc_distance, weight="link_time"
-    )
-    shortest_path_links = zip(shortest_path[:-1], shortest_path[1:])
-    shortest_path_geom = ops.linemerge(
-        network_geom.loc[shortest_path_links, "geometry"].tolist()
-    )
+    shortest_path_geom = []
+    for start, end in end_points.values:
+        shortest_path = nx.astar_path(
+            network, start, end, heuristic=calc_distance, weight="link_time"
+        )
+        shortest_path_links = zip(shortest_path[:-1], shortest_path[1:])
+        shortest_path_geom.append(ops.linemerge(
+            network_geom.loc[shortest_path_links, "geometry"].tolist()
+        ))
     return shortest_path_geom
 
 
 # Define a function for parallel processing
 def parallel_process(args):
-    start, end = args["end_points"]
+    end_points = args["end_points"]
     network = args["network"]
     nodes = args["nodes"]
     geom = args["geom"]
-    return calculate_shortest_path(start, end, network, nodes, geom)
+    return calculate_shortest_path(end_points, network, nodes, geom)
 
 
 def weighted_avg(values: pd.Series, weights: pd.Series) -> float:
