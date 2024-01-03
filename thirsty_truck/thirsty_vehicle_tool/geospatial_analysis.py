@@ -369,7 +369,7 @@ def od_bendy_lines(
         )
 
     lines = []
-
+    failed_count = 0
     for start, end in tqdm(
         line_end_points.values, desc=f"{logging_tag} OD bendy lines"
     ):
@@ -390,15 +390,19 @@ def od_bendy_lines(
         #    except Exception as e:
         #        LOG.warning(f"failed to create route, due to: {e}")
 
-
-        shortest_path = nx.astar_path(
-            network, start, end, heuristic=calc_distance, weight="link_time"
-        )
-        shortest_path_links = zip(shortest_path[:-1], shortest_path[1:])
-        shortest_path_geom = ops.linemerge(
-            network_geom.loc[shortest_path_links, "geometry"].tolist()
-        )
-        lines.append(shortest_path_geom)
+        try:
+            shortest_path = nx.astar_path(
+                network, start, end, heuristic=calc_distance, weight="link_time"
+            )
+            shortest_path_links = zip(shortest_path[:-1], shortest_path[1:])
+            shortest_path_geom = ops.linemerge(
+                network_geom.loc[shortest_path_links, "geometry"].tolist()
+            )
+            lines.append(shortest_path_geom)
+        except Exception as e:
+                LOG.warning(f"failed to create route, due to: {e}")
+                failed_count +=1
+    LOG.info(f"{failed_count} failed lines, {len(lines)} successfull lines")
     return lines
 
 
