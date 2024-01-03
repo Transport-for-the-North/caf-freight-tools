@@ -370,35 +370,35 @@ def od_bendy_lines(
 
     lines = []
 
-    for start in tqdm(
-        line_end_points["origin"].unique(), desc=f"{logging_tag} OD bendy lines"
+    for start, end in tqdm(
+        line_end_points.values, desc=f"{logging_tag} OD bendy lines"
     ):
-        one_to_all_shortest_path = nx.single_source_dijkstra_path(network, start)
+        #one_to_all_shortest_path = nx.single_source_dijkstra_path(network, start)
 
-        for end in line_end_points.loc[line_end_points["origin"]==start, "destination"]:
-            try:
-                shortest_path = one_to_all_shortest_path[end]
-                shortest_path_links = zip(shortest_path[:-1], shortest_path[1:])
-                
-                shortest_path_geom = ops.linemerge(
-                    network_geom.loc[shortest_path_links, "geometry"].tolist()
-                )
-                lines.append(shortest_path_geom)
-            except KeyError:
-                LOG.warning(f"missing bendy links between {start} and {end} nodes")
+        #for end in line_end_points.loc[line_end_points["origin"]==start, "destination"]:
+        #    try:
+        #        shortest_path = one_to_all_shortest_path[end]
+        #        shortest_path_links = zip(shortest_path[:-1], shortest_path[1:])
+        #        
+        #        shortest_path_geom = ops.linemerge(
+        #            network_geom.loc[shortest_path_links, "geometry"].tolist()
+        #        )
+        #        lines.append(shortest_path_geom)
+        #    except KeyError:
+        #        LOG.warning(f"missing bendy links between {start} and {end} nodes")
 
-            except Exception as e:
-                LOG.warning(f"failed to create route, due to: {e}")
+        #    except Exception as e:
+        #        LOG.warning(f"failed to create route, due to: {e}")
 
 
-    #    shortest_path = nx.astar_path(
-    #        network, start, end, heuristic=calc_distance, weight="link_time"
-    #    )
-    #    shortest_path_links = zip(shortest_path[:-1], shortest_path[1:])
-    #    shortest_path_geom = ops.linemerge(
-    #        network_geom.loc[shortest_path_links, "geometry"].tolist()
-    #    )
-    #    lines.append(shortest_path_geom)
+        shortest_path = nx.astar_path(
+            network, start, end, heuristic=calc_distance, weight="link_time"
+        )
+        shortest_path_links = zip(shortest_path[:-1], shortest_path[1:])
+        shortest_path_geom = ops.linemerge(
+            network_geom.loc[shortest_path_links, "geometry"].tolist()
+        )
+        lines.append(shortest_path_geom)
     return lines
 
 
