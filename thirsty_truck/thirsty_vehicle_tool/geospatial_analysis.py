@@ -4,6 +4,7 @@ creates OD lines between each OD pair
 # standard imports
 import pathlib
 from typing import Optional
+import glob
 
 # third party imports
 import geopandas as gpd
@@ -19,6 +20,9 @@ from thirsty_vehicle_tool import input_output_constants, tv_logging
 
 # constants
 LOG = tv_logging.get_logger(__name__)
+CHUNK_SIZE = 20000
+M_TO_KM = 1000
+OD_LINE_FILE_EXT = ".shp"
 
 
 def get_thirsty_points(
@@ -53,25 +57,47 @@ def get_thirsty_points(
     od_matrix = remove_intrazonal_trips(data_inputs.demand_marix)
 
     # create a linestring between each OD pair, with the trips as an atribute
-    od_lines = create_od_lines(
-        od_matrix,
-        data_inputs.zone_centroids,
-        data_inputs.range,
-        logging_tag,
-        data_inputs.network,
-        data_inputs.network_nodes,
-        output_folder / "od_routes.shp"
-    )
 
-    # replace od lines geometry with a list points along line in steps of given range
+    od_routes_dir = output_folder / "od_routes"
+    od_routes_dir.mkdir(exist_ok=True)
+    if data_inputs.od_lines is None:
+        od_lines = create_od_lines(
+            od_matrix,
+            data_inputs.zone_centroids,
+            data_inputs.range,
+            logging_tag,
+            data_inputs.network,
+            data_inputs.network_nodes,
+            od_routes_dir,
+        )
+    else:
+        od_lines = glob.glob(str(data_inputs.od_lines / f"*{OD_LINE_FILE_EXT}"))
+        if len(od_lines)==0:
+            raise ValueError(f"The directory provided for OD lines: {od_lines}, does not contain any ({OD_LINE_FILE_EXT}) files")
+        
     LOG.info(f"{logging_tag}: Creating thirsty points")
+    
     tqdm.pandas(desc=f"{logging_tag} thirsty points")
-    od_lines["point_geometry"] = od_lines["geometry"].progress_apply(
-        drop_points, step=data_inputs.range
-    )
+    if isinstance(od_lines, gpd.GeoDataFrame):
+    # replace od lines geometry with a list points along line in steps of given range
+        od_lines["point_geometry"] = od_lines["geometry"].progress_apply(
+            drop_points, step=data_inputs.range
+        )
+        thirsty_points = od_lines.explode(column="point_geometry", index_parts=False)
 
+    else:
+        stacked_thirsty_points = []
+        for i, od_line_file in enumerate(od_lines):
+            LOG.info(f"proccessing od file {i+1} out of {len(od_lines)}")
+            line = gpd.read_file(od_line_file)
+            line["point_geometry"] = line["geometry"].progress_apply(
+                drop_points, step=data_inputs.range
+            )
+            stacked_thirsty_points.append(line)
+        thirsty_points = pd.concat(stacked_thirsty_points)
+        thirsty_points = thirsty_points.explode(column="point_geometry", index_parts=False)
+        
     # expand the lists, gives each item in list its own row and dupilcate other columns
-    thirsty_points = od_lines.explode(column="point_geometry", index_parts=False)
     thirsty_points.reset_index(drop=True, inplace=True)
 
     # tidy up columns and set new geometry
@@ -233,7 +259,7 @@ def create_od_lines(
         weighted_avg(
             filtered_od_geom_matrix["distance"], filtered_od_geom_matrix["trips"]
         )
-        / 1000
+        / M_TO_KM
     )
     #   output stats
     LOG.info(
@@ -249,18 +275,34 @@ def create_od_lines(
     LOG.info(f"{logging_tag}: Creating OD lines")
 
     if network is not None:
-        line_end_points_id = filtered_od_geom_matrix.loc[:, ["origin", "destination"]]
+        #create graph
         network.loc[
             network["spdlimit"] == 0, "spdlimit"
         ] = input_output_constants.DEFAULT_SPEED_LIMIT
 
         network["link_time"] = network["distance"] / network["spdlimit"]
-
+        
         network_graph = create_graph(network, network_nodes)
-        filtered_od_geom_matrix["geometry"] = od_bendy_lines(
-            line_end_points_id, network_graph, network, network_nodes, logging_tag
-        )
 
+        network.set_index(["a", "b"], inplace=True)
+
+
+        #od data 
+        line_end_points_id = filtered_od_geom_matrix.loc[:, ["origin", "destination"]]
+        # chunk end points
+        chunked_end_points = chunk_dataframe(line_end_points_id, CHUNK_SIZE)
+
+        for i, chunk in enumerate(chunked_end_points):
+            LOG.info(f"{logging_tag}:- running shortest path for chunk {i+1} / {len(chunked_end_points)}")
+            chunk["geometry"] = od_bendy_lines(
+                chunk, network_graph, network.copy(), network_nodes.copy(), logging_tag
+            )
+            if output_path is not None:
+
+                LOG.info(f"Writing OD routes chunk {i} to {output_path}")
+
+                input_output_constants.to_shape_file(output_path / f"routes_{i+1}{OD_LINE_FILE_EXT}", chunk)
+        return glob.glob(str(output_path/ f"*{OD_LINE_FILE_EXT}"))
     else:
         line_end_points_geom = filtered_od_geom_matrix.loc[
             :, ["geometry_origin", "geometry_destination"]
@@ -277,9 +319,7 @@ def create_od_lines(
         filtered_od_geom_matrix, geometry="geometry"
     )
     LOG.debug("OD linestrings created")
-    if output_path is not None:
-        LOG.info(f"Writing OD routes to {output_path}")
-        input_output_constants.to_shape_file(output_path, filtered_od_geom_matrix)
+        
 
     return filtered_od_geom_matrix
 
@@ -361,7 +401,6 @@ def od_bendy_lines(
     network_nodes: gpd.GeoDataFrame,
     logging_tag: str,
 ) -> list[geometry.LineString]:
-    network_geom.set_index(["a", "b"], inplace=True)
 
     def calc_distance(a, b) -> float:
         return network_nodes.loc[a, "geometry"].distance(
@@ -483,3 +522,31 @@ def weighted_avg(values: pd.Series, weights: pd.Series) -> float:
         weighted mean
     """
     return (values * weights).sum() / weights.sum()
+
+
+def chunk_dataframe(df, chunk_size):
+    """
+    Chunk a DataFrame into a list of smaller DataFrames.
+
+    Parameters:
+    - df: pandas DataFrame
+        The DataFrame to be chunked.
+    - chunk_size: int
+        The desired length of each chunk.
+
+    Returns:
+    - List of pandas DataFrames
+        A list containing smaller DataFrames of length `chunk_size`.
+    """
+    if not isinstance(df, pd.DataFrame):
+        raise ValueError("Input must be a pandas DataFrame.")
+
+    if not isinstance(chunk_size, int) or chunk_size <= 0:
+        raise ValueError("Chunk size must be a positive integer.")
+
+    num_rows = len(df)
+    num_chunks = (num_rows + chunk_size - 1) // chunk_size  # Calculate the number of chunks
+
+    chunks = [df.iloc[i * chunk_size: (i + 1) * chunk_size] for i in range(num_chunks)]
+
+    return chunks

@@ -113,7 +113,7 @@ class AnalysisInputs:
     od_demand_matrix_path: pathlib.Path
     zone_centroids_path: pathlib.Path
     range: float
-    od_lines: Optional[OdLinesInputs]=None
+    od_lines: Optional[pathlib.Path]=None
 
 
     def parse_analysis_inputs(self) -> ParsedAnalysisInputs:
@@ -158,6 +158,7 @@ class AnalysisInputs:
             network_nodes= network_nodes, 
             zone_centroids=zone_centroids,
             range=range_,
+            od_lines=self.od_lines,
         )
 
 
@@ -393,9 +394,10 @@ class ParsedAnalysisInputs(NamedTuple):
     """
 
     demand_marix: pd.DataFrame
-    network: gpd.GeoDataFrame
-    network_nodes: gpd.GeoDataFrame
-    zone_centroids: gpd.GeoDataFrame
+    network: Optional[gpd.GeoDataFrame]
+    network_nodes: Optional[gpd.GeoDataFrame]
+    zone_centroids: Optional[gpd.GeoDataFrame]
+    od_lines: Optional[pathlib.Path]
     range: float
 
 
@@ -767,6 +769,11 @@ def to_shape_file(file_name: pathlib.Path, data: gpd.GeoDataFrame) -> None:
     data : gpd.GeoDataFrame
         data to save
     """
+    if isinstance(data, pd.DataFrame):
+        try:
+            data = gpd.GeoDataFrame(data, geometry="geometry")
+        except KeyError:
+            raise TypeError("Expected a GeoDataFrame, got Dataframe with no 'geometry' column")
     data.to_file(file_name)
 
 
