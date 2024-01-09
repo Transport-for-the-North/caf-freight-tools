@@ -400,7 +400,7 @@ def create_hex_shapefile(
 
     hexs["rel_scale"] = hex_bin.relative_count
     output_folder.mkdir(exist_ok=True)
-    input_output_constants.to_shape_file(output_folder / file_name, hexs)
+    input_output_constants.to_shape_file(output_folder / file_name, hexs.loc[:,["geometry", "rel_scale"]])
 
 
 def get_lines_glyph_source(

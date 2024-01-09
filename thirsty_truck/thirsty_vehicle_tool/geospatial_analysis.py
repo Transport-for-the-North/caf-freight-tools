@@ -23,6 +23,8 @@ LOG = tv_logging.get_logger(__name__)
 CHUNK_SIZE = 20000
 M_TO_KM = 1000
 OD_LINE_FILE_EXT = ".shp"
+ORIGIN_COLUMN = "origin"
+DESTINATION_COLUMN = "destinatio"
 
 
 def get_thirsty_points(
@@ -74,35 +76,41 @@ def get_thirsty_points(
         od_lines = glob.glob(str(data_inputs.od_lines / f"*{OD_LINE_FILE_EXT}"))
         if len(od_lines)==0:
             raise ValueError(f"The directory provided for OD lines: {od_lines}, does not contain any ({OD_LINE_FILE_EXT}) files")
-        
-    LOG.info(f"{logging_tag}: Creating thirsty points")
     
-    tqdm.pandas(desc=f"{logging_tag} thirsty points")
     if isinstance(od_lines, gpd.GeoDataFrame):
-    # replace od lines geometry with a list points along line in steps of given range
-        od_lines["point_geometry"] = od_lines["geometry"].progress_apply(
+        demand_od_lines = od_lines
+        tqdm.pandas(desc=f"{logging_tag}: creating thirsty points")
+        demand_od_lines["point_geometry"] = demand_od_lines["geometry"].progress_apply(
             drop_points, step=data_inputs.range
         )
-        thirsty_points = od_lines.explode(column="point_geometry", index_parts=False)
+        demand_od_lines.drop(columns="geometry", inplace=True)
+        demand_od_lines.rename(columns={"point_geometry": "geometry"}, inplace=True)
 
     else:
         stacked_thirsty_points = []
-        for i, od_line_file in enumerate(od_lines):
-            LOG.info(f"proccessing od file {i+1} out of {len(od_lines)}")
-            line = gpd.read_file(od_line_file)
-            line["point_geometry"] = line["geometry"].progress_apply(
+        filtered_od_matrix = od_matrix.loc[od_matrix["trips"]!=0]
+
+        for od_lines_file in tqdm(od_lines, desc = f"{logging_tag}: creating thirsty points"):
+            path = gpd.read_file(od_lines_file)
+            demand_path = path.merge(filtered_od_matrix, left_on = ["origin", "destinatio"], right_on=["origin", "destination"], how="left")
+            if demand_path["trips"].isna().any():
+                LOG.warning("missing demand")
+            demand_path["point_geometry"] = demand_path["geometry"].apply(
                 drop_points, step=data_inputs.range
             )
-            stacked_thirsty_points.append(line)
-        thirsty_points = pd.concat(stacked_thirsty_points)
-        thirsty_points = thirsty_points.explode(column="point_geometry", index_parts=False)
-        
-    # expand the lists, gives each item in list its own row and dupilcate other columns
-    thirsty_points.reset_index(drop=True, inplace=True)
+            demand_path.drop(columns="geometry", inplace=True)
+            demand_path.rename(columns={"point_geometry": "geometry"}, inplace=True)
+            stacked_thirsty_points.append(demand_path)
+        demand_od_lines = pd.concat(stacked_thirsty_points, ignore_index=True)
+            
 
+    #create thirsty pointshe lists, gives each item in list its own row and dupilcate other columns
+
+    thirsty_points = demand_od_lines.explode(column="geometry")
+
+    thirsty_points.reset_index(drop=True, inplace=True)
     # tidy up columns and set new geometry
-    thirsty_points.drop(columns="geometry", inplace=True)
-    thirsty_points.rename(columns={"point_geometry": "geometry"}, inplace=True)
+
     thirsty_points = gpd.GeoDataFrame(thirsty_points, geometry="geometry")
     thirsty_points.crs = input_output_constants.CRS
 
@@ -241,36 +249,12 @@ def create_od_lines(
     d_points = gpd.GeoDataFrame(
         od_geom_matrix["geometry_destination"], geometry="geometry_destination"
     )
-    od_geom_matrix["distance"] = o_points.distance(d_points)
+    
 
     #    filter and calculate some high level stats
-
-    filtered_od_geom_matrix = od_geom_matrix.loc[od_geom_matrix["distance"] > range_]
-    filtered_od_geom_matrix = filtered_od_geom_matrix.loc[
-        filtered_od_geom_matrix["trips"] > 0
-    ]
-    filtered_out = od_geom_matrix.loc[
-        ~od_geom_matrix.index.isin(filtered_od_geom_matrix.index)
-    ]
-    filtered_out_od_pairs = len(filtered_out)
-    filtered_out_trips = filtered_out["trips"].sum()
-    filtered_trips = filtered_od_geom_matrix["trips"].sum()
-    mean_length = (
-        weighted_avg(
-            filtered_od_geom_matrix["distance"], filtered_od_geom_matrix["trips"]
-        )
-        / M_TO_KM
-    )
-    #   output stats
-    LOG.info(
-        f"{logging_tag}: {filtered_out_od_pairs:.3e} OD pairs removed which contains "
-        f"{filtered_out_trips:.3e} trips"
-    )
-    LOG.info(
-        f"{logging_tag}: {len(filtered_od_geom_matrix):.3e} OD pairs remaining which contains "
-        f"{filtered_trips:.3e} trips of average length: {mean_length:.0f}km"
-    )
-
+    """
+    
+    """
     # Create OD lines, format & tidy up
     LOG.info(f"{logging_tag}: Creating OD lines")
 
@@ -288,11 +272,12 @@ def create_od_lines(
 
 
         #od data 
-        line_end_points_id = filtered_od_geom_matrix.loc[:, ["origin", "destination"]]
+        line_end_points_id = od_geom_matrix.loc[:, ["origin", "destination"]]
         # chunk end points
         chunked_end_points = chunk_dataframe(line_end_points_id, CHUNK_SIZE)
 
         for i, chunk in enumerate(chunked_end_points):
+            
             LOG.info(f"{logging_tag}:- running shortest path for chunk {i+1} / {len(chunked_end_points)}")
             chunk["geometry"] = od_bendy_lines(
                 chunk, network_graph, network.copy(), network_nodes.copy(), logging_tag
@@ -303,26 +288,54 @@ def create_od_lines(
 
                 input_output_constants.to_shape_file(output_path / f"routes_{i+1}{OD_LINE_FILE_EXT}", chunk)
         return glob.glob(str(output_path/ f"*{OD_LINE_FILE_EXT}"))
+    
     else:
+        #filter demand matrix
+        od_geom_matrix["distance"] = o_points.distance(d_points)
+        filtered_od_geom_matrix = od_geom_matrix.loc[od_geom_matrix["distance"] > range_]
+        filtered_od_geom_matrix = filtered_od_geom_matrix.loc[
+            filtered_od_geom_matrix["trips"] > 0
+        ]
+        filtered_out = od_geom_matrix.loc[
+            ~od_geom_matrix.index.isin(filtered_od_geom_matrix.index)
+        ]
+        filtered_out_od_pairs = len(filtered_out)
+        filtered_out_trips = filtered_out["trips"].sum()
+        filtered_trips = filtered_od_geom_matrix["trips"].sum()
+        mean_length = (
+            weighted_avg(
+                filtered_od_geom_matrix["distance"], filtered_od_geom_matrix["trips"]
+            )
+            / M_TO_KM
+        )
+        #   output stats
+        LOG.info(
+            f"{logging_tag}: {filtered_out_od_pairs:.3e} OD pairs removed which contains "
+            f"{filtered_out_trips:.3e} trips"
+        )
+        LOG.info(
+            f"{logging_tag}: {len(filtered_od_geom_matrix):.3e} OD pairs remaining which contains "
+            f"{filtered_trips:.3e} trips of average length: {mean_length:.0f}km"
+        )
         line_end_points_geom = filtered_od_geom_matrix.loc[
             :, ["geometry_origin", "geometry_destination"]
         ]
+        #create OD lines
         filtered_od_geom_matrix["geometry"] = od_lines(
             line_end_points_geom, logging_tag
         )
 
     
-    filtered_od_geom_matrix.drop(
-        columns=["geometry_origin", "geometry_destination", "distance"], inplace=True
-    )
-    filtered_od_geom_matrix = gpd.GeoDataFrame(
-        filtered_od_geom_matrix, geometry="geometry"
-    )
-    LOG.debug("OD linestrings created")
-        
+        filtered_od_geom_matrix.drop(
+            columns=["geometry_origin", "geometry_destination", "distance"], inplace=True
+        )
+        filtered_od_geom_matrix = gpd.GeoDataFrame(
+            filtered_od_geom_matrix, geometry="geometry"
+        )
+        LOG.debug("OD linestrings created")
+            
 
-    return filtered_od_geom_matrix
-
+        return filtered_od_geom_matrix
 
 def create_graph(
     network: gpd.GeoDataFrame, network_nodes: gpd.GeoDataFrame
