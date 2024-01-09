@@ -71,6 +71,7 @@ def get_thirsty_points(
             data_inputs.network,
             data_inputs.network_nodes,
             od_routes_dir,
+            True,
         )
     else:
         od_lines = glob.glob(str(data_inputs.od_lines / f"*{OD_LINE_FILE_EXT}"))
@@ -162,6 +163,7 @@ def create_od_lines(
     network: Optional[gpd.GeoDataFrame] = None,
     network_nodes: Optional[gpd.GeoDataFrame] = None,
     output_path: Optional[pathlib.Path] = None,
+    skip_existing_files: bool = False, 
 ) -> gpd.GeoDataFrame:
     """creates linestring for each OD pair
 
@@ -252,9 +254,33 @@ def create_od_lines(
     
 
     #    filter and calculate some high level stats
-    """
-    
-    """
+    #filter demand matrix
+    od_geom_matrix["distance"] = o_points.distance(d_points)
+    filtered_od_geom_matrix = od_geom_matrix.loc[od_geom_matrix["distance"] > range_]
+    filtered_od_geom_matrix = filtered_od_geom_matrix.loc[
+        filtered_od_geom_matrix["trips"] > 0
+    ]
+    filtered_out = od_geom_matrix.loc[
+        ~od_geom_matrix.index.isin(filtered_od_geom_matrix.index)
+    ]
+    filtered_out_od_pairs = len(filtered_out)
+    filtered_out_trips = filtered_out["trips"].sum()
+    filtered_trips = filtered_od_geom_matrix["trips"].sum()
+    mean_length = (
+        weighted_avg(
+            filtered_od_geom_matrix["distance"], filtered_od_geom_matrix["trips"]
+        )
+        / M_TO_KM
+    )
+    #   output stats
+    LOG.info(
+        f"{logging_tag}: {filtered_out_od_pairs:.3e} OD pairs removed which contains "
+        f"{filtered_out_trips:.3e} trips"
+    )
+    LOG.info(
+        f"{logging_tag}: {len(filtered_od_geom_matrix):.3e} OD pairs remaining which contains "
+        f"{filtered_trips:.3e} trips of average length: {mean_length:.0f}km"
+    )
     # Create OD lines, format & tidy up
     LOG.info(f"{logging_tag}: Creating OD lines")
 
@@ -272,12 +298,17 @@ def create_od_lines(
 
 
         #od data 
-        line_end_points_id = od_geom_matrix.loc[:, ["origin", "destination"]]
+        line_end_points_id = filtered_od_geom_matrix.loc[:, ["origin", "destination"]]
         # chunk end points
         chunked_end_points = chunk_dataframe(line_end_points_id, CHUNK_SIZE)
-
+        existing_outputs = glob.glob(str(output_path / f"*{OD_LINE_FILE_EXT}"))
+        existing_outputs = [pathlib.Path(path).name for path in existing_outputs]
         for i, chunk in enumerate(chunked_end_points):
-            
+
+            output_filename = output_path / f"routes_{i+1}{OD_LINE_FILE_EXT}"
+            if output_filename.name in existing_outputs and skip_existing_files:
+                continue
+
             LOG.info(f"{logging_tag}:- running shortest path for chunk {i+1} / {len(chunked_end_points)}")
             chunk["geometry"] = od_bendy_lines(
                 chunk, network_graph, network.copy(), network_nodes.copy(), logging_tag
@@ -286,37 +317,11 @@ def create_od_lines(
 
                 LOG.info(f"Writing OD routes chunk {i} to {output_path}")
 
-                input_output_constants.to_shape_file(output_path / f"routes_{i+1}{OD_LINE_FILE_EXT}", chunk)
+                input_output_constants.to_shape_file( output_filename, chunk)
         return glob.glob(str(output_path/ f"*{OD_LINE_FILE_EXT}"))
     
     else:
-        #filter demand matrix
-        od_geom_matrix["distance"] = o_points.distance(d_points)
-        filtered_od_geom_matrix = od_geom_matrix.loc[od_geom_matrix["distance"] > range_]
-        filtered_od_geom_matrix = filtered_od_geom_matrix.loc[
-            filtered_od_geom_matrix["trips"] > 0
-        ]
-        filtered_out = od_geom_matrix.loc[
-            ~od_geom_matrix.index.isin(filtered_od_geom_matrix.index)
-        ]
-        filtered_out_od_pairs = len(filtered_out)
-        filtered_out_trips = filtered_out["trips"].sum()
-        filtered_trips = filtered_od_geom_matrix["trips"].sum()
-        mean_length = (
-            weighted_avg(
-                filtered_od_geom_matrix["distance"], filtered_od_geom_matrix["trips"]
-            )
-            / M_TO_KM
-        )
-        #   output stats
-        LOG.info(
-            f"{logging_tag}: {filtered_out_od_pairs:.3e} OD pairs removed which contains "
-            f"{filtered_out_trips:.3e} trips"
-        )
-        LOG.info(
-            f"{logging_tag}: {len(filtered_od_geom_matrix):.3e} OD pairs remaining which contains "
-            f"{filtered_trips:.3e} trips of average length: {mean_length:.0f}km"
-        )
+        
         line_end_points_geom = filtered_od_geom_matrix.loc[
             :, ["geometry_origin", "geometry_destination"]
         ]
