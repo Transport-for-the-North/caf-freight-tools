@@ -79,6 +79,7 @@ TIME_PERIOD_COLUMNS = {
     "delivery_grocery": ("Delivery Grocery", float),
     "commuting_drivers": ("Commuting Drivers", float),
     "commuting_skilled_trades": ("Commuting Skilled Trades", float),
+    "personal": ("Personal", float),
 }
 """Name and dtype of the expected columns in the time period table."""
 GM_PARAMS_SHEET = "Gravity Model Parameters"
@@ -155,6 +156,14 @@ class LGVInputPaths(caf.toolkit.BaseConfig):
     """Path to Excel Workbook containing all the trip cost distributions."""
     output_folder: types.DirectoryPath
     """Path to folder to save outputs to."""
+    # TODO(MB) Check parameters and add docstrings, remove TODO comments
+    # TODO(MB) Add input folder to the Full PA NorMITs matrices at NoHAM zoning e.g. I:\NorMITs Demand\Distribution Model\iter9.10.5\car_and_passenger\Final Outputs\Full PA Matrices
+    normits_pa_folder: types.DirectoryPath
+    # TODO(MB) This is NoHAM to MSOA
+    normits_to_msoa_lookup: types.FilePath
+    normits_to_personal_factor: float
+    # TODO(MB) Parameter for list of NTEM purposes to use 
+    personal_purposes: list[int] = [3, 4, 5, 6, 7, 8, 13, 14, 15, 16, 18]
 
     @classmethod
     def write_example(cls, path: Path, **examples: str) -> None:
@@ -255,6 +264,7 @@ def write_example_config(path: Path | None) -> None:
                 trip_distributions_path="Path to Excel Workbook containing all the "
                 "trip cost distributions",
                 output_folder="Path to folder to save outputs to",
+                # TODO(MB) Add personal segment inputs descriptions
             )
 
     LGVInputPaths.write_example(path, **example_data)
