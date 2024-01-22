@@ -792,6 +792,36 @@ def write_to_csv(file_path: pathlib.Path, output: pd.DataFrame) -> None:
     """
     output.to_csv(file_path)
 
+@output_file_checks
+def overwrite_h5(file_path: pathlib.Path, output: pd.DataFrame, key) -> None:
+    """wirtes file to h5
+
+    used so wrapper with logging and permission error checks can be applied
+
+    Parameters
+    ----------
+    file_path : pathlib.Path
+        path to write csv to
+    output : pd.DataFrame
+        data to write
+    """
+    output.to_hdf(file_path, key = key, mode = "w")
+
+@output_file_checks
+def append_to_h5(file_path: pathlib.Path, output: pd.DataFrame, key) -> None:
+    """wirtes file to h5
+
+    used so wrapper with logging and permission error checks can be applied
+
+    Parameters
+    ----------
+    file_path : pathlib.Path
+        path to write csv to
+    output : pd.DataFrame
+        data to write
+    """
+    output.to_hdf(file_path, key = key, mode = "a")
+
 
 @output_file_checks
 def write_txt(file_path: pathlib.Path, output: str) -> None:

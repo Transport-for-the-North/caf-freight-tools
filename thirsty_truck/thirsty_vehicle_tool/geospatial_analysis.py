@@ -22,9 +22,9 @@ from thirsty_vehicle_tool import input_output_constants, tv_logging
 LOG = tv_logging.get_logger(__name__)
 CHUNK_SIZE = 20000
 M_TO_KM = 1000
-OD_LINE_FILE_EXT = ".shp"
-ORIGIN_COLUMN = "origin"
-DESTINATION_COLUMN = "destinatio"
+OD_LINE_FILE_EXT = ".h5"
+ORIGIN_COLUMN = "o"
+DESTINATION_COLUMN = "d"
 
 
 def get_thirsty_points(
@@ -78,6 +78,9 @@ def get_thirsty_points(
         if len(od_lines)==0:
             raise ValueError(f"The directory provided for OD lines: {od_lines}, does not contain any ({OD_LINE_FILE_EXT}) files")
     
+    #get thirsty points
+
+    #do this if straight OD line method has been used
     if isinstance(od_lines, gpd.GeoDataFrame):
         demand_od_lines = od_lines
         tqdm.pandas(desc=f"{logging_tag}: creating thirsty points")
@@ -86,22 +89,47 @@ def get_thirsty_points(
         )
         demand_od_lines.drop(columns="geometry", inplace=True)
         demand_od_lines.rename(columns={"point_geometry": "geometry"}, inplace=True)
-
+    
+    # use this is bendy OD lines have been used 
+    #TODO Multithread this bad boi
     else:
         stacked_thirsty_points = []
         filtered_od_matrix = od_matrix.loc[od_matrix["trips"]!=0]
 
         for od_lines_file in tqdm(od_lines, desc = f"{logging_tag}: creating thirsty points"):
-            path = gpd.read_file(od_lines_file)
-            demand_path = path.merge(filtered_od_matrix, left_on = ["origin", "destinatio"], right_on=["origin", "destination"], how="left")
-            if demand_path["trips"].isna().any():
-                LOG.warning("missing demand")
-            demand_path["point_geometry"] = demand_path["geometry"].apply(
-                drop_points, step=data_inputs.range
-            )
-            demand_path.drop(columns="geometry", inplace=True)
-            demand_path.rename(columns={"point_geometry": "geometry"}, inplace=True)
-            stacked_thirsty_points.append(demand_path)
+            try:
+                #read in shortest path files, reset index to keep info when merging
+                path = pd.read_hdf(od_lines_file).reset_index()
+                path_geo = path.merge(data_inputs.network, how = "left", on=["a", "b"])
+
+                #get rid of unnneccesary data
+                path_geo = path_geo.loc[:, ["o", "d", "a", "b", "geometry"]]
+
+                #aggregate routes 
+
+                shortest_path_temp = path_geo.groupby(["o", "d"])["geometry"].apply(ops.linemerge)
+                shortest_path = shortest_path_temp.to_frame().reset_index()
+
+                #add demand to routes
+                demand_path = shortest_path.merge(filtered_od_matrix, left_on = ["o", "d"], right_on=["origin", "destination"], how="left")
+                if demand_path["trips"].isna().any():
+                    LOG.warning("missing demand")
+
+                #find thristy points
+                demand_path["point_geometry"] = demand_path["geometry"].apply(
+                    drop_points, step=data_inputs.range
+                )
+                #get rid of routest path routes to save memory
+                demand_path.drop(columns="geometry", inplace=True)
+
+                #format to match standard GeoDataFrame
+                demand_path.rename(columns={"point_geometry": "geometry"}, inplace=True)
+
+                #add to stack
+                stacked_thirsty_points.append(demand_path)
+            except Exception as e:
+                LOG.warning("Unable to create thirsty points for chunk ")
+
         demand_od_lines = pd.concat(stacked_thirsty_points, ignore_index=True)
             
 
@@ -155,6 +183,7 @@ def remove_intrazonal_trips(od_trip_matrix: pd.DataFrame) -> pd.DataFrame:
     return filtered_od_trip_matrix
 
 
+#TODO tidy up this dumpster fire
 def create_od_lines(
     od_trip_matrix: pd.DataFrame,
     centroids: gpd.GeoDataFrame,
@@ -198,6 +227,8 @@ def create_od_lines(
         with either the IDs in the od_trip_matrix or in the centroids.
     """
     # TODO KF add nodes to docstring and add checks for nodes
+
+
     # create origin and destination point
     origin_points = (
         od_trip_matrix["origin"]
@@ -238,6 +269,8 @@ def create_od_lines(
     LOG.info(f"{logging_tag}: OD points created")
 
     # create lines
+    #TODO remove filter when development is done:
+    #--------from here------------
     LOG.info(
         f"{logging_tag}: Removing O-D pairs with seperation < vehicle range and/or 0 trips"
     )
@@ -251,10 +284,10 @@ def create_od_lines(
     d_points = gpd.GeoDataFrame(
         od_geom_matrix["geometry_destination"], geometry="geometry_destination"
     )
-    
 
     #    filter and calculate some high level stats
     #filter demand matrix
+    #we need this line
     od_geom_matrix["distance"] = o_points.distance(d_points)
     filtered_od_geom_matrix = od_geom_matrix.loc[od_geom_matrix["distance"] > range_]
     filtered_od_geom_matrix = filtered_od_geom_matrix.loc[
@@ -281,9 +314,11 @@ def create_od_lines(
         f"{logging_tag}: {len(filtered_od_geom_matrix):.3e} OD pairs remaining which contains "
         f"{filtered_trips:.3e} trips of average length: {mean_length:.0f}km"
     )
+    #--------to here------------
     # Create OD lines, format & tidy up
     LOG.info(f"{logging_tag}: Creating OD lines")
 
+    #if network is defined - use the bendy link method
     if network is not None:
         #create graph
         network.loc[
@@ -297,12 +332,19 @@ def create_od_lines(
         network.set_index(["a", "b"], inplace=True)
 
 
-        #od data 
+        #od data
+
         line_end_points_id = filtered_od_geom_matrix.loc[:, ["origin", "destination"]]
+        link_length_lookup = network["distance"].reset_index()
+        link_length_lookup.rename(columns={"distance":"link_length"}, inplace=True)
+
         # chunk end points
+
         chunked_end_points = chunk_dataframe(line_end_points_id, CHUNK_SIZE)
         existing_outputs = glob.glob(str(output_path / f"*{OD_LINE_FILE_EXT}"))
         existing_outputs = [pathlib.Path(path).name for path in existing_outputs]
+
+        #TODO Multithread this bad boi
         for i, chunk in enumerate(chunked_end_points):
 
             output_filename = output_path / f"routes_{i+1}{OD_LINE_FILE_EXT}"
@@ -310,16 +352,18 @@ def create_od_lines(
                 continue
 
             LOG.info(f"{logging_tag}:- running shortest path for chunk {i+1} / {len(chunked_end_points)}")
-            chunk["geometry"] = od_bendy_lines(
-                chunk, network_graph, network.copy(), network_nodes.copy(), logging_tag
+            chunk_routes = od_bendy_lines(
+                chunk, network_graph, link_length_lookup, network_nodes.copy(), logging_tag
             )
             if output_path is not None:
 
-                LOG.info(f"Writing OD routes chunk {i} to {output_path}")
+                LOG.info(f"Writing OD routes chunk {i+1} to {output_path}")
 
-                input_output_constants.to_shape_file( output_filename, chunk)
+                input_output_constants.overwrite_h5(output_filename, chunk_routes, "routes")
+        #returns a list of the intermediary files
         return glob.glob(str(output_path/ f"*{OD_LINE_FILE_EXT}"))
     
+    #if network isn't defined use straight OD link method
     else:
         
         line_end_points_geom = filtered_od_geom_matrix.loc[
@@ -339,7 +383,7 @@ def create_od_lines(
         )
         LOG.debug("OD linestrings created")
             
-
+        #returns the lines themselves
         return filtered_od_geom_matrix
 
 def create_graph(
@@ -415,10 +459,10 @@ def od_lines(
 def od_bendy_lines(
     line_end_points: pd.DataFrame,
     network: nx.Graph,
-    network_geom: gpd.GeoDataFrame,
+    link_length_lookup: gpd.GeoDataFrame,
     network_nodes: gpd.GeoDataFrame,
     logging_tag: str,
-) -> list[geometry.LineString]:
+) -> pd.DataFrame:
 
     def calc_distance(a, b) -> float:
         return network_nodes.loc[a, "geometry"].distance(
@@ -451,51 +495,19 @@ def od_bendy_lines(
             shortest_path = nx.astar_path(
                 network, start, end, heuristic=calc_distance, weight="link_time"
             )
-            shortest_path_links = zip(shortest_path[:-1], shortest_path[1:])
-            shortest_path_geom = ops.linemerge(
-                network_geom.loc[shortest_path_links, "geometry"].tolist()
-            )
-            lines.append(shortest_path_geom)
+
+            route = pd.DataFrame([shortest_path[:-1], shortest_path[1:]], index = ["a","b"]).transpose()
+            route = route.merge(link_length_lookup, how = "left", on = ["a", "b"])
+            route["o"] = start
+            route["d"] = end
+            route.set_index(["o", "d", "a", "b"], inplace = True)
+            lines.append(route)
         except Exception as e:
                 LOG.warning(f"failed to create route, due to: {e}")
                 failed_count +=1
     LOG.info(f"{failed_count} failed lines, {len(lines)} successfull lines")
-    return lines
-
-
-def od_bendy_lines_mp(
-    line_end_points: pd.DataFrame,
-    network: nx.Graph,
-    network_geom: gpd.GeoDataFrame,
-    network_nodes: gpd.GeoDataFrame,
-    logging_tag: str,
-) -> list[geometry.LineString]:
-    network_geom.set_index(["a", "b"], inplace=True)
-
-    # Split the line_end_points DataFrame into chunks for parallel processing
-    num_processes = 500
-    chunk_size = len(line_end_points) // num_processes
-    chunks = [
-        {
-            "end_points": line_end_points[i : i + chunk_size],
-            "network": network,
-            "nodes": network_nodes,
-            "geom": network_geom,
-        }
-        for i in range(0, len(line_end_points), chunk_size)
-    ]
-
-    # Create a multiprocessing pool
-    pool = multiprocessing.Pool(processes=multiprocessing.cpu_count()-1)
-
-    # Calculate shortest paths concurrently using multiprocessing
-    lines = list(tqdm(pool.imap(
-        parallel_process, chunks,),  desc=f"{logging_tag} OD bendy lines", total = num_processes))
-
-    pool.close()
-    pool.join()
-
-    return lines
+    return pd.concat(lines)
+    
 
 
 def calculate_shortest_path(end_points, network, network_nodes, network_geom):
