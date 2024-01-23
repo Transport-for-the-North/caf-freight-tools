@@ -342,36 +342,36 @@ def create_od_lines(
     d_points = gpd.GeoDataFrame(
         od_geom_matrix["geometry_destination"], geometry="geometry_destination"
     )
+    od_geom_matrix["distance"] = o_points.distance(d_points)
 
     #    filter and calculate some high level stats
     #filter demand matrix
     #we need this line
-    od_geom_matrix["distance"] = o_points.distance(d_points)
-    filtered_od_geom_matrix = od_geom_matrix.loc[od_geom_matrix["distance"] > range_]
-    filtered_od_geom_matrix = filtered_od_geom_matrix.loc[
-        filtered_od_geom_matrix["trips"] > 0
-    ]
-    filtered_out = od_geom_matrix.loc[
-        ~od_geom_matrix.index.isin(filtered_od_geom_matrix.index)
-    ]
-    filtered_out_od_pairs = len(filtered_out)
-    filtered_out_trips = filtered_out["trips"].sum()
-    filtered_trips = filtered_od_geom_matrix["trips"].sum()
-    mean_length = (
-        weighted_avg(
-            filtered_od_geom_matrix["distance"], filtered_od_geom_matrix["trips"]
-        )
-        / M_TO_KM
-    )
+    #filtered_od_geom_matrix = od_geom_matrix.loc[od_geom_matrix["distance"] > range_]
+    #filtered_od_geom_matrix = filtered_od_geom_matrix.loc[
+    #    filtered_od_geom_matrix["trips"] > 0
+    #]
+    #filtered_out = od_geom_matrix.loc[
+    #    ~od_geom_matrix.index.isin(filtered_od_geom_matrix.index)
+    #]
+    #filtered_out_od_pairs = len(filtered_out)
+    #filtered_out_trips = filtered_out["trips"].sum()
+    #filtered_trips = filtered_od_geom_matrix["trips"].sum()
+    #mean_length = (
+    #    weighted_avg(
+    #        filtered_od_geom_matrix["distance"], filtered_od_geom_matrix["trips"]
+    #    )
+    #    / M_TO_KM
+    #)
     #   output stats
-    LOG.info(
-        f"{logging_tag}: {filtered_out_od_pairs:.3e} OD pairs removed which contains "
-        f"{filtered_out_trips:.3e} trips"
-    )
-    LOG.info(
-        f"{logging_tag}: {len(filtered_od_geom_matrix):.3e} OD pairs remaining which contains "
-        f"{filtered_trips:.3e} trips of average length: {mean_length:.0f}km"
-    )
+    #LOG.info(
+    #    f"{logging_tag}: {filtered_out_od_pairs:.3e} OD pairs removed which contains "
+    #    f"{filtered_out_trips:.3e} trips"
+    #)
+    #LOG.info(
+    #    f"{logging_tag}: {len(filtered_od_geom_matrix):.3e} OD pairs remaining which contains "
+    #    f"{filtered_trips:.3e} trips of average length: {mean_length:.0f}km"
+    #)
     #--------to here------------
     # Create OD lines, format & tidy up
     LOG.info(f"{logging_tag}: Creating OD lines")
@@ -392,7 +392,7 @@ def create_od_lines(
 
         #od data
 
-        line_end_points_id = filtered_od_geom_matrix.loc[:, ["origin", "destination"]]
+        line_end_points_id = od_geom_matrix.loc[:, ["origin", "destination"]]
         link_length_lookup = network["distance"].reset_index()
         link_length_lookup.rename(columns={"distance":"link_length"}, inplace=True)
 
@@ -427,25 +427,25 @@ def create_od_lines(
     #if network isn't defined use straight OD link method
     else:
         
-        line_end_points_geom = filtered_od_geom_matrix.loc[
+        line_end_points_geom = od_geom_matrix.loc[
             :, ["geometry_origin", "geometry_destination"]
         ]
         #create OD lines
-        filtered_od_geom_matrix["geometry"] = od_lines(
+        od_geom_matrix["geometry"] = od_lines(
             line_end_points_geom, logging_tag
         )
 
     
-        filtered_od_geom_matrix.drop(
+        od_geom_matrix.drop(
             columns=["geometry_origin", "geometry_destination", "distance"], inplace=True
         )
-        filtered_od_geom_matrix = gpd.GeoDataFrame(
-            filtered_od_geom_matrix, geometry="geometry"
+        od_geom_matrix = gpd.GeoDataFrame(
+            od_geom_matrix, geometry="geometry"
         )
         LOG.debug("OD linestrings created")
             
         #returns the lines themselves
-        return filtered_od_geom_matrix
+        return od_geom_matrix
 
 def create_graph(
     network: gpd.GeoDataFrame, network_nodes: gpd.GeoDataFrame
