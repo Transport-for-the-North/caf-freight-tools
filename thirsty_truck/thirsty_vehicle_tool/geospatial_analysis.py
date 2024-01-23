@@ -5,7 +5,7 @@ creates OD lines between each OD pair
 import pathlib
 from typing import Optional
 import glob
-
+import os
 # third party imports
 import geopandas as gpd
 import pandas as pd
@@ -13,7 +13,7 @@ from shapely import geometry, ops
 import numpy as np
 from tqdm import tqdm
 import networkx as nx
-import multiprocessing
+import concurrent.futures
 
 # local imports
 from thirsty_vehicle_tool import input_output_constants, tv_logging
@@ -93,8 +93,10 @@ def get_thirsty_points(
     # use this is bendy OD lines have been used 
     #TODO Multithread this bad boi
     else:
-        stacked_thirsty_points = []
         filtered_od_matrix = od_matrix.loc[od_matrix["trips"]!=0]
+        """
+        stacked_thirsty_points = []
+        
 
         for od_lines_file in tqdm(od_lines, desc = f"{logging_tag}: creating thirsty points"):
             try:
@@ -131,11 +133,13 @@ def get_thirsty_points(
                 LOG.warning("Unable to create thirsty points for chunk ")
 
         demand_od_lines = pd.concat(stacked_thirsty_points, ignore_index=True)
+        """
+        thirsty_points = create_thirsty_points_in_parallel(od_lines, filtered_od_matrix, data_inputs, logging_tag)
             
 
-    #create thirsty pointshe lists, gives each item in list its own row and dupilcate other columns
+    #explode thirsty points lists, gives each item in list its own row and dupilcate other columns
 
-    thirsty_points = demand_od_lines.explode(column="geometry")
+    thirsty_points = thirsty_points.explode(column="geometry")
 
     thirsty_points.reset_index(drop=True, inplace=True)
     # tidy up columns and set new geometry
@@ -160,6 +164,60 @@ def get_thirsty_points(
 
     return thirsty_points
 
+def create_thirsty_points(od_lines_file, filtered_od_matrix, data_inputs, logging_tag):
+    with tqdm(total = 100, desc = f"{logging_tag} creating thristy points") as pbar:
+        try:
+            
+            path = pd.read_hdf(od_lines_file).reset_index()
+
+            
+            path_geo = path.merge(data_inputs.network, how="left", on=["a", "b"])
+            path_geo = path_geo.loc[:, ["o", "d", "a", "b", "geometry"]]
+
+            pbar.update(20)
+
+
+            shortest_path_temp = path_geo.groupby(["o", "d"])["geometry"].apply(ops.linemerge)
+            shortest_path = shortest_path_temp.to_frame().reset_index()
+
+
+            pbar.update(20)
+
+            demand_path = shortest_path.merge(filtered_od_matrix, left_on=["o", "d"], right_on=["origin", "destination"], how="left")
+
+            if demand_path["trips"].isna().any():
+                LOG.warning("missing demand")
+            
+            pbar.update(20)
+
+            demand_path["point_geometry"] = demand_path["geometry"].apply(drop_points, step=data_inputs.range)
+
+            pbar.update(20)
+
+            demand_path.drop(columns="geometry", inplace=True)
+            demand_path.rename(columns={"point_geometry": "geometry"}, inplace=True)
+
+            pbar.update(20)
+            return demand_path
+        except Exception as e:
+            LOG.warning(f"Unable to create thirsty points for file {od_lines_file}: {str(e)}")
+            return None
+
+def create_thirsty_points_in_parallel(od_lines, filtered_od_matrix, data_inputs, logging_tag):
+    with concurrent.futures.ProcessPoolExecutor(max_workers=os.cpu_count() - 2) as executor:
+        futures = []
+
+        for i, od_lines_file in enumerate(od_lines):
+            future = executor.submit(create_thirsty_points, od_lines_file, filtered_od_matrix, data_inputs, f"{logging_tag} chunk {i+1}:")
+            futures.append(future)
+
+        results = [future.result() for future in tqdm(concurrent.futures.as_completed(futures))]
+
+        # Concatenate valid results, ignoring None values
+        stacked_thirsty_points = [result for result in results if result is not None]
+        demand_od_lines = pd.concat(stacked_thirsty_points, ignore_index=True)
+
+    return demand_od_lines
 
 def remove_intrazonal_trips(od_trip_matrix: pd.DataFrame) -> pd.DataFrame:
     """removes intrazonal trips from the matrix
@@ -345,6 +403,9 @@ def create_od_lines(
         existing_outputs = [pathlib.Path(path).name for path in existing_outputs]
 
         #TODO Multithread this bad boi
+        process_chunks_in_parallel(chunked_end_points, existing_outputs, skip_existing_files, output_path, network_graph, link_length_lookup, network_nodes, logging_tag)
+        return glob.glob(str(output_path/ f"*{OD_LINE_FILE_EXT}"))
+        """
         for i, chunk in enumerate(chunked_end_points):
 
             output_filename = output_path / f"routes_{i+1}{OD_LINE_FILE_EXT}"
@@ -362,7 +423,7 @@ def create_od_lines(
                 input_output_constants.overwrite_h5(output_filename, chunk_routes, "routes")
         #returns a list of the intermediary files
         return glob.glob(str(output_path/ f"*{OD_LINE_FILE_EXT}"))
-    
+        """
     #if network isn't defined use straight OD link method
     else:
         
@@ -405,6 +466,36 @@ def create_graph(
     nx.set_node_attributes(network_graph, nodes_geom, name="coords")
 
     return network_graph
+
+def process_chunks_in_parallel(chunked_end_points, existing_outputs, skip_existing_files, output_path, network_graph, link_length_lookup, network_nodes, logging_tag):
+    with concurrent.futures.ProcessPoolExecutor(max_workers=os.cpu_count() - 2) as executor:
+        futures = []
+
+        for i, chunk in enumerate(chunked_end_points):
+            output_filename = output_path / f"routes_{i+1}{OD_LINE_FILE_EXT}"
+            future = executor.submit(process_chunk, i, chunk, existing_outputs, skip_existing_files, output_filename, network_graph, link_length_lookup, network_nodes, logging_tag)
+            futures.append(future)
+
+        for i, future in tqdm(enumerate(concurrent.futures.as_completed(futures)), total = len(futures), desc = f"{logging_tag} OD bend lines"):
+            result = future.result()
+            if result is not None:
+                LOG.info(f"Processing complete for chunk {i+1}")
+                
+            
+
+def process_chunk(i, chunk, existing_outputs, skip_existing_files, output_path, network_graph, link_length_lookup, network_nodes, logging_tag):
+    
+
+    if output_path.name in existing_outputs and skip_existing_files:
+        return None
+
+    chunk_routes = od_bendy_lines(chunk, network_graph, link_length_lookup, network_nodes.copy(), logging_tag)
+
+    if output_path is not None:
+        #LOG.info(f"Writing OD routes chunk {i+1} to {output_path}")
+        input_output_constants.overwrite_h5(output_path, chunk_routes, "routes")
+
+    return output_path
 
 
 def drop_points(line: geometry.LineString, step: float) -> list[geometry.Point]:
@@ -471,9 +562,7 @@ def od_bendy_lines(
 
     lines = []
     failed_count = 0
-    for start, end in tqdm(
-        line_end_points.values, desc=f"{logging_tag} OD bendy lines"
-    ):
+    for start, end  in line_end_points.values:
         #one_to_all_shortest_path = nx.single_source_dijkstra_path(network, start)
 
         #for end in line_end_points.loc[line_end_points["origin"]==start, "destination"]:
