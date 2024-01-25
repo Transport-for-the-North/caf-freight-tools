@@ -170,7 +170,8 @@ class LGVMatrices:
     """Commuting skilled trades (SOCs 51, 52, 53) trips matrix,
     with zone numbers for columns and indices."""
     personal: pd.DataFrame
-    # TODO Write docstring
+    """Contains personal trip matrix outputs from normits,
+    with zone numbers for columns and indices"""
     combined: pd.DataFrame = field(init=False)
     """Trips matrix for all combined segments, with zone numbers
     for columns and indices."""
@@ -494,47 +495,109 @@ def matrix_time_periods(
 
 
 def produce_personal_matrix(
-    folder: Path, purposes: list[int], year: int, normits_to_msoa_lookup: Path, factor: float
+    folder: Path, purposes: list[int], year: int, normits_to_msoa_lookup: Path, factor: float, output_folder: Path
 ) -> pd.DataFrame:
-    # TODO docstring https://numpydoc.readthedocs.io/en/latest/format.html
-    # backlog: remove hardcoding from finding the normits matrix files
+    """Takes NoRMITS car other matrices for house bound and non house bound,
+    makes a dictionary of these values, concats them together, groups by origin,
+    stacks the matrices to just 3 columns,
+    then converts into NTEM zoning system using the lookup,
+    finally a factor is applied to the output to account for just van personal trips.
 
+    Parameters
+    ----------
+    folder : NoRMITS Folder
+        Location of car other matrices used for calculations.
+    purposes : int
+        Integer values defined in inputs which classifies the
+        purpose.
+    year : int
+        Year of the model.
+    normits_to_msoa_lookup: Path
+        Path to normits to msoa(NTEM) lookup.
+    factor: int
+        Factor applied to end matrices so only van personal trips are contained.
+    output_folder: Annual matrices folder
+        Folder location where PA and OD matrices are saved
+
+    Returns
+    -------
+    Matrices: Annual LGV personal trip matrices in NTEM zoning with 3 columns,
+    origin, destination, and values
+
+    """
+    #creating an empty dataframe
     matrix_list: list[pd.DataFrame] = []
+    #reading in and appending house bound daftaframes
     for purp in NTEM_PURPOSES["hb"]:
         if purp not in purposes:
             continue
 
-        path = folder / f"hb_synthetic_pa_yr{year}_p{purp}_m3.csv.bz2"
-        # TODO Load matrix file, set columns and index to zone ID (square format)
-        # TODO Append matrix dataframe to matrix list
+        path = folder / f"hb_synthetic_pa_yr{int(year)}_p{purp}_m3.csv.bz2"
+        df = pd.read_csv(path, index_col=0)
+        df.columns = pd.to_numeric(df.columns, downcast="unsigned")
+        #error check
+        if not df.columns.equals(df.index):
+            raise ValueError(f"index and columns aren't equal for '{path.name}'")
+        matrix_list.append(df)
 
+    #reading in and appending non house bound data
     for purp in NTEM_PURPOSES["nhb"]:
         if purp not in purposes:
             continue
 
         for tp in PERSONAL_TIME_PERIODS:
-            path = folder / f"nhb_synthetic_pa_yr{year}_p{purp}_m3_tp{tp}.csv.bz2"
-            # TODO Load matrix file, set columns and index to zone ID
-            # TODO Append matrix dataframe to matrix list
+            path = folder / f"nhb_synthetic_pa_yr{int(year)}_p{purp}_m3_tp{tp}.csv.bz2"
+            df = pd.read_csv(path, index_col=0)
+            df.columns = pd.to_numeric(df.columns, downcast="unsigned")
+            #error check
+            if not df.columns.equals(df.index):
+                raise ValueError(f"index and columns aren't equal for '{path.name}'")
+            matrix_list.append(df)
 
+    #concatting all matrices from list
     matrix = pd.concat(matrix_list, axis=0).groupby(level=0).sum()
+    #stacking matrices to long format and renaming columns
+    matrix = matrix.stack().reset_index()
+    matrix = matrix.rename(columns={'level_0': 'origin', 'level_1': 'destination', 0: 'values'})
 
-    # TODO(MB) Translate matrix to MSOA
+    #calling lookup
     lookup = Rezone.read(normits_to_msoa_lookup, None)
-    # TODO(MB) Matrix needs to be in long format
+    #rezoning matrix NoHAM to NTEM
     matrix = Rezone.rezoneOD(
-        matrix.stack().reset_index(), # TODO Check this
+        matrix,
         lookup,
         dfCols=("origin", "destination"),
         rezoneCols="values",
     )
 
     # Apply personal LGV factor
-    matrix = matrix * factor
+    matrix['values'] = matrix['values'] * factor
+    # Converting back to square matrices
+    matrix = matrix.pivot(index='origin', columns='destination', values='values')
 
-    # TODO(MB) Output matrix file to annual matrices folder
-    # TODO(MB) Some automatic sense checks, negatives, NaNs
-    return matrix
+    #converting OD to PA matrices
+    matrix.to_csv(output_folder / "personal-trip_matrix-PA.csv")
+    od_matrix = annual_pa_to_od(
+        matrix.values,
+        matrix.sum(axis=0).values,
+        matrix.sum(axis=1).values,
+    )
+    od_matrix = pd.DataFrame(
+        od_matrix,
+        index= matrix.index,
+        columns=matrix.columns
+    )
+    od_matrix.to_csv(output_folder / "personal-trip_matrix-OD.csv")
+
+    #TODO Add more tests at some point
+    #negative and nans check
+    negatives = (od_matrix < 0).values
+    if np.any(negatives):
+        raise ValueError(f"{np.sum(negatives)} negative values in matrix")
+    nans = od_matrix.isna().values
+    if np.any(nans):
+        raise ValueError(f"{np.sum(nans)} nan values in matrix")
+    return od_matrix
 
 
 def produce_annual_matrices(
@@ -546,7 +609,7 @@ def produce_annual_matrices(
 ) -> LGVMatrices:
     """Produces annual LGV matrices for all segments.
 
-    The gravity model is ran for all segments except personal,
+    The gravity model is an for all segments except personal,
     which is produced by aggregating and factoring NorMITs-Demand
     car matrices.
 
@@ -572,7 +635,7 @@ def produce_annual_matrices(
     matrices = run_gravity_model(
         input_paths,
         trip_ends,
-        output_folder / "annual trip matrices",
+        output_folder,
         message_hook=message_hook,
     )
 
@@ -583,7 +646,9 @@ def produce_annual_matrices(
         year=year,
         normits_to_msoa_lookup=input_paths.normits_to_msoa_lookup,
         factor=input_paths.normits_to_personal_factor,
+        output_folder = output_folder
     )
+    message_hook("Finished personal segment matrices")
 
     return LGVMatrices(**matrices, personal=personal_matrix)
 
@@ -608,7 +673,7 @@ def main(input_paths: LGVInputPaths, message_hook: Callable = print):
     )
     output_folder.mkdir(exist_ok=True, parents=True)
 
-    input_paths.save_yaml(output_folder / "LGV_model_config.yml")
+    input_paths.save_yaml(output_folder / "lgv_model_config.yml")
 
     message_hook("Calculating trip ends")
     trip_ends = calculate_trip_ends(

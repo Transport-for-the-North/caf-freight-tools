@@ -17,7 +17,7 @@ from typing import Any, Callable, Optional, Union
 import caf.toolkit
 import numpy as np
 import pandas as pd
-from pydantic import types, dataclasses
+from pydantic import types, dataclasses, fields
 
 # Local imports
 from .. import utilities, errors
@@ -156,14 +156,14 @@ class LGVInputPaths(caf.toolkit.BaseConfig):
     """Path to Excel Workbook containing all the trip cost distributions."""
     output_folder: types.DirectoryPath
     """Path to folder to save outputs to."""
-    # TODO(MB) Check parameters and add docstrings, remove TODO comments
-    # TODO(MB) Add input folder to the Full PA NorMITs matrices at NoHAM zoning e.g. I:\NorMITs Demand\Distribution Model\iter9.10.5\car_and_passenger\Final Outputs\Full PA Matrices
     normits_pa_folder: types.DirectoryPath
-    # TODO(MB) This is NoHAM to MSOA
+    """Path to the full PA Normits matrices, should contain all non house bound and house bound matrices"""
     normits_to_msoa_lookup: types.FilePath
+    """Normits to MSOA(NTEM) lookup, this is NoHAM to NTEM lookup as the results are taken after normits results are converted back to NoHAM"""
     normits_to_personal_factor: float
-    # TODO(MB) Parameter for list of NTEM purposes to use 
-    personal_purposes: list[int] = [3, 4, 5, 6, 7, 8, 13, 14, 15, 16, 18]
+    """This is the factor that the personal data should have applied to just include van data 4% is a starting point"""
+    personal_purposes: list[int] = fields.Field(default_factory=lambda: [3,4,5,6,7,8,13,14,15,16,18]) #TODO CAN YOU CONFIRM THESE ARE THE CORRECT ONES MATT
+    """Personal purpose types defined by Normits"""
 
     @classmethod
     def write_example(cls, path: Path, **examples: str) -> None:
@@ -264,7 +264,10 @@ def write_example_config(path: Path | None) -> None:
                 trip_distributions_path="Path to Excel Workbook containing all the "
                 "trip cost distributions",
                 output_folder="Path to folder to save outputs to",
-                # TODO(MB) Add personal segment inputs descriptions
+                normits_pa_folder="Path to the full PA Normits matrices, should contain all non house bound and house bound matrices",
+                normits_to_msoa_lookup="Normits to MSOA lookup, this is NoHAM to MSOA lookup as the results are taken after normits results are converted back to NoHAM",
+                normits_to_personal_factor="This is the factor that the personal data should have applied to just include van data 4% is a starting point",
+                personal_purposes="Personal purpose types defined by Normits",
             )
 
     LGVInputPaths.write_example(path, **example_data)
