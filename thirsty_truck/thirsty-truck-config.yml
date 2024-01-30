@@ -14,7 +14,6 @@ analysis_inputs:
     Rigid:
       laden: 200
       unladen: 250
-  zone_centroids_path: C:\Users\UKKXF022\OneDrive - WSP O365\Midlands_connect_freight\LFT_inputs\centroids\gbfm_zone_centroids.shp
   laden_status_factors_path: C:\Users\UKKXF022\OneDrive - WSP O365\Midlands_connect_freight\thirsty_truck_inputs\laden_status_factors.csv
 
   zone_translation_path: C:\Users\UKKXF022\OneDrive - WSP O365\Midlands_connect_freight\thirsty_inputs\gbfm_to_miham_spatial.csv
@@ -35,10 +34,10 @@ analysis_inputs:
     gbfm_distance_matrix_path: C:\Users\UKKXF022\OneDrive - WSP O365\Midlands_connect_freight\\LFT_inputs\Annual tonnes to annual pcus\B057 3320 DIS HGV_IP fmV PS_GBFMZ.csv
     port_traffic_proportions_path: C:\Users\UKKXF022\OneDrive - WSP O365\Midlands_connect_freight\\LFT_inputs\Annual tonnes to annual pcus\port_traffic_trips_per_1000t.csv
     pcu_factors_path: C:\Users\UKKXF022\OneDrive - WSP O365\Midlands_connect_freight\\LFT_inputs\Annual tonnes to annual pcus\pcu_factors.csv
-  #od_matrices_inputs:
-    #od_matrices_path:
-    #  Artic: C:\Users\UKKXF022\OneDrive - WSP O365\Midlands_connect_freight\thirsty_truck_outputs\artic_total_annual_pcus.csv
-    #  Rigid: C:\Users\UKKXF022\OneDrive - WSP O365\Midlands_connect_freight\thirsty_truck_outputs\rigid_total_annual_pcus.csv
+  od_matrices_inputs:
+    od_matrices_path:
+      Artic: C:\Users\UKKXF022\OneDrive - WSP O365\Midlands_connect_freight\thirsty_truck_outputs\annual_tonne_to_pcu_conversion\artic_total_annual_trips.csv
+      Rigid: C:\Users\UKKXF022\OneDrive - WSP O365\Midlands_connect_freight\thirsty_truck_outputs\annual_tonne_to_pcu_conversion\rigid_total_annual_trips.csv
   #thirsty_points_inputs:
   #  thirsty_points_paths:
   #    Artic: C:\Users\UKKXF022\Documents\Midlands_connect_freight\demo_thirsty_points\demo_artic_thirsty_points.csv

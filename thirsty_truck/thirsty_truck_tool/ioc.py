@@ -73,7 +73,6 @@ class ParsedAnalysisInputs:
     """
 
     ranges: dict[str, float]
-    zone_centroids: gpd.GeoDataFrame
     laden_status_factors: pd.DataFrame
     analysis_network: gpd.GeoDataFrame
     analysis_network_nodes: gpd.GeoDataFrame
@@ -91,7 +90,6 @@ class AnalysisInputs:
 
     vehicle_keys: list[str]
     vehicle_ranges: dict[str, dict[str, float]]
-    zone_centroids_path: pathlib.Path
     laden_status_factors_path: pathlib.Path
     analysis_network_path: Optional[pathlib.Path]
     analysis_network_nodes_path: Optional[pathlib.Path]
@@ -182,11 +180,7 @@ class AnalysisInputs:
                     vehicle_key.lower() + DISAGG_KEY_SEP + status_key.lower()
                 ] = range_
 
-        # parse centroids
-        zone_centroids = gpd.read_file(self.zone_centroids_path)
-        zone_centroids = input_output_constants.check_and_format_centroids(
-            zone_centroids, input_output_constants.ZONE_CENTROIDS_REQUIRED_COLUMNS
-        )
+
         # parse cone translation 
         if self.zone_translation_path is None:
             zone_translation = None
@@ -237,7 +231,6 @@ class AnalysisInputs:
             output = ParsedAnalysisInputs(
                 laden_status_factors=laden_status_factors,
                 lft_inputs=paths_dict,
-                zone_centroids=zone_centroids,
                 ranges=ranges,
                 zone_translation=zone_translation,
                 original_zoning=self.original_zoning,
@@ -254,13 +247,12 @@ class AnalysisInputs:
             output = ParsedAnalysisInputs(
                 laden_status_factors=laden_status_factors,
                 od_matrices=od_matrices,
-                zone_centroids=zone_centroids,
                 ranges=ranges,
                 zone_translation=zone_translation,
                 original_zoning=self.original_zoning,
                 target_zoning=self.target_zoning,
                 analysis_network=analysis_network,
-                analysis_nodes = analysis_nodes,
+                analysis_network_nodes = analysis_nodes,
                 od_lines=od_lines
             )
 
@@ -271,7 +263,6 @@ class AnalysisInputs:
             output = ParsedAnalysisInputs(
                 thirsty_points=thirsty_points,
                 laden_status_factors=laden_status_factors,
-                zone_centroids=zone_centroids,
                 ranges=ranges,
                 zone_translation=zone_translation,
                 original_zoning=self.original_zoning,
@@ -303,7 +294,6 @@ class AnalysisInputs:
 
         #centroids and laden status factors summary
 
-        output+=f"Centroids Input - {self.zone_centroids_path}\n"
         output+=f"Laden Status Factors Input - {self.laden_status_factors_path}\n"
 
         #thirsty points inputs summary

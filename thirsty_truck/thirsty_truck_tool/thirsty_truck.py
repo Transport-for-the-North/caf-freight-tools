@@ -171,7 +171,8 @@ def thirsty_truck(
             and analysis_inputs.target_zoning != "undefined"
         ):
             for key, value in od_matrices.items():
-                od_matrices[key] = translate_matrix(
+                LOG.info(f"Translating {key} matrix")
+                matrices[key] = translate_matrix(
                     value,
                     analysis_inputs.zone_translation,
                     analysis_inputs.original_zoning,
@@ -203,10 +204,8 @@ def thirsty_truck(
             od_routes_folder,
             disagg_matrices,
             analysis_inputs.ranges,
-            analysis_inputs.zone_centroids,
             analysis_inputs.analysis_network,
             analysis_inputs.analysis_network_nodes,
-            analysis_inputs.od_lines,
         )
 
         # aggregate thirsty points by laden status
@@ -249,7 +248,6 @@ def get_frieght_thirsty_points(
     od_lines: pathlib.Path | list[str],
     matrices: dict[str, pd.DataFrame],
     ranges: dict[str, pd.DataFrame],
-    centroids: gpd.GeoDataFrame,
     network: gpd.GeoDataFrame,
     nodes: gpd.GeoDataFrame,
 ) -> gpd.GeoDataFrame:
@@ -277,15 +275,11 @@ def get_frieght_thirsty_points(
 
     if isinstance(od_lines, pathlib.Path):
         LOG.info("Creating OD lines")
-        # TODO when create od lines is tidied up this will need changing
-        # create od lines uses the matrix to deterimine all the possible od routes.
-        # I dont have time to fix this horribleness so I have blanked out the matrix to highlight
-        # that the demand ISNT used. Sorry to anyone who has to read this
-        blank_matrix = list(matrices)[0]
-        blank_matrix["trips"] = 0
+        # create od pairs using a matrix - these should be the same in each matrix so the matrix we choose is arbitrary
+        arbitrary_matrix =  list(matrices.values())[0]
+        od_pairs = arbitrary_matrix[["origin", "destination"]]
         od_lines_paths = geospatial_analysis.create_od_lines(
-            blank_matrix,
-            centroids,
+            od_pairs,
             "Thirsty Truck Shortest Path",
             network,
             nodes,

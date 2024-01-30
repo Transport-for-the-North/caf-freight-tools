@@ -111,7 +111,6 @@ class AnalysisInputs:
     analysis_network_path: pathlib.Path
     analysis_network_nodes_path: pathlib.Path
     od_demand_matrix_path: pathlib.Path
-    zone_centroids_path: pathlib.Path
     range: float
     od_lines: Optional[pathlib.Path]=None
 
@@ -135,12 +134,6 @@ class AnalysisInputs:
                 "The range you provided in not a number, please re-enter the value. Cheers!"
             )
 
-        LOG.info("Parsing Centroids")
-        zone_centroids = gpd.read_file(self.zone_centroids_path)
-        zone_centroids = check_and_format_centroids(
-            zone_centroids, ZONE_CENTROIDS_REQUIRED_COLUMNS
-        )
-
         LOG.info("Parsing network")
         network =gpd.read_file(self.analysis_network_path)
         network = check_and_format_analysis_network(network)
@@ -156,7 +149,6 @@ class AnalysisInputs:
             demand_marix=demand_matrix,
             network=network,
             network_nodes= network_nodes, 
-            zone_centroids=zone_centroids,
             range=range_,
             od_lines=self.od_lines,
         )
@@ -396,7 +388,6 @@ class ParsedAnalysisInputs(NamedTuple):
     demand_marix: pd.DataFrame
     network: Optional[gpd.GeoDataFrame]
     network_nodes: Optional[gpd.GeoDataFrame]
-    zone_centroids: Optional[gpd.GeoDataFrame]
     od_lines: Optional[pathlib.Path]
     range: float
 
@@ -805,7 +796,7 @@ def overwrite_h5(file_path: pathlib.Path, output: pd.DataFrame, key) -> None:
     output : pd.DataFrame
         data to write
     """
-    output.to_hdf(file_path, key = key, mode = "w")
+    output.to_hdf(file_path, key = key, mode = "w", complevel=1)
 
 @output_file_checks
 def append_to_h5(file_path: pathlib.Path, output: pd.DataFrame, key) -> None:
