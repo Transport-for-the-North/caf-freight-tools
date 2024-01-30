@@ -7,3 +7,4 @@ fiona >= 1.9.1
 pyogrio >= 0.5.1
 shapely >= 2.0.1
 bokeh >= 3.1.0
+pytables >= 3.9.2

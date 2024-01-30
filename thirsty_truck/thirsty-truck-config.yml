@@ -1,5 +1,5 @@
 operational:
-  output_folder: C:\Users\UKKXF022\Documents\Midlands_connect_freight\thirsty_truck_outputs
+  output_folder: C:\Users\UKKXF022\OneDrive - WSP O365\Midlands_connect_freight\thirsty_truck_outputs
   show_plots: False
   hex_bin_width: 12
 
@@ -14,36 +14,44 @@ analysis_inputs:
     Rigid:
       laden: 200
       unladen: 250
-  zone_centroids_path: C:\Users\UKKXF022\Documents\Midlands_connect_freight\LFT_inputs\centroids\gbfm_zone_centroids.shp
-  laden_status_factors_path: C:\Users\UKKXF022\Documents\Midlands_connect_freight\thirsty_truck_inputs\laden_status_factors.csv
+  zone_centroids_path: C:\Users\UKKXF022\OneDrive - WSP O365\Midlands_connect_freight\LFT_inputs\centroids\gbfm_zone_centroids.shp
+  laden_status_factors_path: C:\Users\UKKXF022\OneDrive - WSP O365\Midlands_connect_freight\thirsty_truck_inputs\laden_status_factors.csv
+
+  zone_translation_path: C:\Users\UKKXF022\OneDrive - WSP O365\Midlands_connect_freight\thirsty_inputs\gbfm_to_miham_spatial.csv
+  original_zoning: gbfm
+  target_zoning: miham
+
+
+  analysis_network_path: C:\Users\UKKXF022\OneDrive - WSP O365\Midlands_connect_freight\thirsty_inputs\MiHAM_network\links_51_formatted\miham_51_links_formatted.shp
+  analysis_network_nodes_path: C:\Users\UKKXF022\OneDrive - WSP O365\Midlands_connect_freight\thirsty_inputs\MiHAM_network\nodes_51_formatted\miham_nodes_51_formatted.shp
 
   tonne_to_pcu_inputs:
-    domestic_bulk_port_path: C:\Users\UKKXF022\Documents\Midlands_connect_freight\LFT_inputs\AllCommTotTonnesOZ_DZ_DomBulkPortRoad_GBZ.csv
-    unitised_eu_imports_path: C:\Users\UKKXF022\Documents\Midlands_connect_freight\LFT_inputs\UnitisedTradeEurope_Tonnes_Dir_GBZSeqPort_GBZSeqROAD0_GBZ.csv
-    unitised_eu_exports_path: C:\Users\UKKXF022\Documents\Midlands_connect_freight\LFT_inputs\BWUnitTradeEurope_Tonnes_Dir_GBZSeqPort_GBZSeqROAD1_GBZ.csv
-    unitised_non_eu_path: C:\Users\UKKXF022\Documents\Midlands_connect_freight\LFT_inputs\IOGBP_U_NONEurope_Tn_Dir_GBPort_GBZSeqROAD_GBZ.csv
-    ports_path: C:\Users\UKKXF022\Documents\Midlands_connect_freight\LFT_inputs\Annual tonnes to annual pcus\GBPortctrToGBPortCodesToGBZoneCodes(not sequential).csv
-    distance_bands_path: C:\Users\UKKXF022\Documents\Midlands_connect_freight\LFT_inputs\Annual tonnes to annual pcus\hgv_trips_per_1000t_by_distance_band.csv
-    gbfm_distance_matrix_path: C:\Users\UKKXF022\Documents\Midlands_connect_freight\LFT_inputs\Annual tonnes to annual pcus\B057 3320 DIS HGV_IP fmV PS_GBFMZ.csv
-    port_traffic_proportions_path: C:\Users\UKKXF022\Documents\Midlands_connect_freight\LFT_inputs\Annual tonnes to annual pcus\port_traffic_trips_per_1000t.csv
-    pcu_factors_path: C:\Users\UKKXF022\Documents\Midlands_connect_freight\LFT_inputs\Annual tonnes to annual pcus\pcu_factors.csv
-  od_matrices_inputs:
-    od_matrices_path:
-      Artic: C:\Users\UKKXF022\Documents\Midlands_connect_freight\thirsty_truck_outputs\artic_total_annual_pcus.csv
-      Rigid: C:\Users\UKKXF022\Documents\Midlands_connect_freight\thirsty_truck_outputs\rigid_total_annual_pcus.csv
-  thirsty_points_inputs:
-    thirsty_points_paths:
-      Artic: C:\Users\UKKXF022\Documents\Midlands_connect_freight\demo_thirsty_points\demo_artic_thirsty_points.csv
-      Rigid: C:\Users\UKKXF022\Documents\Midlands_connect_freight\demo_thirsty_points\demo_rigid_thirsty_points.csv
+    domestic_bulk_port_path: C:\Users\UKKXF022\OneDrive - WSP O365\Midlands_connect_freight\LFT_inputs\AllCommTotTonnesOZ_DZ_DomBulkPortRoad_GBZ.csv
+    unitised_eu_imports_path: C:\Users\UKKXF022\OneDrive - WSP O365\Midlands_connect_freight\\LFT_inputs\UnitisedTradeEurope_Tonnes_Dir_GBZSeqPort_GBZSeqROAD0_GBZ.csv
+    unitised_eu_exports_path: C:\Users\UKKXF022\OneDrive - WSP O365\Midlands_connect_freight\\LFT_inputs\BWUnitTradeEurope_Tonnes_Dir_GBZSeqPort_GBZSeqROAD1_GBZ.csv
+    unitised_non_eu_path: C:\Users\UKKXF022\OneDrive - WSP O365\Midlands_connect_freight\\LFT_inputs\IOGBP_U_NONEurope_Tn_Dir_GBPort_GBZSeqROAD_GBZ.csv
+    ports_path: C:\Users\UKKXF022\OneDrive - WSP O365\Midlands_connect_freight\LFT_inputs\Annual tonnes to annual pcus\GBPortctrToGBPortCodesToGBZoneCodes(not sequential).csv
+    distance_bands_path: C:\Users\UKKXF022\OneDrive - WSP O365\Midlands_connect_freight\\LFT_inputs\Annual tonnes to annual pcus\hgv_trips_per_1000t_by_distance_band.csv
+    gbfm_distance_matrix_path: C:\Users\UKKXF022\OneDrive - WSP O365\Midlands_connect_freight\\LFT_inputs\Annual tonnes to annual pcus\B057 3320 DIS HGV_IP fmV PS_GBFMZ.csv
+    port_traffic_proportions_path: C:\Users\UKKXF022\OneDrive - WSP O365\Midlands_connect_freight\\LFT_inputs\Annual tonnes to annual pcus\port_traffic_trips_per_1000t.csv
+    pcu_factors_path: C:\Users\UKKXF022\OneDrive - WSP O365\Midlands_connect_freight\\LFT_inputs\Annual tonnes to annual pcus\pcu_factors.csv
+  #od_matrices_inputs:
+    #od_matrices_path:
+    #  Artic: C:\Users\UKKXF022\OneDrive - WSP O365\Midlands_connect_freight\thirsty_truck_outputs\artic_total_annual_pcus.csv
+    #  Rigid: C:\Users\UKKXF022\OneDrive - WSP O365\Midlands_connect_freight\thirsty_truck_outputs\rigid_total_annual_pcus.csv
+  #thirsty_points_inputs:
+  #  thirsty_points_paths:
+  #    Artic: C:\Users\UKKXF022\Documents\Midlands_connect_freight\demo_thirsty_points\demo_artic_thirsty_points.csv
+  #    Rigid: C:\Users\UKKXF022\Documents\Midlands_connect_freight\demo_thirsty_points\demo_rigid_thirsty_points.csv
 
 plotting_inputs:
-  network_path: C:\Users\UKKXF022\Documents\Midlands_connect_freight\midlands_road_links_shapefile\aggregated_filtered_road_network.shp 
-  motorway_junction_path: C:\Users\UKKXF022\Documents\Midlands_connect_freight\shape_files\os_motorway_junction
-  outlines_path: C:\Users\UKKXF022\Documents\Midlands_connect_freight\shape_files\useful_for_hexbin\England_regions\england_regions.shp
-  map_labels_path: C:\Users\UKKXF022\Documents\Midlands_connect_freight\shape_files\notable_places\notable_places_easting_northing.shp
+  network_path: C:\Users\UKKXF022\OneDrive - WSP O365\Midlands_connect_freight\midlands_road_links_shapefile\aggregated_filtered_road_network.shp 
+  motorway_junction_path: C:\Users\UKKXF022\OneDrive - WSP O365\Midlands_connect_freight\shape_files\os_motorway_junction
+  outlines_path: C:\Users\UKKXF022\OneDrive - WSP O365\Midlands_connect_freight\shape_files\useful_for_hexbin\England_regions\england_regions.shp
+  map_labels_path: C:\Users\UKKXF022\OneDrive - WSP O365\Midlands_connect_freight\shape_files\notable_places\notable_places_easting_northing.shp
   plotting_points:
     - label: "Services"
-      data_path: C:\Users\UKKXF022\Documents\Midlands_connect_freight\shape_files\motorway_services_HGV_access\motorway_services.shp
+      data_path: C:\Users\UKKXF022\OneDrive - WSP O365\Midlands_connect_freight\shape_files\motorway_services_HGV_access\motorway_services.shp
       hover_column_name: "name"
       colour: "blue"
       shape: "diamond"

@@ -4,7 +4,7 @@
 import dataclasses
 import pathlib
 from typing import Optional
-
+import glob
 
 # third party packages
 import caf.toolkit
@@ -75,10 +75,15 @@ class ParsedAnalysisInputs:
     ranges: dict[str, float]
     zone_centroids: gpd.GeoDataFrame
     laden_status_factors: pd.DataFrame
+    analysis_network: gpd.GeoDataFrame
+    analysis_network_nodes: gpd.GeoDataFrame
+    od_lines: Optional[list[str]]
+    zone_translation: Optional[pd.DataFrame]
+    original_zoning: Optional[str]
+    target_zoning: Optional[str]
     lft_inputs: Optional[dict[str, pathlib.Path]] = None
     od_matrices: Optional[dict[str, pd.DataFrame]] = None
     thirsty_points: Optional[dict[str, gpd.GeoDataFrame]] = None
-
 
 @dataclasses.dataclass
 class AnalysisInputs:
@@ -88,9 +93,17 @@ class AnalysisInputs:
     vehicle_ranges: dict[str, dict[str, float]]
     zone_centroids_path: pathlib.Path
     laden_status_factors_path: pathlib.Path
+    analysis_network_path: Optional[pathlib.Path]
+    analysis_network_nodes_path: Optional[pathlib.Path]
+    od_lines_path: Optional[pathlib.Path] = None
     tonne_to_pcu_inputs: Optional[TonneToPCUInputs] = None
     od_matrices_inputs: Optional[input_output_constants.ODMatrixInputs] = None
     thirsty_points_inputs: Optional[input_output_constants.ThirstyPointsInputs] = None
+    zone_translation_path: Optional[pathlib.Path]=None
+    original_zoning: Optional[str]=None
+    target_zoning: Optional[str]="gbfm"
+
+    od_lines: Optional[pathlib.Path]=None
 
     def parse_analysis_inputs(self) -> ParsedAnalysisInputs:
         """parses the analysis inputs
@@ -102,6 +115,19 @@ class AnalysisInputs:
         """
         # format keys
         vehicle_keys = [x.lower() for x in self.vehicle_keys]
+
+        if self.original_zoning is not None:
+            self.original_zoning=self.original_zoning.lower()
+
+        else:
+            self.original_zoning = "undefined"
+
+        if self.target_zoning is not None:
+
+            self.target_zoning=self.target_zoning.lower()
+
+        else:
+            self.target_zoning = "undefined"
 
         # check that atleast 1 data input is given
         data_input_count = 0
@@ -161,6 +187,25 @@ class AnalysisInputs:
         zone_centroids = input_output_constants.check_and_format_centroids(
             zone_centroids, input_output_constants.ZONE_CENTROIDS_REQUIRED_COLUMNS
         )
+        # parse cone translation 
+        if self.zone_translation_path is None:
+            zone_translation = None
+
+        else:
+            zone_translation = pd.read_csv(self.zone_translation_path)
+
+        #parse network
+            if self.analysis_network_path is None and self.analysis_network_nodes_path is None:
+                analysis_network = None
+                analysis_nodes = None
+            else:
+                analysis_network = gpd.read_file(self.analysis_network_path)
+                analysis_nodes = gpd.read_file(self.analysis_network_nodes_path)
+
+            if self.od_lines is None:
+                od_lines = None
+            else:
+                od_lines = glob.glob(str(od_lines))
         # parse tonne to pcu inputs
         if (
             self.tonne_to_pcu_inputs is not None
@@ -194,6 +239,12 @@ class AnalysisInputs:
                 lft_inputs=paths_dict,
                 zone_centroids=zone_centroids,
                 ranges=ranges,
+                zone_translation=zone_translation,
+                original_zoning=self.original_zoning,
+                target_zoning=self.target_zoning,
+                analysis_network=analysis_network,
+                analysis_network_nodes = analysis_nodes,
+                od_lines=od_lines
             )
         elif self.od_matrices_inputs is not None and self.thirsty_points_inputs is None:
             LOG.info("Proceeding analysis with OD matrix input")
@@ -205,6 +256,12 @@ class AnalysisInputs:
                 od_matrices=od_matrices,
                 zone_centroids=zone_centroids,
                 ranges=ranges,
+                zone_translation=zone_translation,
+                original_zoning=self.original_zoning,
+                target_zoning=self.target_zoning,
+                analysis_network=analysis_network,
+                analysis_nodes = analysis_nodes,
+                od_lines=od_lines
             )
 
         else:
@@ -216,6 +273,12 @@ class AnalysisInputs:
                 laden_status_factors=laden_status_factors,
                 zone_centroids=zone_centroids,
                 ranges=ranges,
+                zone_translation=zone_translation,
+                original_zoning=self.original_zoning,
+                target_zoning=self.target_zoning,
+                analysis_network=analysis_network,
+                analysis_nodes = analysis_nodes,
+                od_lines=od_lines
             )
 
         return output
@@ -339,7 +402,7 @@ def convert_lft_keys(
         else:
             raise IndexError(
                 "inputted vehicle keys don't match those of the LFT\n"
-                f"the keys must conatain {' ,'.join(lower_input_vehicle_keys)} "
+                f"the keys must conatain {', '.join(lower_input_vehicle_keys)} "
                 "(case and order insensetive"
             )
     return new_keys

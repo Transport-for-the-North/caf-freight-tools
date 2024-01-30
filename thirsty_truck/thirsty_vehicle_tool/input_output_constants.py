@@ -69,7 +69,7 @@ ANALYSIS_NETWORK_REQUIRED_COLUMNS = [
 
 #   plotting visual const
 # UPDATING COLOUR MAP WILL NOT UPDATE BOKEH COLOURBAR!!!!
-COlOUR_MAP = "inferno"
+COLOUR_MAP = "inferno"
 
 SCALE_LABEL = "Thirstiness"
 
