@@ -157,12 +157,17 @@ class LGVInputPaths(caf.toolkit.BaseConfig):
     output_folder: types.DirectoryPath
     """Path to folder to save outputs to."""
     normits_pa_folder: types.DirectoryPath
-    """Path to the full PA Normits matrices, should contain all non house bound and house bound matrices"""
+    """Path to the full PA Normits matrices, should contain all non house
+    bound and house bound matrices"""
     normits_to_msoa_lookup: types.FilePath
-    """Normits to MSOA(NTEM) lookup, this is NoHAM to NTEM lookup as the results are taken after normits results are converted back to NoHAM"""
+    """Normits to MSOA(NTEM) lookup, this is NoHAM to NTEM lookup as the
+    results are taken after normits results are converted back to NoHAM"""
     normits_to_personal_factor: float
-    """This is the factor that the personal data should have applied to just include van data 4% is a starting point"""
-    personal_purposes: list[int] = fields.Field(default_factory=lambda: [3,4,5,6,7,8,13,14,15,16,18]) #TODO CAN YOU CONFIRM THESE ARE THE CORRECT ONES MATT
+    """This is the factor that the personal data should have applied to
+    just include van data 4% is a starting point"""
+    personal_purposes: list[int] = fields.Field(
+        default_factory=lambda: [3, 4, 5, 6, 7, 8, 13, 14, 15, 16, 18]
+    )
     """Personal purpose types defined by Normits"""
 
     @classmethod

@@ -505,7 +505,7 @@ def produce_personal_matrix(
 
     Parameters
     ----------
-    folder : NoRMITS Folder
+    folder : Path
         Location of car other matrices used for calculations.
     purposes : int
         Integer values defined in inputs which classifies the
@@ -514,15 +514,16 @@ def produce_personal_matrix(
         Year of the model.
     normits_to_msoa_lookup: Path
         Path to normits to msoa(NTEM) lookup.
-    factor: int
+    factor: float
         Factor applied to end matrices so only van personal trips are contained.
-    output_folder: Annual matrices folder
+    output_folder: Path
         Folder location where PA and OD matrices are saved
 
     Returns
     -------
-    Matrices: Annual LGV personal trip matrices in NTEM zoning with 3 columns,
-    origin, destination, and values
+    pd.DataFrame:
+        Annual LGV personal trip matrices in NTEM zoning with
+        3 columns: origin, destination, and values
 
     """
     #creating an empty dataframe
