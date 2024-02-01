@@ -497,7 +497,9 @@ def matrix_time_periods(
 def produce_personal_matrix(
     folder: Path, purposes: list[int], year: int, normits_to_msoa_lookup: Path, factor: float, output_folder: Path
 ) -> pd.DataFrame:
-    """Takes NoRMITS car other matrices for house bound and non house bound,
+    """Produces LGV personal matrix by factoring NorMITs car other demand.
+
+    Takes NoRMITS car other matrices for home based and non home bound,
     makes a dictionary of these values, concats them together, groups by origin,
     stacks the matrices to just 3 columns,
     then converts into NTEM zoning system using the lookup,
@@ -528,7 +530,7 @@ def produce_personal_matrix(
     """
     #creating an empty dataframe
     matrix_list: list[pd.DataFrame] = []
-    #reading in and appending house bound daftaframes
+    #reading in and appending home based daftaframes
     for purp in NTEM_PURPOSES["hb"]:
         if purp not in purposes:
             continue
@@ -541,7 +543,7 @@ def produce_personal_matrix(
             raise ValueError(f"index and columns aren't equal for '{path.name}'")
         matrix_list.append(df)
 
-    #reading in and appending non house bound data
+    #reading in and appending non home based data
     for purp in NTEM_PURPOSES["nhb"]:
         if purp not in purposes:
             continue
@@ -562,6 +564,7 @@ def produce_personal_matrix(
     matrix = matrix.rename(columns={'level_0': 'origin', 'level_1': 'destination', 0: 'values'})
 
     #calling lookup
+    #TODO Add column names to stop errors coming up 
     lookup = Rezone.read(normits_to_msoa_lookup, None)
     #rezoning matrix NoHAM to NTEM
     matrix = Rezone.rezoneOD(
