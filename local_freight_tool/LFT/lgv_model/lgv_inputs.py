@@ -157,8 +157,8 @@ class LGVInputPaths(caf.toolkit.BaseConfig):
     output_folder: types.DirectoryPath
     """Path to folder to save outputs to."""
     normits_pa_folder: types.DirectoryPath
-    """Path to the full PA Normits matrices, should contain all non house
-    bound and house bound matrices"""
+    """Path to the full PA Normits matrices, should contain all non home
+    based and home based matrices"""
     normits_to_msoa_lookup: types.FilePath
     """Normits to MSOA(NTEM) lookup, this is NoHAM to NTEM lookup as the
     results are taken after normits results are converted back to NoHAM"""
