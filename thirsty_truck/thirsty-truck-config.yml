@@ -19,21 +19,21 @@ analysis_inputs:
   zone_translation_path: C:\Users\UKKXF022\OneDrive - WSP O365\Midlands_connect_freight\thirsty_inputs\gbfm_to_miham_spatial.csv
   original_zoning: gbfm
   target_zoning: miham
-
-
-  analysis_network_path: C:\Users\UKKXF022\OneDrive - WSP O365\Midlands_connect_freight\thirsty_inputs\MiHAM_network\links_51_formatted\miham_51_links_formatted.shp
-  analysis_network_nodes_path: C:\Users\UKKXF022\OneDrive - WSP O365\Midlands_connect_freight\thirsty_inputs\MiHAM_network\nodes_51_formatted\miham_nodes_51_formatted.shp
+  analysis_network_path: C:\Users\UKKXF022\OneDrive - WSP O365\Midlands_connect_freight\thirsty_inputs\MiHAM_network\links_25\MiHAM_DM25_links.shp
+  analysis_network_nodes_path: C:\Users\UKKXF022\OneDrive - WSP O365\Midlands_connect_freight\thirsty_inputs\MiHAM_network\nodes_25\MiHAM_DM25_nodes.shp
 
   tonne_to_pcu_inputs:
-    domestic_bulk_port_path: C:\Users\UKKXF022\OneDrive - WSP O365\Midlands_connect_freight\LFT_inputs\AllCommTotTonnesOZ_DZ_DomBulkPortRoad_GBZ.csv
-    unitised_eu_imports_path: C:\Users\UKKXF022\OneDrive - WSP O365\Midlands_connect_freight\\LFT_inputs\UnitisedTradeEurope_Tonnes_Dir_GBZSeqPort_GBZSeqROAD0_GBZ.csv
-    unitised_eu_exports_path: C:\Users\UKKXF022\OneDrive - WSP O365\Midlands_connect_freight\\LFT_inputs\BWUnitTradeEurope_Tonnes_Dir_GBZSeqPort_GBZSeqROAD1_GBZ.csv
-    unitised_non_eu_path: C:\Users\UKKXF022\OneDrive - WSP O365\Midlands_connect_freight\\LFT_inputs\IOGBP_U_NONEurope_Tn_Dir_GBPort_GBZSeqROAD_GBZ.csv
-    ports_path: C:\Users\UKKXF022\OneDrive - WSP O365\Midlands_connect_freight\LFT_inputs\Annual tonnes to annual pcus\GBPortctrToGBPortCodesToGBZoneCodes(not sequential).csv
-    distance_bands_path: C:\Users\UKKXF022\OneDrive - WSP O365\Midlands_connect_freight\\LFT_inputs\Annual tonnes to annual pcus\hgv_trips_per_1000t_by_distance_band.csv
-    gbfm_distance_matrix_path: C:\Users\UKKXF022\OneDrive - WSP O365\Midlands_connect_freight\\LFT_inputs\Annual tonnes to annual pcus\B057 3320 DIS HGV_IP fmV PS_GBFMZ.csv
-    port_traffic_proportions_path: C:\Users\UKKXF022\OneDrive - WSP O365\Midlands_connect_freight\\LFT_inputs\Annual tonnes to annual pcus\port_traffic_trips_per_1000t.csv
-    pcu_factors_path: C:\Users\UKKXF022\OneDrive - WSP O365\Midlands_connect_freight\\LFT_inputs\Annual tonnes to annual pcus\pcu_factors.csv
+    domestic_bulk_port_path: C:\Users\UKKXF022\OneDrive - WSP O365\Midlands_connect_freight\LFT_inputs\AllCommTotTonnesOZ_DZ_DomBulkPortRoad_GBZ.csv # GBFM
+    unitised_eu_imports_path: C:\Users\UKKXF022\OneDrive - WSP O365\Midlands_connect_freight\\LFT_inputs\UnitisedTradeEurope_Tonnes_Dir_GBZSeqPort_GBZSeqROAD0_GBZ.csv # GBFM
+    unitised_eu_exports_path: C:\Users\UKKXF022\OneDrive - WSP O365\Midlands_connect_freight\\LFT_inputs\BWUnitTradeEurope_Tonnes_Dir_GBZSeqPort_GBZSeqROAD1_GBZ.csv # GBFM
+    unitised_non_eu_path: C:\Users\UKKXF022\OneDrive - WSP O365\Midlands_connect_freight\\LFT_inputs\IOGBP_U_NONEurope_Tn_Dir_GBPort_GBZSeqROAD_GBZ.csv # GBFM
+    ports_path: C:\Users\UKKXF022\OneDrive - WSP O365\Midlands_connect_freight\LFT_inputs\Annual tonnes to annual pcus\GBPortctrToGBPortCodesToGBZoneCodes(not sequential).csv # GBFM
+    gbfm_distance_matrix_path: C:\Users\UKKXF022\OneDrive - WSP O365\Midlands_connect_freight\\LFT_inputs\Annual tonnes to annual pcus\B057 3320 DIS HGV_IP fmV PS_GBFMZ.csv # GBFM
+
+    distance_bands_path: C:\Users\UKKXF022\OneDrive - WSP O365\Midlands_connect_freight\\LFT_inputs\Annual tonnes to annual pcus\hgv_trips_per_1000t_by_distance_band.csv #To Send
+    port_traffic_proportions_path: C:\Users\UKKXF022\OneDrive - WSP O365\Midlands_connect_freight\\LFT_inputs\Annual tonnes to annual pcus\port_traffic_trips_per_1000t.csv #To Send
+    pcu_factors_path: C:\Users\UKKXF022\OneDrive - WSP O365\Midlands_connect_freight\\LFT_inputs\Annual tonnes to annual pcus\pcu_factors.csv #To Send
+
   od_matrices_inputs:
     od_matrices_path:
       Artic: C:\Users\UKKXF022\OneDrive - WSP O365\Midlands_connect_freight\thirsty_truck_outputs\annual_tonne_to_pcu_conversion\artic_total_annual_trips.csv
