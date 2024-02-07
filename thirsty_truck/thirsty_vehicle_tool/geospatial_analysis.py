@@ -273,7 +273,7 @@ def create_od_lines(
         logging_tag
     )
     #for chunk in chunked_end_points:
-     #   od_bendy_lines(chunk, network_graph, link_length_lookup, network_nodes.copy(), logging_tag)
+    #    od_bendy_lines(chunk, network_graph, link_length_lookup, network_nodes.copy(), logging_tag)
 
     #returns list of intermediary files
     return glob.glob(str(output_path/ f"*{OD_LINE_FILE_EXT}"))
@@ -288,7 +288,12 @@ def create_graph(
     #if len(filtered_network_nodes) != len(network_nodes):
     #    LOG.warning("duplicate nodes found in network")
 
-    network_nodes.set_index("n", inplace=True)
+    filtered_nodes = network_nodes.drop_duplicates("n")
+
+    if len(filtered_nodes)!=len(network_nodes):
+        LOG.warning("Duplicate nodes IDs detected, this could indicate issues with network input!")
+
+    filtered_nodes.set_index("n", inplace=True)
 
     filtered_network = network.loc[network["a"]!=network["b"]]
 
@@ -303,13 +308,19 @@ def create_graph(
 
     # set node attributes
 
-    nodes_geom = network_nodes["geometry"]
+    nodes_geom = filtered_nodes["geometry"]
 
     nx.set_node_attributes(network_graph, nodes_geom, name="coords")
 
     return network_graph
 
 def create_od_lines_in_parallel(chunked_end_points, existing_outputs, skip_existing_files, output_path, network_graph, link_length_lookup, network_nodes, logging_tag):
+    try:
+        network_nodes.set_index("n", inplace=True)
+
+    except IndexError:
+        LOG.debug("Node number already set as index")
+    
     with concurrent.futures.ProcessPoolExecutor(max_workers=os.cpu_count() - 2) as executor:
         futures = []
 

@@ -253,12 +253,12 @@ def thirsty_truck(
 
         thirsty_points_folder.mkdir(exist_ok=True)
 
-        thirsty_points = get_frieght_thirsty_points(
+        thirsty_points = get_freight_thirsty_points(
             od_routes_folder,
             disagg_matrices,
             analysis_inputs.ranges,
-            analysis_inputs.analysis_network,
-            analysis_inputs.analysis_network_nodes,
+            network,
+            nodes,
         )
 
         # aggregate thirsty points by laden status
@@ -297,7 +297,7 @@ def thirsty_truck(
     )
 
 
-def get_frieght_thirsty_points(
+def get_freight_thirsty_points(
     od_lines: pathlib.Path | list[str],
     matrices: dict[str, pd.DataFrame],
     ranges: dict[str, pd.DataFrame],
@@ -325,7 +325,6 @@ def get_frieght_thirsty_points(
     tuple(str, gpd.GeoDataFrame)
         key and thirsty points
     """
-
     if isinstance(od_lines, pathlib.Path):
         LOG.info("Creating OD lines")
         # create od pairs using a matrix - these should be the same in each matrix so the matrix we choose is arbitrary
