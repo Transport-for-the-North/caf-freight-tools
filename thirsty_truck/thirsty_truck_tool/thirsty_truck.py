@@ -39,6 +39,8 @@ from LFT import hgv_annual_tonne_to_pcu, matrix_utilities
 LOG_FILE = "thirsty_truck.log"
 LOG = tv_logging.get_logger(__name__)
 
+ZONE_ADDITION = 1000000
+
 
 def main(args: argparse.Namespace) -> None:
     """initilises Logging and calls run
@@ -114,9 +116,13 @@ def thirsty_truck(
     annual_tonne_to_trip_folder = (
         operational.output_folder / "annual_tonne_to_pcu_conversion"
     )
+
+    od_matrices_folder = operational.output_folder / "od_matrices"
     # ensure the directory exists
     annual_tonne_to_trip_folder.mkdir(exist_ok=True)
+    od_matrices_folder.mkdir(exist_ok=True)
     # parse LFT inputs and convert to PCUs/Trips
+    translate = True
     if analysis_inputs.lft_inputs is not None:
         LOG.info("Parsing LFT inputs and converting to annual PCU")
         trip_conversion_obj = hgv_annual_tonne_to_pcu.tonne_to_pcu(
@@ -144,7 +150,14 @@ def thirsty_truck(
                     "trips",
                 )
 
-            # TODO zone translation
+                # output file in new zoning system
+                input_output_constants.write_to_csv(
+                    od_matrices_folder / f"{key}_{analysis_inputs.target_zoning}.csv",
+                    od_matrices[key],
+                )
+
+                # if translation has already been done, don't do it again
+                translate = False
 
         LOG.info("Extracted annual trips")
 
@@ -164,15 +177,19 @@ def thirsty_truck(
 
         # save keys pre-disaggregation
 
-        matrices = {}
+        traget_matrices = {}
 
-        if (analysis_inputs.original_zoning != analysis_inputs.target_zoning) and (
-            analysis_inputs.original_zoning != "undefined"
-            and analysis_inputs.target_zoning != "undefined"
+        if (
+            (analysis_inputs.original_zoning != analysis_inputs.target_zoning)
+            and (
+                analysis_inputs.original_zoning != "undefined"
+                and analysis_inputs.target_zoning != "undefined"
+            )
+            and translate
         ):
             for key, value in od_matrices.items():
                 LOG.info(f"Translating {key} matrix")
-                matrices[key] = translate_matrix(
+                traget_matrices[key] = translate_matrix(
                     value,
                     analysis_inputs.zone_translation,
                     analysis_inputs.original_zoning,
@@ -183,7 +200,43 @@ def thirsty_truck(
                 )
 
         else:
-            matrices = od_matrices
+            traget_matrices = od_matrices
+
+        zone_name_lookup = None
+
+        matrices = {}
+
+        for key, value in traget_matrices.items():
+            LOG.info(f"renaming {key} matrix zones")
+
+            # if lookup is undefined, make one
+            if zone_name_lookup is None:
+                zones = value["origin"].unique()
+                zone_name_lookup = pd.DataFrame(
+                    {"new": zones + ZONE_ADDITION}, index=zones
+                ).to_dict()["new"]
+
+            value.loc[:, ["origin", "destination"]] = value.loc[
+                :, ["origin", "destination"]
+            ].replace(zone_name_lookup)
+
+            matrices[key] = value
+
+        # find zone connectors and nodes to apply lookup to
+        network = analysis_inputs.analysis_network
+        network.loc[:, ["a", "b"]] = network[["a", "b"]].astype(int)
+
+        nodes = analysis_inputs.analysis_network_nodes
+
+        zone_connector_indices = network.loc[network["Type"] == "ZC"].index
+        zones_indices = nodes.loc[nodes["Type"] == "zone"].index
+
+        network.loc[zone_connector_indices, ["a", "b"]] = network.loc[
+            zone_connector_indices, ["a", "b"]
+        ].replace(zone_name_lookup)
+        nodes.loc[zones_indices, "n"] = nodes.loc[zones_indices, "n"].replace(
+            zone_name_lookup
+        )
 
         original_keys = matrices.keys()
 
@@ -195,7 +248,7 @@ def thirsty_truck(
         thirsty_points = {}
 
         # create od routes and thirsty points folder
-        od_routes_folder = operational.output_folder / "od_royutes"
+        od_routes_folder = operational.output_folder / "od_routes"
         thirsty_points_folder = operational.output_folder / "thirsty_points"
 
         thirsty_points_folder.mkdir(exist_ok=True)
@@ -276,7 +329,7 @@ def get_frieght_thirsty_points(
     if isinstance(od_lines, pathlib.Path):
         LOG.info("Creating OD lines")
         # create od pairs using a matrix - these should be the same in each matrix so the matrix we choose is arbitrary
-        arbitrary_matrix =  list(matrices.values())[0]
+        arbitrary_matrix = list(matrices.values())[0]
         od_pairs = arbitrary_matrix[["origin", "destination"]]
         od_lines_paths = geospatial_analysis.create_od_lines(
             od_pairs,

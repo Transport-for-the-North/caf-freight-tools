@@ -238,11 +238,14 @@ def create_od_lines(
     LOG.info(f"{logging_tag}: Creating OD lines")
 
     #create graph
+    od_pairs = remove_intrazonal_trips(od_pairs)
+    #deal with undefined speed limits
+    network.fillna(0, inplace=True)
     network.loc[
         network["spdlimit"] == 0, "spdlimit"
     ] = input_output_constants.DEFAULT_SPEED_LIMIT
 
-    network["link_time"] = network["distance"] / network["spdlimit"]
+    network["link_time"] = network["distance"].astype(float) / network["spdlimit"].astype(float)
     
     network_graph = create_graph(network, network_nodes)
 
@@ -269,6 +272,8 @@ def create_od_lines(
         network_nodes,
         logging_tag
     )
+    #for chunk in chunked_end_points:
+     #   od_bendy_lines(chunk, network_graph, link_length_lookup, network_nodes.copy(), logging_tag)
 
     #returns list of intermediary files
     return glob.glob(str(output_path/ f"*{OD_LINE_FILE_EXT}"))
@@ -277,11 +282,22 @@ def create_graph(
     network: gpd.GeoDataFrame, network_nodes: gpd.GeoDataFrame
 ) -> nx.DiGraph:
     network_graph = nx.DiGraph()
+
+    #filtered_network_nodes = network_nodes.loc[network_nodes["n"].drop_duplicates().index]
+
+    #if len(filtered_network_nodes) != len(network_nodes):
+    #    LOG.warning("duplicate nodes found in network")
+
     network_nodes.set_index("n", inplace=True)
 
+    filtered_network = network.loc[network["a"]!=network["b"]]
+
+    if len(filtered_network)!=len(network):
+        LOG.warning("Links removed from analysis network as A and B node had the same ID")
+
     edges = [
-        ((row["a"]), int(row["b"]), {"time": row["link_time"]})
-        for _, row in network.iterrows()
+        ((row["a"]), int(row["b"]), {"link_time": row["link_time"]})
+        for _, row in filtered_network.iterrows()
     ]
     network_graph.add_edges_from(edges)
 
@@ -381,8 +397,8 @@ def od_bendy_lines(
 ) -> pd.DataFrame:
 
     def calc_distance(a, b) -> float:
-        return network_nodes.loc[a, "geometry"].distance(
-            network_nodes.loc[b, "geometry"]
+        return network_nodes.at[a, "geometry"].distance(
+            network_nodes.at[b, "geometry"]
         )
 
     lines = []
