@@ -118,6 +118,7 @@ class LGVModelUI(QtWidgets.QWidget):
                 "Calibration matrix CSV (optional)", filetype="CSV"
             ),
             "output_folder": ui.FileInput("Output Folder", directory=True),
+            # TODO(MB) Add inputs for personal segment
         }
 
         grid = QtWidgets.QGridLayout()

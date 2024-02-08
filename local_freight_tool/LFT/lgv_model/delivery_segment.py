@@ -65,7 +65,7 @@ class DeliveryParameters(pydantic.BaseModel):
     growth_factor: float = fields.Field(alias="Delivery Growth Factor", ge=0)
     b2c: float = fields.Field(alias="B2C vs B2B Weighting", ge=0, le=1)
     depots_infill: list[Union[int, str]] = fields.Field(
-        alias="Depots Infill Zones", default_factory=list, unique_items=True
+        alias="Depots Infill Zones", default_factory=list, Set=True
     )
 
     @pydantic.validator("depots_infill", pre=True)

@@ -17,7 +17,7 @@ from typing import Any, Callable, Optional, Union
 import caf.toolkit
 import numpy as np
 import pandas as pd
-from pydantic import types, dataclasses
+from pydantic import types, dataclasses, fields
 
 # Local imports
 from .. import utilities, errors
@@ -79,6 +79,7 @@ TIME_PERIOD_COLUMNS = {
     "delivery_grocery": ("Delivery Grocery", float),
     "commuting_drivers": ("Commuting Drivers", float),
     "commuting_skilled_trades": ("Commuting Skilled Trades", float),
+    "personal": ("Personal", float),
 }
 """Name and dtype of the expected columns in the time period table."""
 GM_PARAMS_SHEET = "Gravity Model Parameters"
@@ -155,6 +156,19 @@ class LGVInputPaths(caf.toolkit.BaseConfig):
     """Path to Excel Workbook containing all the trip cost distributions."""
     output_folder: types.DirectoryPath
     """Path to folder to save outputs to."""
+    normits_pa_folder: types.DirectoryPath
+    """Path to the full PA Normits matrices, should contain all non home
+    based and home based matrices"""
+    normits_to_msoa_lookup: types.FilePath
+    """Normits to MSOA(NTEM) lookup, this is NoHAM to NTEM lookup as the
+    results are taken after normits results are converted back to NoHAM"""
+    normits_to_personal_factor: float
+    """This is the factor that the personal data should have applied to
+    just include van data 4% is a starting point"""
+    personal_purposes: list[int] = fields.Field(
+        default_factory=lambda: [3, 4, 5, 6, 7, 8, 13, 14, 15, 16, 18]
+    )
+    """Personal purpose types defined by Normits"""
 
     @classmethod
     def write_example(cls, path: Path, **examples: str) -> None:
@@ -255,6 +269,10 @@ def write_example_config(path: Path | None) -> None:
                 trip_distributions_path="Path to Excel Workbook containing all the "
                 "trip cost distributions",
                 output_folder="Path to folder to save outputs to",
+                normits_pa_folder="Path to the full PA Normits matrices, should contain all non house bound and house bound matrices",
+                normits_to_msoa_lookup="Normits to MSOA lookup, this is NoHAM to MSOA lookup as the results are taken after normits results are converted back to NoHAM",
+                normits_to_personal_factor="This is the factor that the personal data should have applied to just include van data 4% is a starting point",
+                personal_purposes="Personal purpose types defined by Normits",
             )
 
     LGVInputPaths.write_example(path, **example_data)
