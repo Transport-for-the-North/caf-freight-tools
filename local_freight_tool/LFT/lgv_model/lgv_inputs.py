@@ -103,6 +103,7 @@ LGV_SEGMENTS = [
 ]
 "Names of the LGV segments."
 EXAMPLE_CONFIG_NAME = "LGV_config_example.yml"
+DEFAULT_PERSONAL_PURPOSES = (3, 4, 5, 6, 7, 8, 13, 14, 15, 16, 18)
 
 
 ##### CLASSES #####
@@ -166,7 +167,7 @@ class LGVInputPaths(caf.toolkit.BaseConfig):
     """This is the factor that the personal data should have applied to
     just include van data 4% is a starting point"""
     personal_purposes: list[int] = fields.Field(
-        default_factory=lambda: [3, 4, 5, 6, 7, 8, 13, 14, 15, 16, 18]
+        default_factory=lambda: list(DEFAULT_PERSONAL_PURPOSES)
     )
     """Personal purpose types defined by Normits"""
 

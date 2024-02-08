@@ -4,19 +4,25 @@
 
 ##### IMPORTS #####
 # Standard imports
+import itertools
 import pprint
 import traceback
 
 # Third party imports
-from PyQt5 import QtWidgets, QtGui
-from PyQt5.QtCore import pyqtSignal, Qt, QThread
+from PyQt5 import QtGui, QtWidgets
+from PyQt5.QtCore import Qt, QThread, pyqtSignal
 
 # Local imports
 from .. import ui_widgets as ui
-from ..utilities import Utilities, progress_window
 from ..info_window import InfoWindow
+from ..utilities import Utilities, progress_window
+from .lgv_inputs import (
+    DEFAULT_PERSONAL_PURPOSES,
+    CommuteWarehousePaths,
+    DataPaths,
+    LGVInputPaths,
+)
 from .lgv_model import main
-from .lgv_inputs import LGVInputPaths, DataPaths, CommuteWarehousePaths
 
 
 class LGVModelUI(QtWidgets.QWidget):
@@ -39,13 +45,13 @@ class LGVModelUI(QtWidgets.QWidget):
 
     def init_ui(self):
         """Initilises the UI window and all the widgets."""
-        self.setGeometry(500, 120, 700, 550)
+        self.setGeometry(500, 120, 900, 550)
         self.setWindowTitle(self.name)
         self.setWindowIcon(QtGui.QIcon("icon.png"))
 
         self.error_dialog = QtWidgets.QMessageBox()
         self.error_dialog.setWindowTitle(self.name + " - Error")
-        self.error_dialog.setMinimumSize(600, 100)
+        self.error_dialog.setMinimumSize(800, 500)
         self.error_dialog.setIcon(QtWidgets.QMessageBox.Critical)
         self.error_dialog.setStandardButtons(QtWidgets.QMessageBox.Ok)
 
@@ -118,26 +124,41 @@ class LGVModelUI(QtWidgets.QWidget):
                 "Calibration matrix CSV (optional)", filetype="CSV"
             ),
             "output_folder": ui.FileInput("Output Folder", directory=True),
-            # TODO(MB) Add inputs for personal segment
+            "normits_pa_folder": ui.FileInput(
+                "NorMITs-Demand PA Matrices Folder", directory=True
+            ),
+            "normits_to_msoa_lookup": ui.FileInput(
+                "Lookup from NorMITs zoning to MSOA", filetype="CSV"
+            ),
+            "normits_to_personal_factor": ui.NumberInput(
+                "Factor applied to NorMITs\nPA matrices for LGV personal",
+                0.04,
+                min_=0,
+                max_=1,
+                decimals=3,
+                step=0.01,
+            ),
+            "personal_purposes": ui.ListInput(
+                "NTEM Purposes to use from NorMITs for LGV personal matrix",
+                default_values=list(DEFAULT_PERSONAL_PURPOSES),
+            ),
         }
 
         grid = QtWidgets.QGridLayout()
         grid.addWidget(label, 0, 0, 1, 1, Qt.AlignLeft)
         grid.addWidget(info_button, 0, 2, 1, 1, Qt.AlignRight)
-        i = 1
-        j = 0
-        for w in self.input_widgets.values():
-            grid.addWidget(w, i, j, 1, 1)
-            if j == 0:
-                j = 2
-            else:
-                i += 1
-                j = 0
 
-        row = len(self.input_widgets) + 2
+        row = 0
+        col_cycle = itertools.cycle(range(3))
+        for widget, col in zip(self.input_widgets.values(), col_cycle):
+            if col == 0:
+                row += 1
+            grid.addWidget(widget, row, col, 1, 1)
+
+        col = len(self.input_widgets) + 2
         if self.tier_converter:
-            grid.addWidget(back_button, row, 0, 1, 1, Qt.AlignLeft)
-        grid.addWidget(run_button, row, 2, 1, 1, Qt.AlignRight)
+            grid.addWidget(back_button, col, 0, 1, 1, Qt.AlignLeft)
+        grid.addWidget(run_button, col, 2, 1, 1, Qt.AlignRight)
         self.setLayout(grid)
         if not self.tier_converter:
             self.show()
