@@ -199,6 +199,12 @@ def thirsty_truck(
                     "trips",
                 )
 
+            input_output_constants.write_to_csv(
+                    od_matrices_folder / f"{key}_{analysis_inputs.target_zoning}.csv",
+                    traget_matrices[key],
+                )
+
+
         else:
             traget_matrices = od_matrices
 
@@ -251,6 +257,7 @@ def thirsty_truck(
         od_routes_folder = operational.output_folder / "od_routes"
         thirsty_points_folder = operational.output_folder / "thirsty_points"
 
+        od_routes_folder.mkdir(exist_ok=True)
         thirsty_points_folder.mkdir(exist_ok=True)
 
         thirsty_points = get_freight_thirsty_points(

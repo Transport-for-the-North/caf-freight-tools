@@ -20,7 +20,7 @@ from thirsty_vehicle_tool import input_output_constants, tv_logging
 
 # constants
 LOG = tv_logging.get_logger(__name__)
-CHUNK_SIZE = 20000
+CHUNK_SIZE = 4000
 M_TO_KM = 1000
 OD_LINE_FILE_EXT = ".h5"
 ORIGIN_COLUMN = "o"
@@ -256,8 +256,8 @@ def create_od_lines(
     link_length_lookup = network["distance"].reset_index()
     link_length_lookup.rename(columns={"distance":"link_length"}, inplace=True)
 
-    # chunk end points
 
+    # chunk end points
     chunked_end_points = chunk_dataframe(od_pairs, CHUNK_SIZE)
     existing_outputs = glob.glob(str(output_path / f"*{OD_LINE_FILE_EXT}"))
     existing_outputs = [pathlib.Path(path).name for path in existing_outputs]
@@ -272,8 +272,9 @@ def create_od_lines(
         network_nodes,
         logging_tag
     )
+    
     #for chunk in chunked_end_points:
-    #    od_bendy_lines(chunk, network_graph, link_length_lookup, network_nodes.copy(), logging_tag)
+    #    od_bendy_lines(chunk, network_graph, link_length_lookup, network_nodes.set_index("n"), logging_tag)
 
     #returns list of intermediary files
     return glob.glob(str(output_path/ f"*{OD_LINE_FILE_EXT}"))
@@ -344,8 +345,7 @@ def calculate_routes(i, chunk, existing_outputs, skip_existing_files, output_pat
 
     chunk_routes = od_bendy_lines(chunk, network_graph, link_length_lookup, network_nodes.copy(), logging_tag)
 
-    if output_path is not None:
-        input_output_constants.overwrite_h5(output_path, chunk_routes, "routes")
+    input_output_constants.overwrite_h5(output_path, chunk_routes, "routes")
 
     return output_path
 
