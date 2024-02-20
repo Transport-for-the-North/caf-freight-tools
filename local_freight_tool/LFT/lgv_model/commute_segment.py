@@ -259,7 +259,7 @@ class CommuteTripEnds:
 
         # Calculate additional construction
         sc_w_dwellings.loc[:, "additional dwellings"] = (
-            sc_w_dwellings.loc[:, str(self.params["Model Year"] + 1)]
+            sc_w_dwellings.loc[:, str(self.params["Model Year"] - 1)]
             - sc_w_dwellings.loc[:, str(self.params["Model Year"])]
         ) * additional_net_ratio
 
@@ -656,7 +656,7 @@ def read_ndr_floorspace(
 
 def read_sc_w_dwellings(path: pathlib.Path, model_year: int) -> tuple[pd.DataFrame, list[str]]:
     # TODO Write docstring
-    data_columns = [str(model_year + i) for i in (0, 1)]
+    data_columns = [str(model_year - i) for i in (0, 1)]
     sc_w_header = {"zone": str, **dict.fromkeys(data_columns, int)}
     sc_w_dwellings = utilities.read_csv(path, columns=sc_w_header)
     return sc_w_dwellings, data_columns
