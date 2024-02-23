@@ -251,17 +251,21 @@ def thirsty_truck(
             matrices, analysis_inputs.laden_status_factors
         )
 
-        thirsty_points = {}
-
         # create od routes and thirsty points folder
-        od_routes_folder = operational.output_folder / "od_routes"
-        thirsty_points_folder = operational.output_folder / "thirsty_points"
+        if analysis_inputs.od_lines is None:
+            od_lines = operational.output_folder / "od_routes"
+            thirsty_points_folder = operational.output_folder / "thirsty_points"
 
-        od_routes_folder.mkdir(exist_ok=True)
+            od_lines.mkdir(exist_ok=True)
+
+        else:
+            od_lines = analysis_inputs.od_lines
+
+
         thirsty_points_folder.mkdir(exist_ok=True)
 
         thirsty_points = get_freight_thirsty_points(
-            od_routes_folder,
+            od_lines,
             disagg_matrices,
             analysis_inputs.ranges,
             network,
@@ -310,7 +314,7 @@ def get_freight_thirsty_points(
     ranges: dict[str, pd.DataFrame],
     network: gpd.GeoDataFrame,
     nodes: gpd.GeoDataFrame,
-) -> gpd.GeoDataFrame:
+) -> dict[str, gpd.GeoDataFrame]:
     """wrapper for get_thirsty_points (also returns key)
 
     Parameters
@@ -349,8 +353,8 @@ def get_freight_thirsty_points(
         od_lines_paths = od_lines
 
     LOG.info(f"Getting thirsty points")
-
-    for key, matrix in matrices:
+    thirsty_point_outputs = {}
+    for key, matrix in matrices.items():
         filtered_od_matrix = matrix.loc[matrix["trips"] != 0]
         thirsty_points = geospatial_analysis.create_thirsty_points_in_parallel(
             od_lines_paths,
@@ -360,7 +364,15 @@ def get_freight_thirsty_points(
             f"Thirsty Points {key}: ",
         )
 
-    return thirsty_points
+        thirsty_points.reset_index(drop=True, inplace=True)
+        # tidy up columns and set new geometry
+
+        thirsty_points = gpd.GeoDataFrame(thirsty_points, geometry="geometry")
+        thirsty_points.crs = input_output_constants.CRS
+
+        thirsty_point_outputs[key] = thirsty_points
+
+    return thirsty_point_outputs
 
 
 def disagg_laden_status(

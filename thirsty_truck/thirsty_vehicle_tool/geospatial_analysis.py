@@ -113,60 +113,56 @@ def get_thirsty_points(
     return thirsty_points
 
 def create_thirsty_points(od_lines_file: list[str], filtered_od_matrix:pd.DataFrame, network:gpd.GeoDataFrame, range_:float, logging_tag:str):
-    with tqdm(total = 100, desc = f"{logging_tag} creating thristy points") as pbar:
-        try:
-            
-            path = pd.read_hdf(od_lines_file).reset_index()
+    
+    try:
+        
+        path = pd.read_hdf(od_lines_file).reset_index()
 
-            
-            path_geo = path.merge(network, how="left", on=["a", "b"])
-            path_geo = path_geo.loc[:, ["o", "d", "a", "b", "geometry"]]
-
-            pbar.update(20)
+        
+        path_geo = path.merge(network, how="left", on=["a", "b"])
+        path_geo = path_geo.loc[:, ["o", "d", "a", "b", "geometry"]]
 
 
-            shortest_path_temp = path_geo.groupby(["o", "d"])["geometry"].apply(ops.linemerge)
-            shortest_path = shortest_path_temp.to_frame().reset_index()
+
+        shortest_path_temp = path_geo.groupby(["o", "d"])["geometry"].apply(ops.linemerge)
+        shortest_path = shortest_path_temp.to_frame().reset_index()
 
 
-            pbar.update(20)
 
-            demand_path = shortest_path.merge(filtered_od_matrix, left_on=["o", "d"], right_on=["origin", "destination"], how="left")
+        demand_path = shortest_path.merge(filtered_od_matrix, left_on=["o", "d"], right_on=["origin", "destination"], how="left")
 
-            if demand_path["trips"].isna().any():
-                LOG.warning("missing demand")
-            
-            pbar.update(20)
+        if demand_path["trips"].isna().any():
+            LOG.warning("missing demand")
+            demand_path["trips"].fillna(0, inplace=True)
+        
 
-            demand_path["point_geometry"] = demand_path["geometry"].apply(drop_points, step=range_)
+        demand_path["point_geometry"] = demand_path["geometry"].apply(drop_points, step=range_)
 
-            pbar.update(20)
 
-            demand_path.drop(columns="geometry", inplace=True)
-            demand_path.rename(columns={"point_geometry": "geometry"}, inplace=True)
+        demand_path.drop(columns="geometry", inplace=True)
+        demand_path.rename(columns={"point_geometry": "geometry"}, inplace=True)
 
-            pbar.update(20)
-            return demand_path
-        except Exception as e:
-            LOG.warning(f"Unable to create thirsty points for file {od_lines_file}: {str(e)}")
-            return None
+        return demand_path
+    except Exception as e:
+        LOG.warning(f"Unable to create thirsty points for file {od_lines_file}: {str(e)}")
+        return None
 
-def create_thirsty_points_in_parallel(od_lines, filtered_od_matrix, network:gpd.GeoDataFrame, range_:float, logging_tag):
+def create_thirsty_points_in_parallel(od_lines, filtered_od_matrix, network:gpd.GeoDataFrame, range_:float, key):
     with concurrent.futures.ProcessPoolExecutor(max_workers=os.cpu_count() - 2) as executor:
         futures = []
 
         for i, od_lines_file in enumerate(od_lines):
-            future = executor.submit(create_thirsty_points, od_lines_file, filtered_od_matrix, network, range_, f"{logging_tag} chunk {i+1}:")
+            future = executor.submit(create_thirsty_points, od_lines_file, filtered_od_matrix, network, range_, f"{key}: chunk {i+1}:")
             futures.append(future)
 
-        results = [future.result() for future in tqdm(concurrent.futures.as_completed(futures))]
+        results = [future.result() for future in tqdm(concurrent.futures.as_completed(futures), total = len(futures), desc = f"{key} thirsty_points")]
 
-        # Concatenate valid results, ignoring None values
-        stacked_thirsty_points = [result for result in results if result is not None]
-        demand_od_lines = pd.concat(stacked_thirsty_points, ignore_index=True)
+    # Concatenate valid results, ignoring None values
+    stacked_thirsty_points = [result for result in results if result is not None]
+    unstacked = pd.concat(stacked_thirsty_points, ignore_index=True)
 
     #explode thirsty points lists, gives each item in list its own row and dupilcate other columns
-    thirsty_points = demand_od_lines.explode(column="geometry")
+    thirsty_points = unstacked.explode(column="geometry")
 
     return thirsty_points
 
@@ -244,6 +240,10 @@ def create_od_lines(
     network.loc[
         network["spdlimit"] == 0, "spdlimit"
     ] = input_output_constants.DEFAULT_SPEED_LIMIT
+
+    network.loc[
+        network["distance"] == 0, "distance"
+    ] = network.loc[network["distance"] == 0, "geometry"].length
 
     network["link_time"] = network["distance"].astype(float) / network["spdlimit"].astype(float)
     
