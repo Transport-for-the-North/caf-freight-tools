@@ -132,8 +132,9 @@ def create_thirsty_points(od_lines_file: list[str], filtered_od_matrix:pd.DataFr
         demand_path = shortest_path.merge(filtered_od_matrix, left_on=["o", "d"], right_on=["origin", "destination"], how="left")
 
         if demand_path["trips"].isna().any():
-            LOG.warning("missing demand")
-            demand_path["trips"].fillna(0, inplace=True)
+            LOG.warning(f"{len(demand_path[demand_path["trips"].isna()])} od pairs with missing demand")
+
+            demand_path.loc["trips"].fillna(0, inplace=True)
         
 
         demand_path["point_geometry"] = demand_path["geometry"].apply(drop_points, step=range_)
