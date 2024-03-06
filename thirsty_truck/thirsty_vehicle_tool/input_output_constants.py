@@ -515,12 +515,14 @@ def check_and_format_analysis_network(analysis_network:gpd.GeoDataFrame)->gpd.Ge
     #TODO(KF) Docstring
     analysis_network.columns = analysis_network.columns.str.lower()
     check_columns("Analysis Network", analysis_network.columns,ANALYSIS_NETWORK_REQUIRED_COLUMNS)
+    analysis_network.to_crs(CRS, inplace=True)
     return analysis_network
 
 def check_and_format_analysis_network_nodes(network_nodes: gpd.GeoDataFrame)->gpd.GeoDataFrame:
     #TODO(KF) Docstring
     network_nodes.columns = network_nodes.columns.str.lower()
     check_columns("Analysis Network", network_nodes.columns,ANALYSIS_NETWORK_NODES_REQUIRED_COLUMNS)
+    network_nodes.to_crs(CRS, inplace=True)
     return network_nodes
 
 def read_shape_file(

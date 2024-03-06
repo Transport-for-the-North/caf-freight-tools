@@ -199,10 +199,10 @@ def thirsty_truck(
                     "trips",
                 )
 
-            input_output_constants.write_to_csv(
-                    od_matrices_folder / f"{key}_{analysis_inputs.target_zoning}.csv",
-                    traget_matrices[key],
-                )
+                input_output_constants.write_to_csv(
+                        od_matrices_folder / f"{key}_{analysis_inputs.target_zoning}.csv",
+                        traget_matrices[key],
+                    )
 
 
         else:
