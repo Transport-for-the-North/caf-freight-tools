@@ -20,7 +20,7 @@ from thirsty_vehicle_tool import input_output_constants, tv_logging
 
 # constants
 LOG = tv_logging.get_logger(__name__)
-CHUNK_SIZE = 4000
+CHUNK_SIZE = 20000
 M_TO_KM = 1000
 OD_LINE_FILE_EXT = ".h5"
 ORIGIN_COLUMN = "o"

@@ -347,7 +347,7 @@ def get_freight_thirsty_points(
             network,
             nodes,
             od_lines,
-            False,
+            True,
         )
     else:
         od_lines_paths = od_lines
