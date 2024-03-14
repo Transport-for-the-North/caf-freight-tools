@@ -259,8 +259,8 @@ class CommuteTripEnds:
 
         # Calculate additional construction
         sc_w_dwellings.loc[:, "additional dwellings"] = (
-            sc_w_dwellings.loc[:, str(self.params["Model Year"] - 1)]
-            - sc_w_dwellings.loc[:, str(self.params["Model Year"])]
+            sc_w_dwellings.loc[:, str(self.params["Model Year"])]
+            - sc_w_dwellings.loc[:, str(self.params["Model Year"] - 1)]
         ) * additional_net_ratio
 
         # Concatenate the dwellings data
