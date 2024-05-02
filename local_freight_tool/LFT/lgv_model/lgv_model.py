@@ -11,6 +11,7 @@ from pathlib import Path
 from datetime import datetime
 from dataclasses import dataclass, field
 from typing import Callable
+import warnings
 
 # Third party imports
 import numpy as np
@@ -495,7 +496,12 @@ def matrix_time_periods(
 
 
 def produce_personal_matrix(
-    folder: Path, purposes: list[int], year: int, normits_to_msoa_lookup: Path, factor: float, output_folder: Path
+    folder: Path,
+    purposes: list[int],
+    year: int,
+    normits_to_msoa_lookup: Path,
+    factor: float,
+    output_folder: Path,
 ) -> pd.DataFrame:
     """Produces LGV personal matrix by factoring NorMITs car other demand.
 
@@ -528,9 +534,9 @@ def produce_personal_matrix(
         3 columns: origin, destination, and values
 
     """
-    #creating an empty dataframe
+    # creating an empty dataframe
     matrix_list: list[pd.DataFrame] = []
-    #reading in and appending home based daftaframes
+    # reading in and appending home based daftaframes
     for purp in NTEM_PURPOSES["hb"]:
         if purp not in purposes:
             continue
@@ -538,12 +544,12 @@ def produce_personal_matrix(
         path = folder / f"hb_synthetic_pa_yr{int(year)}_p{purp}_m3.csv.bz2"
         df = pd.read_csv(path, index_col=0)
         df.columns = pd.to_numeric(df.columns, downcast="unsigned")
-        #error check
+        # error check
         if not df.columns.equals(df.index):
             raise ValueError(f"index and columns aren't equal for '{path.name}'")
         matrix_list.append(df)
 
-    #reading in and appending non home based data
+    # reading in and appending non home based data
     for purp in NTEM_PURPOSES["nhb"]:
         if purp not in purposes:
             continue
@@ -552,21 +558,23 @@ def produce_personal_matrix(
             path = folder / f"nhb_synthetic_pa_yr{int(year)}_p{purp}_m3_tp{tp}.csv.bz2"
             df = pd.read_csv(path, index_col=0)
             df.columns = pd.to_numeric(df.columns, downcast="unsigned")
-            #error check
+            # error check
             if not df.columns.equals(df.index):
                 raise ValueError(f"index and columns aren't equal for '{path.name}'")
             matrix_list.append(df)
 
-    #concatting all matrices from list
+    # concatting all matrices from list
     matrix = pd.concat(matrix_list, axis=0).groupby(level=0).sum()
-    #stacking matrices to long format and renaming columns
+    # stacking matrices to long format and renaming columns
     matrix = matrix.stack().reset_index()
-    matrix = matrix.rename(columns={'level_0': 'origin', 'level_1': 'destination', 0: 'values'})
+    matrix = matrix.rename(
+        columns={"level_0": "origin", "level_1": "destination", 0: "values"}
+    )
 
-    #calling lookup
-    #TODO Add column names to stop errors coming up 
+    # calling lookup
+    # TODO Add column names to stop errors coming up
     lookup = Rezone.read(normits_to_msoa_lookup, None)
-    #rezoning matrix NoHAM to NTEM
+    # rezoning matrix NoHAM to NTEM
     matrix = Rezone.rezoneOD(
         matrix,
         lookup,
@@ -575,26 +583,22 @@ def produce_personal_matrix(
     )
 
     # Apply personal LGV factor
-    matrix['values'] = matrix['values'] * factor
+    matrix["values"] = matrix["values"] * factor
     # Converting back to square matrices
-    matrix = matrix.pivot(index='origin', columns='destination', values='values')
+    matrix = matrix.pivot(index="origin", columns="destination", values="values")
 
-    #converting OD to PA matrices
+    # converting OD to PA matrices
     matrix.to_csv(output_folder / "personal-trip_matrix-PA.csv")
     od_matrix = annual_pa_to_od(
         matrix.values,
         matrix.sum(axis=0).values,
         matrix.sum(axis=1).values,
     )
-    od_matrix = pd.DataFrame(
-        od_matrix,
-        index= matrix.index,
-        columns=matrix.columns
-    )
+    od_matrix = pd.DataFrame(od_matrix, index=matrix.index, columns=matrix.columns)
     od_matrix.to_csv(output_folder / "personal-trip_matrix-OD.csv")
 
-    #TODO Add more tests at some point
-    #negative and nans check
+    # TODO Add more tests at some point
+    # negative and nans check
     negatives = (od_matrix < 0).values
     if np.any(negatives):
         raise ValueError(f"{np.sum(negatives)} negative values in matrix")
@@ -643,16 +647,29 @@ def produce_annual_matrices(
         message_hook=message_hook,
     )
 
-    message_hook("Calculating personal segment matrices from NorMITs car demand")
-    personal_matrix = produce_personal_matrix(
-        input_paths.normits_pa_folder,
-        input_paths.personal_purposes,
-        year=year,
-        normits_to_msoa_lookup=input_paths.normits_to_msoa_lookup,
-        factor=input_paths.normits_to_personal_factor,
-        output_folder = output_folder
-    )
-    message_hook("Finished personal segment matrices")
+    try:
+        message_hook("Calculating personal segment matrices from NorMITs car demand")
+        personal_matrix = produce_personal_matrix(
+            input_paths.normits_pa_folder,
+            input_paths.personal_purposes,
+            year=year,
+            normits_to_msoa_lookup=input_paths.normits_to_msoa_lookup,
+            factor=input_paths.normits_to_personal_factor,
+            output_folder=output_folder,
+        )
+        message_hook("Finished personal segment matrices")
+
+    except Exception as exc:
+        personal_matrix = pd.DataFrame(
+            np.ones_like(matrices["service"]),
+            columns=matrices["service"].columns,
+            index=matrices["service"].index,
+        )
+        warnings.warn(
+            "Failed to produce personal matrix, use dummy matrix of 1s."
+            f" {exc.__class__.__name__}: {exc}",
+            RuntimeWarning,
+        )
 
     return LGVMatrices(**matrices, personal=personal_matrix)
 
