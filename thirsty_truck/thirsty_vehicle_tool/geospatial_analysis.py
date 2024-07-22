@@ -112,6 +112,8 @@ def get_thirsty_points(
 
     return thirsty_points
 
+
+
 def create_thirsty_points(od_lines_file: list[str], filtered_od_matrix:pd.DataFrame, network:gpd.GeoDataFrame, range_:float, logging_tag:str):
     
     try:
@@ -123,7 +125,7 @@ def create_thirsty_points(od_lines_file: list[str], filtered_od_matrix:pd.DataFr
         path_geo = path_geo.loc[:, ["o", "d", "a", "b", "geometry"]]
 
 
-
+        #TODO this breaks because geometry is a "float"
         shortest_path_temp = path_geo.groupby(["o", "d"])["geometry"].apply(ops.linemerge)
         shortest_path = shortest_path_temp.to_frame().reset_index()
 
@@ -142,7 +144,7 @@ def create_thirsty_points(od_lines_file: list[str], filtered_od_matrix:pd.DataFr
 
         demand_path.drop(columns="geometry", inplace=True)
         demand_path.rename(columns={"point_geometry": "geometry"}, inplace=True)
-
+        #TODO check we have multiple point per od pair where required
         return demand_path
     except Exception as e:
         LOG.warning(f"Unable to create thirsty points for file {od_lines_file}: {str(e)}")
@@ -152,7 +154,10 @@ def create_thirsty_points_in_parallel(od_lines, filtered_od_matrix, network:gpd.
     with concurrent.futures.ProcessPoolExecutor(max_workers=os.cpu_count() - 2) as executor:
         futures = []
 
+
         for i, od_lines_file in enumerate(od_lines):
+            future = create_thirsty_points(od_lines_file, filtered_od_matrix, network, range_, f"{key}: chunk {i+1}:")
+
             future = executor.submit(create_thirsty_points, od_lines_file, filtered_od_matrix, network, range_, f"{key}: chunk {i+1}:")
             futures.append(future)
 
@@ -327,7 +332,12 @@ def create_od_lines_in_parallel(chunked_end_points, existing_outputs, skip_exist
         futures = []
 
         for i, chunk in enumerate(chunked_end_points):
+
+
             output_filename = output_path / f"routes_{i+1}{OD_LINE_FILE_EXT}"
+
+            #calculate_routes(i, chunk, existing_outputs, skip_existing_files, output_filename, network_graph, link_length_lookup, network_nodes, logging_tag)
+
             future = executor.submit(calculate_routes, i, chunk, existing_outputs, skip_existing_files, output_filename, network_graph, link_length_lookup, network_nodes, logging_tag)
             futures.append(future)
 

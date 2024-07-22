@@ -189,17 +189,17 @@ class AnalysisInputs:
             zone_translation = pd.read_csv(self.zone_translation_path)
 
         #parse network
-            if self.analysis_network_path is None and self.analysis_network_nodes_path is None:
-                analysis_network = None
-                analysis_nodes = None
-            else:
-                analysis_network = gpd.read_file(self.analysis_network_path)
-                analysis_nodes = gpd.read_file(self.analysis_network_nodes_path)
+        if self.analysis_network_path is None and self.analysis_network_nodes_path is None:
+            analysis_network = None
+            analysis_nodes = None
+        else:
+            analysis_network = gpd.read_file(self.analysis_network_path)
+            analysis_nodes = gpd.read_file(self.analysis_network_nodes_path)
 
-            if self.od_lines is None:
-                od_lines = None
-            else:
-                od_lines = glob.glob(str(od_lines))
+        if self.od_lines is None:
+            od_lines = None
+        else:
+            od_lines = glob.glob(str(od_lines))
         # parse tonne to pcu inputs
         if (
             self.tonne_to_pcu_inputs is not None
