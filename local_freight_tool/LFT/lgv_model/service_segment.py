@@ -35,6 +35,8 @@ class ServiceTripEnds:
         `SERVICE_TRIPS_SEGMENTS`.
     scale_factor : float
         Factor for scaling the service trips to the model year.
+    model_zones : pd.Series
+        Full list of model zones.
 
     Raises
     ------
@@ -57,6 +59,7 @@ class ServiceTripEnds:
         bres_paths: data_utils.DataPaths,
         service_trips: Path,
         scale_factor: float,
+        model_zones: pd.Series,
     ):
         """Initialise class by checking input files exist and are expected type."""
         # Check all given parameters
@@ -73,6 +76,7 @@ class ServiceTripEnds:
         self.households = None
         self.bres = None
         self.total_trips = None
+        self.model_zones = model_zones
         self._trip_proportions = None
         self._trips = None
         self._trip_ends = None
@@ -100,9 +104,7 @@ class ServiceTripEnds:
         return pd.DataFrame.from_dict(
             {
                 "Household Data Path": str(self._household_paths.path),
-                "Household Zone Correspondence Path": str(
-                    self._household_paths.zc_path
-                ),
+                "Household Zone Correspondence Path": str(self._household_paths.zc_path),
                 "BRES Data Path": str(self._bres_paths.path),
                 "BRES Zone Correpondence Path": str(self._bres_paths.zc_path),
                 "Annual Service Trips Path": str(self._trips_path),
@@ -142,9 +144,7 @@ class ServiceTripEnds:
             index_col=0,
         )[self.SERVICE_TRIPS_SHEET]
         self.total_trips.index = self.total_trips.index.str.title().str.strip()
-        missing = [
-            s for s in self.SERVICE_TRIPS_SEGMENTS if s not in self.total_trips.index
-        ]
+        missing = [s for s in self.SERVICE_TRIPS_SEGMENTS if s not in self.total_trips.index]
         if missing:
             raise errors.MissingDataError("Service trips", missing)
         self.total_trips = self.total_trips.loc[self.SERVICE_TRIPS_SEGMENTS, :].copy()
@@ -183,12 +183,8 @@ class ServiceTripEnds:
             self._trips["Residential"] *= self.total_trips.at[
                 "Residential", "Annual Service Trips"
             ]
-            self._trips["Office"] *= self.total_trips.at[
-                "Office", "Annual Service Trips"
-            ]
-            self._trips["Other"] *= self.total_trips.at[
-                "All Other", "Annual Service Trips"
-            ]
+            self._trips["Office"] *= self.total_trips.at["Office", "Annual Service Trips"]
+            self._trips["Other"] *= self.total_trips.at["All Other", "Annual Service Trips"]
         return self._trips
 
     @property
@@ -203,4 +199,9 @@ class ServiceTripEnds:
             self._trip_ends = pd.DataFrame(
                 {"Productions": tot_trips / 2, "Attractions": tot_trips / 2}
             )
+
+            self._trip_ends = self._trip_ends.reindex(
+                index=pd.Index(self.model_zones), fill_value=0
+            )
+
         return self._trip_ends

@@ -4,21 +4,25 @@
 
 ##### IMPORTS #####
 # Standard imports
+import itertools
 import pprint
 import traceback
-from pathlib import Path
-from typing import Union, Dict
 
 # Third party imports
-from PyQt5 import QtWidgets, QtGui
-from PyQt5.QtCore import pyqtSignal, Qt, QThread
+from PyQt5 import QtGui, QtWidgets
+from PyQt5.QtCore import Qt, QThread, pyqtSignal
 
 # Local imports
 from .. import ui_widgets as ui
-from .. import errors
-from ..utilities import Utilities, progress_window
 from ..info_window import InfoWindow
-from .lgv_model import main, LGVInputsUI
+from ..utilities import Utilities, progress_window
+from .lgv_inputs import (
+    DEFAULT_PERSONAL_PURPOSES,
+    CommuteWarehousePaths,
+    DataPaths,
+    LGVInputPaths,
+)
+from .lgv_model import main
 
 
 class LGVModelUI(QtWidgets.QWidget):
@@ -41,13 +45,13 @@ class LGVModelUI(QtWidgets.QWidget):
 
     def init_ui(self):
         """Initilises the UI window and all the widgets."""
-        self.setGeometry(500, 120, 700, 550)
+        self.setGeometry(500, 120, 900, 550)
         self.setWindowTitle(self.name)
         self.setWindowIcon(QtGui.QIcon("icon.png"))
 
         self.error_dialog = QtWidgets.QMessageBox()
         self.error_dialog.setWindowTitle(self.name + " - Error")
-        self.error_dialog.setMinimumSize(600, 100)
+        self.error_dialog.setMinimumSize(800, 500)
         self.error_dialog.setIcon(QtWidgets.QMessageBox.Critical)
         self.error_dialog.setStandardButtons(QtWidgets.QMessageBox.Ok)
 
@@ -69,13 +73,21 @@ class LGVModelUI(QtWidgets.QWidget):
             "hh_zc": ui.FileInput(
                 "Household projections zone correspondence CSV", filetype="CSV"
             ),
-            "bres_data": ui.FileInput("BRES data CSV", filetype="CSV"),
-            "bres_zc": ui.FileInput("BRES zone correspondence CSV", filetype="CSV"),
-            "voa_data": ui.FileInput("VOA non domestic ratings CSV", filetype="CSV"),
-            "voa_zc": ui.FileInput("VOA zone correspondence CSV", filetype="CSV"),
-            "parameters_path": ui.FileInput(
-                "LGV parameters spreadsheet", filetype="excel"
+            "bres_path": ui.FileInput("BRES data by LSOA", filetype="CSV"),
+            "warehouse_path": ui.FileInput("Warehouse Floorspace by LSOA", filetype="CSV"),
+            "commute_warehouse_paths_medium": ui.FileInput(
+                "Warehouse Floorspace by LSOA for Commute - Medium Weighting",
+                filetype="CSV",
             ),
+            "commute_warehouse_paths_high": ui.FileInput(
+                "Warehouse Floorspace by LSOA for Commute - High Weighting (optional)",
+                filetype="CSV",
+            ),
+            "commute_warehouse_paths_low": ui.FileInput(
+                "Warehouse Floorspace by LSOA for Commute - Low Weighting (optional)",
+                filetype="CSV",
+            ),
+            "parameters_path": ui.FileInput("LGV parameters spreadsheet", filetype="excel"),
             "trip_distributions_path": ui.FileInput(
                 "Trip distributions spreadsheet", filetype="excel"
             ),
@@ -112,62 +124,77 @@ class LGVModelUI(QtWidgets.QWidget):
                 "Calibration matrix CSV (optional)", filetype="CSV"
             ),
             "output_folder": ui.FileInput("Output Folder", directory=True),
+            "normits_pa_folder": ui.FileInput(
+                "NorMITs-Demand PA Matrices Folder", directory=True
+            ),
+            "normits_to_msoa_lookup": ui.FileInput(
+                "Lookup from NorMITs zoning to MSOA", filetype="CSV"
+            ),
+            "normits_to_personal_factor": ui.NumberInput(
+                "Factor applied to NorMITs\nPA matrices for LGV personal",
+                0.04,
+                min_=0,
+                max_=1,
+                decimals=3,
+                step=0.01,
+            ),
+            "personal_purposes": ui.ListInput(
+                "NTEM Purposes to use from NorMITs for LGV personal matrix",
+                default_values=list(DEFAULT_PERSONAL_PURPOSES),
+            ),
         }
 
         grid = QtWidgets.QGridLayout()
         grid.addWidget(label, 0, 0, 1, 1, Qt.AlignLeft)
         grid.addWidget(info_button, 0, 2, 1, 1, Qt.AlignRight)
-        i = 1
-        j = 0
-        for w in self.input_widgets.values():
-            grid.addWidget(w, i, j, 1, 1)
-            if j == 0:
-                j = 2
-            else:
-                i += 1
-                j = 0
 
-        row = len(self.input_widgets) + 2
+        row = 0
+        col_cycle = itertools.cycle(range(3))
+        for widget, col in zip(self.input_widgets.values(), col_cycle):
+            if col == 0:
+                row += 1
+            grid.addWidget(widget, row, col, 1, 1)
+
+        col = len(self.input_widgets) + 2
         if self.tier_converter:
-            grid.addWidget(back_button, row, 0, 1, 1, Qt.AlignLeft)
-        grid.addWidget(run_button, row, 2, 1, 1, Qt.AlignRight)
+            grid.addWidget(back_button, col, 0, 1, 1, Qt.AlignLeft)
+        grid.addWidget(run_button, col, 2, 1, 1, Qt.AlignRight)
         self.setLayout(grid)
         if not self.tier_converter:
             self.show()
 
-    def get(self) -> Dict[str, Union[Path, int]]:
+    def get(self) -> LGVInputPaths:
         """Get all the parameters provided in the UI.
 
         Returns
         -------
-        Dict[str, Union[Path, int]]
-            Dictionary containing all the parameters (keys)
-            and their values, contains the following keys:
-            hh_data, hh_zc, bres_data, bres_zc, voa_data,
-            voa_zc, parameters_path, trip_distributions_path,
-            qs606ew_path, qs606sc_path, sc_w_dwellings_path,
-            e_dwellings_path, ndr_floorspace_path, lsoa_lookup_path,
-            msoa_lookup_path, lad_lookup_path, model_study_area,
-            cost_matrix_path, calibration_matrix_path and output_folder.
-
-        Raises
-        ------
-        errors.MissingDataError
-            If any of the parameters aren't provided.
+        LGVInputPaths
+            Input paths for running LGV model.
         """
-        params = {}
-        missing = []
-        for nm, widget in self.input_widgets.items():
-            val = widget.get()
-            if val is None and nm != "calibration_matrix_path":
-                missing.append(widget.label_text)
-            elif nm == "calibration_matrix_path" and val is None:
-                pass
-            else:
-                params[nm] = val
-        if missing:
-            raise errors.MissingDataError("input parameters", missing)
-        return params
+        preprocessed_keys = (
+            "hh_data",
+            "hh_zc",
+            "commute_warehouse_paths_medium",
+            "commute_warehouse_paths_high",
+            "commute_warehouse_paths_low",
+        )
+        paths = {}
+        paths["household_paths"] = DataPaths(
+            "LGV Households",
+            self.input_widgets["hh_data"].get(),
+            self.input_widgets["hh_zc"].get(),
+        )
+        paths["commute_warehouse_paths"] = CommuteWarehousePaths(
+            medium=self.input_widgets["commute_warehouse_paths_medium"].get(),
+            high=self.input_widgets["commute_warehouse_paths_high"].get(),
+            low=self.input_widgets["commute_warehouse_paths_low"].get(),
+        )
+        for key, widget in self.input_widgets.items():
+            if key in preprocessed_keys:
+                continue
+            paths[key] = widget.get()
+
+        return LGVInputPaths(**paths)
 
     def on_click_run(self):
         """Get the input parameters and initialise the progress window and worker.
@@ -247,9 +274,7 @@ class Worker(QThread):
     PROGRESS_WIDTH = 800
     error = pyqtSignal(str, str)
 
-    def __init__(
-        self, lgv_model_ui: LGVModelUI, parameters: dict[str, Union[Path, int]]
-    ):
+    def __init__(self, lgv_model_ui: LGVModelUI, parameters: LGVInputPaths):
         super().__init__()
         self.ui_window = lgv_model_ui
         self.parameters = parameters
@@ -267,11 +292,10 @@ class Worker(QThread):
         in the progress window and emits them to the `error` signal.
         """
         try:
-            ui_inputs = LGVInputsUI(self.parameters)
-            main(ui_inputs.input_paths, message_hook=self.update_progress)
-        except Exception as e:
+            main(self.parameters, message_hook=self.update_progress)
+        except Exception as error:
             tb = traceback.format_exc()
-            msg = f"Critical error - {e.__class__.__name__}: {e}"
+            msg = f"Critical error - {error.__class__.__name__}: {error}"
             self.update_progress(msg)
             self.error.emit(msg, tb)
 

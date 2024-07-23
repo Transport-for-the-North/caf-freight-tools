@@ -6,12 +6,12 @@
 ##### IMPORTS #####
 # Standard imports
 import argparse
-import configparser
 import io
 from pathlib import Path
 from datetime import datetime
 from dataclasses import dataclass, field
 from typing import Callable
+import warnings
 
 # Third party imports
 import numpy as np
@@ -31,6 +31,7 @@ from .delivery_segment import DeliveryTripEnds
 from .commute_segment import CommuteTripEnds
 from .gravity_model import CalibrateGravityModel, calculate_vehicle_kms
 from .furnessing import annual_pa_to_od
+from ..rezone import Rezone
 
 
 ##### CONSTANTS #####
@@ -50,185 +51,12 @@ PA_MATRICES = [
     "commuting_skilled_trades",
 ]
 """List of matrices which are in PA format and will be converted to OD."""
+NTEM_PURPOSES = {"hb": list(range(1, 9)), "nhb": [12, 13, 14, 15, 16, 18]}
+PERSONAL_TIME_PERIODS = [1, 2, 3, 4]
+"""Time periods to aggregate NHB together for."""
+
 
 ##### CLASSES #####
-class LGVConfig(configparser.ConfigParser):
-    """Handles reading the config file for the LGV model.
-
-    Parameters
-    ----------
-    path : Path
-        Path to the config file to read.
-
-    Raises
-    ------
-    configparser.NoSectionError
-        If the config file doesn't contain the
-        `SECTION`.
-    """
-
-    SECTION = "LGV File Paths"
-    """Name of the required section."""
-    OPTIONS = {
-        "hh_data": "households data",
-        "hh_zc": "households zone correspondence",
-        "bres_data": "bres data",
-        "bres_zc": "bres zone correspondence",
-        "voa_data": "voa data",
-        "voa_zc": "voa zone correspondence",
-        "parameters_path": "lgv parameters",
-        "qs606ew_path": "QS606EW",
-        "qs606sc_path": "QS606SC",
-        "sc_w_dwellings_path": "SC&W dwellings",
-        "e_dwellings_path": "E dwellings",
-        "ndr_floorspace_path": "NDR floorspace",
-        "lsoa_lookup_path": "LSOA lookup",
-        "msoa_lookup_path": "MSOA lookup",
-        "lad_lookup_path": "LAD lookup",
-        "output_folder": "output folder",
-        "model_study_area": "model study area",
-        "cost_matrix_path": "Cost Matrix",
-        "calibration_matrix_path": "Calibration Matrix",
-        "trip_distributions_path": "Trip Distributions Spreadsheet",
-    }
-    """Names of the expected options in config file (values), keys are for internal use."""
-    input_paths: LGVInputPaths = None
-    """Paths to all the input files required for the LGV model."""
-    EXAMPLE_NAME: str = "LGV_config_example.ini"
-    """Name of the example config file which is written, if path isn't given."""
-
-    def __init__(self, path: Path):
-        """Initialises the class by reading the given file."""
-        super().__init__()
-        self.read(path)
-        if not self.has_section(self.SECTION):
-            raise configparser.NoSectionError(
-                f"LGV config ({path.name}) doesn't contain section {self.SECTION!r}"
-            )
-        paths = {}
-        paths["household_paths"] = DataPaths(
-            "LGV Households",
-            self.getpath(self.SECTION, self.OPTIONS["hh_data"]),
-            self.getpath(self.SECTION, self.OPTIONS["hh_zc"]),
-        )
-        paths["bres_paths"] = DataPaths(
-            "LGV BRES",
-            self.getpath(self.SECTION, self.OPTIONS["bres_data"]),
-            self.getpath(self.SECTION, self.OPTIONS["bres_zc"]),
-        )
-        paths["voa_paths"] = DataPaths(
-            "LGV VOA",
-            self.getpath(self.SECTION, self.OPTIONS["voa_data"]),
-            self.getpath(self.SECTION, self.OPTIONS["voa_zc"]),
-        )
-        # All parameters in ignore are handled separately
-        ignore = ("hh_data", "hh_zc", "bres_data", "bres_zc", "voa_data", "voa_zc")
-        optional = ("calibration_matrix_path",)
-        for nm, option_name in self.OPTIONS.items():
-            if nm in ignore:
-                continue
-            if nm in optional:
-                paths[nm] = self.getpath(self.SECTION, option_name, fallback=None)
-            else:
-                paths[nm] = self.getpath(self.SECTION, option_name)
-        self.input_paths = LGVInputPaths(**paths)
-
-    def getpath(self, section: str, option: str, **kwargs) -> Path:
-        """Gets the `option` from `section` and converts it to a Path object.
-
-        Parameters
-        ----------
-        section : str
-            Name of the config section.
-        option : str
-            Name of the config option.
-
-        Returns
-        -------
-        Path
-            Path object for the given `option`.
-        """
-        item = self.get(section, option, **kwargs)
-        if item:
-            return Path(item)
-        return item
-
-    @classmethod
-    def write_example(cls, path: Path = None):
-        """Write example of the config file, with no values.
-
-        Parameters
-        ----------
-        path : Path
-            Path to write the example config file too,
-            will be overwritten if already exists.
-        """
-        if path is None:
-            path = Path(cls.EXAMPLE_NAME)
-        elif path.is_dir():
-            path = path / cls.EXAMPLE_NAME
-        config = configparser.ConfigParser()
-        config[cls.SECTION] = {k: "" for k in cls.OPTIONS}
-        with open(path, "wt") as f:
-            config.write(f)
-        print(f"Example config written: {path}")
-
-    def __str__(self) -> str:
-        paths_str = str(self.input_paths).replace("\n", "\n\t")
-        return f"{self.__class__.__name__}\n\t{self.SECTION} = {paths_str}"
-
-
-class LGVInputsUI:
-    """Handles reading UI inputs for the LGV Model.
-
-    Parameters
-    ----------
-    Dict[str, Path]
-        Dictionary containing all the parameters (keys)
-        and their values, contains the following keys:
-        hh_data, hh_zc, bres_data, bres_zc, voa_data,
-        voa_zc, parameters_path, trip_distributions_path,
-        qs606ew_path, qs606sc_path, sc_w_dwellings_path,
-        e_dwellings_path, ndr_floorspace_path, lsoa_lookup_path,
-        msoa_lookup_path, lad_lookup_path, model_study_area,
-        cost_matrix_path, calibration_matrix_path and output_folder.
-    """
-
-    input_paths: LGVInputPaths = None
-    """Paths to all the input files required for the LGV model."""
-
-    def __init__(self, parameters: dict):
-        """Initialises the class by creating LGVInputsPaths instance
-        from parameters dictionary."""
-        paths = {}
-        paths["household_paths"] = DataPaths(
-            "LGV Households",
-            parameters["hh_data"],
-            parameters["hh_zc"],
-        )
-        paths["bres_paths"] = DataPaths(
-            "LGV BRES",
-            parameters["bres_data"],
-            parameters["bres_zc"],
-        )
-        paths["voa_paths"] = DataPaths(
-            "LGV VOA",
-            parameters["voa_data"],
-            parameters["voa_zc"],
-        )
-        # All parameters in ignore are handled separately
-        ignore = ("hh_data", "hh_zc", "bres_data", "bres_zc", "voa_data", "voa_zc")
-        optional = ("calibration_matrix_path",)
-        for key in parameters:
-            if key in ignore:
-                continue
-            if key in optional:
-                paths[key] = parameters[key]
-            else:
-                paths[key] = parameters[key]
-        self.input_paths = LGVInputPaths(**paths)
-
-
 @dataclass
 class LGVTripEnds:
     """Dataclass to store the trip end data for all segments.
@@ -342,6 +170,9 @@ class LGVMatrices:
     commuting_skilled_trades: pd.DataFrame
     """Commuting skilled trades (SOCs 51, 52, 53) trips matrix,
     with zone numbers for columns and indices."""
+    personal: pd.DataFrame
+    """Contains personal trip matrix outputs from normits,
+    with zone numbers for columns and indices"""
     combined: pd.DataFrame = field(init=False)
     """Trips matrix for all combined segments, with zone numbers
     for columns and indices."""
@@ -360,8 +191,9 @@ class LGVMatrices:
             "delivery_grocery",
             "commuting_drivers",
             "commuting_skilled_trades",
+            "personal",
         )
-        index = pd.Int64Index([])
+        index = pd.Index([], dtype=int)
         for nm in dataframes:
             index = index.union(getattr(self, nm).index)
             index = index.union(getattr(self, nm).columns)
@@ -379,6 +211,7 @@ class LGVMatrices:
             + self.delivery_grocery
             + self.commuting_drivers
             + self.commuting_skilled_trades
+            + self.personal
         )
 
     def asdict(self) -> dict[str, pd.DataFrame]:
@@ -390,6 +223,7 @@ class LGVMatrices:
             "delivery_grocery",
             "commuting_drivers",
             "commuting_skilled_trades",
+            "personal",
             "combined",
             "zones",
         )
@@ -443,13 +277,23 @@ def calculate_trip_ends(
     LGVTripEnds: Stores all trip end DataFrames.
     """
     output_folder.mkdir(exist_ok=True)
-    # Calculate the service trip ends and save output
+
+    bres_paths = DataPaths(
+        "LGV BRES Data", input_paths.bres_path, input_paths.lsoa_lookup_path
+    )
+
+    model_zones: pd.Series = pd.read_csv(input_paths.model_study_area, usecols=["zone"])[
+        "zone"
+    ]
+    model_zones.name = "Zone"
+
     message_hook("Calculating Service trip ends")
     service = ServiceTripEnds(
         input_paths.household_paths,
-        input_paths.bres_paths,
+        bres_paths,
         input_paths.parameters_path,
         lgv_growth,
+        model_zones,
     )
     service.read()
     service.trip_ends.to_csv(output_folder / "service_trip_ends.csv")
@@ -457,42 +301,23 @@ def calculate_trip_ends(
     # Calculate the delivery trip ends and save outputs
     message_hook("Calculating Delivery trip ends")
     delivery = DeliveryTripEnds(
-        input_paths.voa_paths,
-        input_paths.bres_paths,
+        DataPaths(
+            "LGV Delivery Warehouse", input_paths.warehouse_path, input_paths.lsoa_lookup_path
+        ),
+        bres_paths,
         input_paths.household_paths,
         input_paths.parameters_path,
         year,
+        model_zones,
     )
     delivery.read()
-    delivery.parcel_stem_trip_ends.to_csv(
-        output_folder / "delivery_parcel_stem_trip_ends.csv"
-    )
-    delivery.parcel_bush_trip_ends.to_csv(
-        output_folder / "delivery_parcel_bush_trip_ends.csv"
-    )
-    delivery.grocery_bush_trip_ends.to_csv(
-        output_folder / "delivery_grocery_trip_ends.csv"
-    )
+    delivery.parcel_stem_trip_ends.to_csv(output_folder / "delivery_parcel_stem_trip_ends.csv")
+    delivery.parcel_bush_trip_ends.to_csv(output_folder / "delivery_parcel_bush_trip_ends.csv")
+    delivery.grocery_bush_trip_ends.to_csv(output_folder / "delivery_grocery_trip_ends.csv")
 
     # Calculate commuting trip ends and save output
     message_hook("Calculating Commuting trip ends")
-    commute = CommuteTripEnds(
-        {
-            "commuting tables": input_paths.parameters_path,
-            "household projections": input_paths.household_paths.path,
-            "BRES": input_paths.bres_paths.path,
-            "QS606EW": input_paths.qs606ew_path,
-            "QS606SC": input_paths.qs606sc_path,
-            "SC&W dwellings": input_paths.sc_w_dwellings_path,
-            "E dwellings": input_paths.e_dwellings_path,
-            "NDR floorspace": input_paths.ndr_floorspace_path,
-            "VOA": input_paths.voa_paths.path,
-            "LSOA lookup": input_paths.lsoa_lookup_path,
-            "MSOA lookup": input_paths.msoa_lookup_path,
-            "LAD lookup": input_paths.lad_lookup_path,
-            "Postcodes": input_paths.voa_paths.zc_path,
-        }
-    )
+    commute = CommuteTripEnds(input_paths, model_zones)
     commute_trips = commute.trips
     for key in commute_trips:
         commute_trips[key].to_csv(output_folder / Path(f"commute_{key}_trip_ends.csv"))
@@ -541,7 +366,7 @@ def run_gravity_model(
     trip_ends: LGVTripEnds,
     output_folder: Path,
     message_hook: Callable = print,
-) -> LGVMatrices:
+) -> dict[str, pd.DataFrame]:
     """Run the gravity model calibration for each segment.
 
     Parameters
@@ -557,8 +382,8 @@ def run_gravity_model(
 
     Returns
     -------
-    LgvMatrices
-        Trip matrices for each segment and combined.
+    dict[str, pd.DataFrame]
+        Trip matrices for each segment.
     """
     internals = read_study_area(input_paths.model_study_area)
     gm_params = read_gm_params(input_paths.parameters_path)
@@ -567,9 +392,7 @@ def run_gravity_model(
         if name == "zones":
             continue
         try:
-            calib_gm = _calibrate_gm(
-                te, name, input_paths, gm_params, internals, message_hook
-            )
+            calib_gm = _calibrate_gm(te, name, input_paths, gm_params, internals, message_hook)
         except Exception as e:
             message_hook(f"\t{e.__class__.__name__}: {e}")
             continue
@@ -604,9 +427,7 @@ def run_gravity_model(
         with pd.ExcelWriter(output_folder / (name + "-GM_log.xlsx")) as writer:
             df = pd.DataFrame.from_dict(calib_gm.results.asdict(), orient="index")
             df.to_excel(writer, sheet_name="Calibration Results", header=False)
-            df = pd.DataFrame.from_dict(
-                calib_gm.furness_results.asdict(), orient="index"
-            )
+            df = pd.DataFrame.from_dict(calib_gm.furness_results.asdict(), orient="index")
             df.to_excel(writer, sheet_name="Furnessing Results", header=False)
             calib_gm.trip_distribution.to_excel(
                 writer, sheet_name="Trip Distribution", index=False
@@ -616,13 +437,11 @@ def run_gravity_model(
                     calib_gm.trip_matrix, calib_gm.costs, internals
                 )
                 vehicle_kms.to_excel(writer, sheet_name="Vehicle Kilometres (PA)")
-            vehicle_kms = calculate_vehicle_kms(
-                matrices[name], calib_gm.costs, internals
-            )
+            vehicle_kms = calculate_vehicle_kms(matrices[name], calib_gm.costs, internals)
             vehicle_kms.to_excel(writer, sheet_name="Vehicle Kilometres")
         message_hook("\tFinished writing")
 
-    return LGVMatrices(**matrices)
+    return matrices
 
 
 def matrix_time_periods(
@@ -676,6 +495,185 @@ def matrix_time_periods(
     return tp_matrices
 
 
+def produce_personal_matrix(
+    folder: Path,
+    purposes: list[int],
+    year: int,
+    normits_to_msoa_lookup: Path,
+    factor: float,
+    output_folder: Path,
+) -> pd.DataFrame:
+    """Produces LGV personal matrix by factoring NorMITs car other demand.
+
+    Takes NoRMITS car other matrices for home based and non home bound,
+    makes a dictionary of these values, concats them together, groups by origin,
+    stacks the matrices to just 3 columns,
+    then converts into NTEM zoning system using the lookup,
+    finally a factor is applied to the output to account for just van personal trips.
+
+    Parameters
+    ----------
+    folder : Path
+        Location of car other matrices used for calculations.
+    purposes : int
+        Integer values defined in inputs which classifies the
+        purpose.
+    year : int
+        Year of the model.
+    normits_to_msoa_lookup: Path
+        Path to normits to msoa(NTEM) lookup.
+    factor: float
+        Factor applied to end matrices so only van personal trips are contained.
+    output_folder: Path
+        Folder location where PA and OD matrices are saved
+
+    Returns
+    -------
+    pd.DataFrame:
+        Annual LGV personal trip matrices in NTEM zoning with
+        3 columns: origin, destination, and values
+
+    """
+    # creating an empty dataframe
+    matrix_list: list[pd.DataFrame] = []
+    # reading in and appending home based daftaframes
+    for purp in NTEM_PURPOSES["hb"]:
+        if purp not in purposes:
+            continue
+
+        path = folder / f"hb_synthetic_pa_yr{int(year)}_p{purp}_m3.csv.bz2"
+        df = pd.read_csv(path, index_col=0)
+        df.columns = pd.to_numeric(df.columns, downcast="unsigned")
+        # error check
+        if not df.columns.equals(df.index):
+            raise ValueError(f"index and columns aren't equal for '{path.name}'")
+        matrix_list.append(df)
+
+    # reading in and appending non home based data
+    for purp in NTEM_PURPOSES["nhb"]:
+        if purp not in purposes:
+            continue
+
+        for tp in PERSONAL_TIME_PERIODS:
+            path = folder / f"nhb_synthetic_pa_yr{int(year)}_p{purp}_m3_tp{tp}.csv.bz2"
+            df = pd.read_csv(path, index_col=0)
+            df.columns = pd.to_numeric(df.columns, downcast="unsigned")
+            # error check
+            if not df.columns.equals(df.index):
+                raise ValueError(f"index and columns aren't equal for '{path.name}'")
+            matrix_list.append(df)
+
+    # concatting all matrices from list
+    matrix = pd.concat(matrix_list, axis=0).groupby(level=0).sum()
+    # stacking matrices to long format and renaming columns
+    matrix = matrix.stack().reset_index()
+    matrix = matrix.rename(
+        columns={"level_0": "origin", "level_1": "destination", 0: "values"}
+    )
+
+    # calling lookup
+    # TODO Add column names to stop errors coming up
+    lookup = Rezone.read(normits_to_msoa_lookup, None)
+    # rezoning matrix NoHAM to NTEM
+    matrix = Rezone.rezoneOD(
+        matrix,
+        lookup,
+        dfCols=("origin", "destination"),
+        rezoneCols="values",
+    )
+
+    # Apply personal LGV factor
+    matrix["values"] = matrix["values"] * factor
+    # Converting back to square matrices
+    matrix = matrix.pivot(index="origin", columns="destination", values="values")
+
+    # converting OD to PA matrices
+    matrix.to_csv(output_folder / "personal-trip_matrix-PA.csv")
+    od_matrix = annual_pa_to_od(
+        matrix.values,
+        matrix.sum(axis=0).values,
+        matrix.sum(axis=1).values,
+    )
+    od_matrix = pd.DataFrame(od_matrix, index=matrix.index, columns=matrix.columns)
+    od_matrix.to_csv(output_folder / "personal-trip_matrix-OD.csv")
+
+    # TODO Add more tests at some point
+    # negative and nans check
+    negatives = (od_matrix < 0).values
+    if np.any(negatives):
+        raise ValueError(f"{np.sum(negatives)} negative values in matrix")
+    nans = od_matrix.isna().values
+    if np.any(nans):
+        raise ValueError(f"{np.sum(nans)} nan values in matrix")
+    return od_matrix
+
+
+def produce_annual_matrices(
+    input_paths: LGVInputPaths,
+    trip_ends: LGVTripEnds,
+    output_folder: Path,
+    year: int,
+    message_hook: Callable = print,
+) -> LGVMatrices:
+    """Produces annual LGV matrices for all segments.
+
+    The gravity model is an for all segments except personal,
+    which is produced by aggregating and factoring NorMITs-Demand
+    car matrices.
+
+    Parameters
+    ----------
+    input_paths : LGVInputPaths
+        Input paths config parameters.
+    trip_ends : LGVTripEnds
+        LGV trip ends to pass to the gravity model.
+    output_folder : Path
+        Folder to save outputs to.
+    year : int
+        Base year of the model.
+    message_hook : Callable, default print
+        Function for outputting messages.
+
+    Returns
+    -------
+    LGVMatrices
+        Annual LGV matrices.
+    """
+    message_hook("Running gravity model to get annual matrices")
+    matrices = run_gravity_model(
+        input_paths,
+        trip_ends,
+        output_folder,
+        message_hook=message_hook,
+    )
+
+    try:
+        message_hook("Calculating personal segment matrices from NorMITs car demand")
+        personal_matrix = produce_personal_matrix(
+            input_paths.normits_pa_folder,
+            input_paths.personal_purposes,
+            year=year,
+            normits_to_msoa_lookup=input_paths.normits_to_msoa_lookup,
+            factor=input_paths.normits_to_personal_factor,
+            output_folder=output_folder,
+        )
+        message_hook("Finished personal segment matrices")
+
+    except Exception as exc:
+        personal_matrix = pd.DataFrame(
+            np.ones_like(matrices["service"]),
+            columns=matrices["service"].columns,
+            index=matrices["service"].index,
+        )
+        warnings.warn(
+            "Failed to produce personal matrix, use dummy matrix of 1s."
+            f" {exc.__class__.__name__}: {exc}",
+            RuntimeWarning,
+        )
+
+    return LGVMatrices(**matrices, personal=personal_matrix)
+
+
 def main(input_paths: LGVInputPaths, message_hook: Callable = print):
     """Runs the LGV model.
 
@@ -692,10 +690,11 @@ def main(input_paths: LGVInputPaths, message_hook: Callable = print):
     # Create output folder
     message_hook("Creating output folder")
     output_folder = (
-        input_paths.output_folder
-        / f"LGV Model Outputs - {datetime.now():%Y-%m-%d %H.%M.%S}"
+        input_paths.output_folder / f"LGV Model Outputs - {datetime.now():%Y-%m-%d %H.%M.%S}"
     )
     output_folder.mkdir(exist_ok=True, parents=True)
+
+    input_paths.save_yaml(output_folder / "lgv_model_config.yml")
 
     message_hook("Calculating trip ends")
     trip_ends = calculate_trip_ends(
@@ -705,20 +704,23 @@ def main(input_paths: LGVInputPaths, message_hook: Callable = print):
         parameters["year"],
         message_hook=message_hook,
     )
-    message_hook("Running gravity model to get annual matrices")
-    annual_matrices = run_gravity_model(
+
+    message_hook("Calculating annual matrices")
+    annual_matrices = produce_annual_matrices(
         input_paths,
         trip_ends,
         output_folder / "annual trip matrices",
+        year=parameters["year"],
         message_hook=message_hook,
     )
+
     message_hook("Calculating matrices by time period")
     matrix_time_periods(
         annual_matrices,
         input_paths.parameters_path,
         output_folder / "time period matrices",
     )
-    message_hook("Done")
+    message_hook("Done, it is now safe to close the tool")
 
 
 def lgv_arg_parser() -> argparse.ArgumentParser:
@@ -749,7 +751,6 @@ def lgv_arg_parser() -> argparse.ArgumentParser:
         "-e",
         "--example",
         action="store_true",
-        help="If given will write an example config "
-        "file to the current working directory",
+        help="If given will write an example config " "file to the current working directory",
     )
     return parser

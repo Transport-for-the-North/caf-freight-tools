@@ -5,10 +5,12 @@ dependencies:
   - python>=3.9.1
   - pyqt=5.12.*
   - openpyxl>=3.0.6
-  - pandas=1.2.*
+  - pandas=1.4.*
+  - geopandas>=0.8.2
   - markdown>=3.3.4
   - jinja2>=2.11
   - packaging>=20.0
   - pyyaml>=5.4
   - scipy>=1.7
   - matplotlib=3.4.*
+  - caf.toolkit>=0.0.7

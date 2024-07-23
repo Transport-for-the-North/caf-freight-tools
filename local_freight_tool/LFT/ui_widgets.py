@@ -4,12 +4,15 @@
 """
 
 ##### IMPORTS #####
+
+from __future__ import annotations
+
 # Standard imports
 from pathlib import Path
-from typing import Union, List
+from typing import Any, List, Optional, Sequence, Union
 
 # Third party imports
-from PyQt5 import QtWidgets, QtGui
+from PyQt5 import QtGui, QtWidgets
 
 
 ##### CLASSES #####
@@ -278,3 +281,57 @@ class RadioButtons(QtWidgets.QWidget):
         self.label.setDisabled(False)
         for button in self.buttons:
             button.setDisabled.setDisabled(False)
+
+
+class ListInput(QtWidgets.QWidget):
+    """Labelled text input box for comma-separated lists of values.
+
+    Parameters
+    ----------
+    label_text : str
+        Text to be displayed in the widget label.
+    default_values : list, optional
+        List of default values to fill in the text box.
+    label_format: QtGui.QFont, optional
+        The font of the label, by default None
+    """
+
+    def __init__(
+        self,
+        label_text: str,
+        default_values: Optional[Sequence[Any]] = None,
+        label_format: QtGui.QFont = None,
+    ):
+        super().__init__()
+        self.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Fixed)
+        self.label_text = str(label_text)
+
+        label = QtWidgets.QLabel(self.label_text)
+        if label_format:
+            label.setFont(label_format)
+
+        self.text_widget = QtWidgets.QLineEdit()
+        self.text_widget.setFixedHeight(30)
+        if default_values is not None:
+            self.text_widget.setText(", ".join(str(i) for i in default_values))
+
+        grid = QtWidgets.QGridLayout()
+        grid.addWidget(label, 0, 0, 1, 1)
+        grid.addWidget(self.text_widget, 1, 0, 1, 1)
+        self.setLayout(grid)
+
+    def get(self) -> list[str] | None:
+        """Returns the list of values provided in the text box.
+
+        Values are split by ','.
+
+        Returns
+        -------
+        list[str]
+            List of values in box.
+        """
+        value = self.text_widget.text().strip()
+        if value == "":
+            return None
+
+        return [i.strip() for i in value.split(",")]

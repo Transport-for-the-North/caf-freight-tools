@@ -1,0 +1,7 @@
+[tool.black]
+line-length = 95
+
+[tool.pylint.basic]
+# Allow runtime introspection of C-extensions
+extension-pkg-allow-list = ["pydantic", "pydantic.dataclass", "pydantic.types", "pydantic.fields"]
+good-names = ["df", "x", "y", "i", "j"]

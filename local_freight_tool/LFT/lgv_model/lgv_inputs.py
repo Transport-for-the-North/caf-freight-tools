@@ -6,16 +6,18 @@
 
 ##### IMPORTS #####
 # Standard imports
+from __future__ import annotations
+import enum
 import re
 import string
-import warnings
-from dataclasses import dataclass
 from pathlib import Path
-from typing import Sequence, Any, Union
+from typing import Any, Callable, Optional, Union
 
 # Third party imports
+import caf.toolkit
 import numpy as np
 import pandas as pd
+from pydantic import types, dataclasses, fields
 
 # Local imports
 from .. import utilities, errors
@@ -27,7 +29,7 @@ from .furnessing import FurnessConstraint
 ##### CONSTANTS #####
 HH_PROJECTIONS_HEADER = {"Area Description": str, "HHs": float}
 """Column names (and data types) for input CSV to `household_projections` function."""
-BRES_HEADER = {
+BRES_HEADER: dict[str, type] = {
     "Area": str,
     "mnemonic": str,
     "A : Agriculture, forestry and fishing": float,
@@ -56,59 +58,6 @@ BRES_HEADER = {
     "U : Activities of extraterritorial organisations and bodies": float,
 }
 """Column names (and data types) for input CSV to `filtered_bres` function."""
-VOA_RATINGS_LIST_COLUMNS = {
-    "entry_number": int,
-    "billing_authority_code": str,
-    "NDR_code": str,
-    "BA_ref": str,
-    "description_code": str,
-    "description": str,
-    "UARN": str,
-    "property_identifier": str,
-    "firms_name": str,
-    "num_or_name": str,
-    "street": str,
-    "town": str,
-    "post_district": str,
-    "county": str,
-    "postcode": str,
-    "eff_date": str,
-    "composite_indicator": str,
-    "rateable_value": float,
-    "settlement_code": str,
-    "assessment_ref": str,
-    "alteration_date": str,
-    "scat_code": str,
-    "sub_street_3": str,
-    "sub_street_2": str,
-    "sub_street_1": str,
-    "case_num": str,
-    "from_date": str,
-    "to_date": str,
-    "unknown": str,
-}
-"""Column names and types for the VOA ratings list data."""
-VOA_RATINGS_LIST_INCLUDE = [
-    "entry_number",
-    "description_code",
-    "description",
-    "UARN",
-    "property_identifier",
-    "postcode",
-    "rateable_value",
-    "scat_code",
-    "eff_date",
-    "from_date",
-    "to_date",
-]
-"""Column names to read from the VOA ratings list file."""
-VOA_FILL_FUNCTIONS = {
-    "minimum": np.nanmin,
-    "mean": np.nanmean,
-    "median": np.nanmedian,
-    "non-zero minimum": lambda a: np.amin(a, where=a > 0, initial=np.inf),
-}
-"""Options for filling in NaN values in VOA data."""
 LGV_PARAMETERS_SHEET = "Parameters"
 """Name of the sheet containing the main LGV parameters."""
 LGV_PARAMETERS_COLUMNS = {"Parameter": str, "Value": float}
@@ -130,6 +79,7 @@ TIME_PERIOD_COLUMNS = {
     "delivery_grocery": ("Delivery Grocery", float),
     "commuting_drivers": ("Commuting Drivers", float),
     "commuting_skilled_trades": ("Commuting Skilled Trades", float),
+    "personal": ("Personal", float),
 }
 """Name and dtype of the expected columns in the time period table."""
 GM_PARAMS_SHEET = "Gravity Model Parameters"
@@ -152,83 +102,184 @@ LGV_SEGMENTS = [
     "commuting_skilled_trades",
 ]
 "Names of the LGV segments."
+EXAMPLE_CONFIG_NAME = "LGV_config_example.yml"
+DEFAULT_PERSONAL_PURPOSES = (3, 4, 5, 6, 7, 8, 13, 14, 15, 16, 18)
 
 
 ##### CLASSES #####
-@dataclass(frozen=True)
-class LGVInputPaths:
+@dataclasses.dataclass
+class CommuteWarehousePaths:
+    """Paths to LSOA warehouse data for the commute segment."""
+
+    medium: types.FilePath
+    low: Optional[types.FilePath] = None
+    high: Optional[types.FilePath] = None
+
+
+class LGVInputPaths(caf.toolkit.BaseConfig):
     """Dataclass storing paths to all the input files for the LGV model."""
 
-    household_paths: DataPaths = None
+    household_paths: DataPaths
     """Paths for the households data and zone correspondence."""
-    bres_paths: DataPaths = None
-    """Paths for the BRES data and zone correspondence."""
-    voa_paths: DataPaths = None
-    """Paths for the VOA data and zone correspondence."""
-    parameters_path: Path = None
+    bres_path: types.FilePath
+    """Path to the BRES data CSV at LSOA level."""
+    warehouse_path: types.FilePath
+    """Path for the warehouse floorspace data CSV at LSOA level."""
+    commute_warehouse_paths: CommuteWarehousePaths
+    parameters_path: types.FilePath
     """Path to the LGV parameters Excel workbook."""
-    qs606ew_path: Path = None
+    qs606ew_path: types.FilePath
     """Path to the England & Wales Census Occupation data CSV."""
-    qs606sc_path: Path = None
+    qs606sc_path: types.FilePath
     """Path to the Scottish Census Occupation data CSV."""
-    sc_w_dwellings_path: Path = None
+    sc_w_dwellings_path: types.FilePath
     """Path to the Scottish and Welsh dwellings data CSV."""
-    e_dwellings_path: Path = None
+    e_dwellings_path: types.FilePath
     """Path to the English dwellings data XLSX."""
-    ndr_floorspace_path: Path = None
+    ndr_floorspace_path: types.FilePath
     """Path to the NDR Business Floorspace CSV."""
-    lsoa_lookup_path: Path = None
-    """Path to the LSOA to NoHAM zone correspondence
-    CSV"""
-    msoa_lookup_path: Path = None
-    """Path to the MSOA to NoHAM zone correspondence
-    CSV"""
-    lad_lookup_path: Path = None
+    lsoa_lookup_path: types.FilePath
+    """Path to the LSOA to NoHAM zone correspondence CSV."""
+    msoa_lookup_path: types.FilePath
+    """Path to the MSOA to NoHAM zone correspondence CSV."""
+    lad_lookup_path: types.FilePath
     """Path to the Local Authority District to NoHAM zone correspondence
     CSV"""
-    model_study_area: Path = None
+    model_study_area: types.FilePath
     """Path to CSV containing lookup for zones in model study area."""
-    cost_matrix_path: Path = None
+    cost_matrix_path: types.FilePath
     """Path to CSV containing cost matrix, should be square matrix with
     zone numbers as column names and indices."""
-    calibration_matrix_path: Path = None
+    calibration_matrix_path: Optional[types.FilePath] = None
     """Path to CSV containing calibration matrix, should be square matrix
     with zone numbers as column names and indices."""
-    trip_distributions_path: Path = None
+    trip_distributions_path: types.FilePath
     """Path to Excel Workbook containing all the trip cost distributions."""
-    output_folder: Path = None
+    output_folder: types.DirectoryPath
     """Path to folder to save outputs to."""
+    normits_pa_folder: types.DirectoryPath
+    """Path to the full PA Normits matrices, should contain all non home
+    based and home based matrices"""
+    normits_to_msoa_lookup: types.FilePath
+    """Normits to MSOA(NTEM) lookup, this is NoHAM to NTEM lookup as the
+    results are taken after normits results are converted back to NoHAM"""
+    normits_to_personal_factor: float
+    """This is the factor that the personal data should have applied to
+    just include van data 4% is a starting point"""
+    personal_purposes: list[int] = fields.Field(
+        default_factory=lambda: list(DEFAULT_PERSONAL_PURPOSES)
+    )
+    """Personal purpose types defined by Normits"""
 
-    def asdict(self) -> dict[str, Path]:
-        """Return class attributes as a dictionary."""
-        attrs = {}
-        for nm in dir(self):
-            if nm.startswith("_"):
-                continue
-            a = getattr(self, nm)
-            if not callable(a):
-                attrs[nm] = a
-        return attrs
+    @classmethod
+    def write_example(cls, path: Path, **examples: str) -> None:
+        """Write examples to a config file.
 
-    def __post_init__(self):
-        # Check if all input files exist
-        for nm, value in self.asdict().items():
-            if isinstance(value, DataPaths) or value is None:
-                # DataPaths instances should already have been checked
-                continue
-            if nm == "output_folder":
-                utilities.check_folder(value, nm, True)
+        Parameters
+        ----------
+        path : Path
+            Path to the YAML file to write.
+        examples : str
+            Fields of the config to write, any missing fields
+            are filled in with their default value (if they have
+            one) or 'REQUIRED' / 'OPTIONAL'.
+        """
+        data = {}
+        for name, field in cls.__fields__.items():
+            if field.default is not None:
+                value = field.default
             else:
-                utilities.check_file_path(value, nm)
+                value = "REQUIRED" if field.required else "OPTIONAL"
 
-    def __str__(self) -> str:
-        s = [f"{self.__class__.__name__}("]
-        for nm, value in self.asdict().items():
-            s.append(f"{nm}={value}")
-        return "\n\t".join(s) + "\n)"
+            data[name] = examples.get(name, value)
+
+        example = cls.construct(**data)
+        example.save_yaml(path)
+
+
+InfillFunction = Callable[[np.ndarray], float]
+
+
+class InfillMethod(enum.Enum):
+    """Options for filling in NaN values in warehouse data."""
+
+    MIN = "minimum"
+    MEAN = "mean"
+    MEDIAN = "median"
+    NON_ZERO_MIN = "non-zero minimum"
+    ZERO = "zero"
+
+    @classmethod
+    @property
+    def method_lookup(cls) -> dict[InfillMethod, InfillFunction]:
+        """Lookup for the infill functions."""
+        return {
+            cls.MIN: np.nanmin,
+            cls.MEAN: np.nanmean,
+            cls.MEDIAN: np.nanmedian,
+            cls.NON_ZERO_MIN: lambda a: np.amin(a, where=a > 0, initial=np.inf),
+            cls.ZERO: lambda _: 0,
+        }
+
+    def method(self) -> InfillFunction:
+        """Function to calculate infilling value."""
+        return self.method_lookup[self]
 
 
 ##### FUNCTIONS #####
+def write_example_config(path: Path | None) -> None:
+    """Write an example config file to given `path`."""
+    if path is None:
+        path = Path(EXAMPLE_CONFIG_NAME)
+
+    commute_warehouse_doc = (
+        "CSV of LSOA warehouse floorspace for commute "
+        "segment ({weight} weighting), {required}"
+    )
+
+    with dataclasses.set_validation(DataPaths, False):
+        with dataclasses.set_validation(CommuteWarehousePaths, False):
+            example_data = dict(
+                household_paths=DataPaths(
+                    "LGV Households",
+                    "CSV of households data",
+                    "Zone correspondence CSV",
+                ),
+                bres_path="Path to the BRES data CSV at LSOA level",
+                warehouse_path="Path for the warehouse floorspace data CSV at LSOA level",
+                commute_warehouse_paths=CommuteWarehousePaths(
+                    commute_warehouse_doc.format(weight="medium", required="required"),
+                    commute_warehouse_doc.format(weight="low", required="optional"),
+                    commute_warehouse_doc.format(weight="high", required="optional"),
+                ),
+                parameters_path="Path to parameters spreadsheet",
+                qs606ew_path="Path to the England & Wales Census Occupation data CSV",
+                qs606sc_path="Path to the Scottish Census Occupation data CSV",
+                sc_w_dwellings_path="Path to the Scottish and Welsh dwellings data CSV",
+                e_dwellings_path="Path to the English dwellings data XLSX",
+                ndr_floorspace_path="Path to the NDR Business Floorspace CSV.",
+                lsoa_lookup_path="Path to the LSOA to model zone correspondence CSV",
+                msoa_lookup_path="Path to the MSOA to model zone correspondence CSV",
+                lad_lookup_path="Path to the Local Authority District to "
+                "model zone correspondence CSV",
+                model_study_area="Path to CSV containing lookup for zones in model study area",
+                cost_matrix_path="Path to CSV containing cost matrix, should "
+                "be square matrix with zone numbers as column names and indices",
+                calibration_matrix_path="Path to CSV containing calibration matrix, "
+                "should be square matrix with zone numbers as column names and indices",
+                trip_distributions_path="Path to Excel Workbook containing all the "
+                "trip cost distributions",
+                output_folder="Path to folder to save outputs to",
+                normits_pa_folder="Path to the full PA Normits matrices, should contain all non house bound and house bound matrices",
+                normits_to_msoa_lookup="Normits to MSOA lookup, this is NoHAM to MSOA lookup as the results are taken after normits results are converted back to NoHAM",
+                normits_to_personal_factor="This is the factor that the personal data should have applied to just include van data 4% is a starting point",
+                personal_purposes="Personal purpose types defined by Normits",
+            )
+
+    LGVInputPaths.write_example(path, **example_data)
+    print(f"Written example config: {path}")
+
+
 def household_projections(path: Path, zone_lookup: Path) -> pd.DataFrame:
     """Reads the household projections CSV and converts to model zone system.
 
@@ -251,9 +302,13 @@ def household_projections(path: Path, zone_lookup: Path) -> pd.DataFrame:
     households = utilities.read_csv(
         path, "Household projections", columns=HH_PROJECTIONS_HEADER
     )
+
+    # Authority and County found in TEMPro outputs as well as MSOAs
+    columns = list(HH_PROJECTIONS_HEADER.keys())
+    households = households.loc[~households[columns[0]].isin(["Authority", "County"]), :]
+
     lookup = Rezone.read(zone_lookup, None)
-    cols = list(HH_PROJECTIONS_HEADER.keys())
-    rezoned = Rezone.rezoneOD(households, lookup, dfCols=(cols[0],), rezoneCols=cols[1])
+    rezoned = Rezone.rezoneOD(households, lookup, dfCols=(columns[0],), rezoneCols=columns[1])
     rezoned.columns = ["Zone", "Households"]
     return rezoned
 
@@ -347,159 +402,38 @@ def letters_range(start: str = "A", end: str = "Z") -> str:
         yield l
 
 
-def voa_ratings_list(
-    path: Path,
-    scat_codes: Union[Sequence[int], pd.DataFrame],
-    zone_lookup: Path,
-    year: int = None,
-    fill_func: str = "minimum",
+def load_warehouse_floorspace(
+    path: Path, zone_lookup: Path, infill_method: InfillMethod | None = None
 ) -> pd.DataFrame:
-    """Reads VOA NDR ratings list entries file and filters based on `scat_codes`.
-
-    The input file should be a text file (.csv or .txt) with no header
-    row and uses '*' to separate columns.
+    """Load warehouse floorspace data and convert to model zone system.
 
     Parameters
     ----------
     path : Path
-        Path to the VOA ratings list file.
-    scat_codes : Sequence[int] or pd.DataFrame
-        List of SCAT code numbers to include in returned DataFrame or
-        dataframe with SCAT codes for for indices and weightings in `Weight`
-        column.
+        Path to CSV containing warehouse floorspace data with
+        columns: "LSOA11CD", "area".
     zone_lookup : Path
-        Path to the lookup between the VOA postcodes and the model
-        zone system, expects 3 columns containing postcode, model
-        zone number and splitting factor information in that order.
-    year : int, optional
-        The model year, used for filtering the VOA data. Data isn't
-        filtered by date if `year` isn't given.
-    fill_func : str, default = 'min'
-        The function to use for filling in any NaN values in the
-        `rateable_value` column. Can be any function defined in
-        `VOA_FILL_FUNCTIONS`.
+        Path to zone correspondence CSV.
 
     Returns
     -------
     pd.DataFrame
-        Rateable value for each model zone contains columns:
-        'zone' and 'rateable_value'.
-
-    See Also
-    --------
-    VOA_RATINGS_LIST_COLUMNS : Column names and data types for all
-        columns in the VOA input file.
-    VOA_RATINGS_LIST_INCLUDE : List of column names to read from
-        the file.
-    LFT.utilities.read_csv : Function used for reading the input file.
+        Warehouse floorspace area by model zone with index ("Zone")
+        containing zone ID and column ("area") containing the
+        floorspace area.
     """
-    inc_columns = {
-        k: v
-        for k, v in VOA_RATINGS_LIST_COLUMNS.items()
-        if k in VOA_RATINGS_LIST_INCLUDE
-    }
-    # File has some carriage-return characters in the middle of some
-    # lines so need to make sure the lineterminator is just line feed
-    voa_data = utilities.read_csv(
-        path,
-        name="VOA ratings list",
-        columns=inc_columns,
-        delimiter="*",
-        header=None,
-        names=VOA_RATINGS_LIST_COLUMNS.keys(),
-        lineterminator="\n",
-    )
-    # Extract number from SCAT code and use for filtering
-    voa_data.insert(
-        voa_data.columns.get_loc("scat_code") + 1,
-        "scat_num",
-        pd.to_numeric(
-            voa_data["scat_code"].str.extract(r"(\d+)\w", expand=False),
-            downcast="integer",
-        ),
-    )
-
-    weightings = None
-    # if weightings, normalise then and extract scat codes
-    if isinstance(scat_codes, pd.DataFrame):
-        weightings = scat_codes / scat_codes.sum()
-        scat_codes = scat_codes.index
-    voa_data = voa_data.loc[voa_data["scat_num"].isin(scat_codes)].copy()
-    # Use from_date for any missing eff_date and convert to date objects
-    nan_date = voa_data["eff_date"].isna()
-    voa_data.loc[nan_date, "eff_date"] = voa_data.loc[nan_date, "from_date"].copy()
-    voa_data.drop(columns=["from_date"], inplace=True)
-    for c in ("eff_date", "to_date"):
-        voa_data[c] = pd.to_datetime(voa_data[c])
-    # Make sure depot is active from before model year to after model
-    # year (inclusive), include NaT values for both
-    if year:
-        date_mask = (
-            (voa_data["eff_date"].dt.year <= year) | voa_data["eff_date"].isna()
-        ) & ((voa_data["to_date"].dt.year >= year) | voa_data["to_date"].isna())
-        voa_data = voa_data.loc[date_mask].copy()
+    lsoa_column = "LSOA11CD"
+    area_column = "area"
+    floorspace = utilities.read_csv(path, columns={lsoa_column: str, area_column: float})
 
     lookup = Rezone.read(zone_lookup, None)
-    # Convert post code columns to uppercase and remove all whitespace
-    lookup.iloc[:, 0] = (
-        lookup.iloc[:, 0].str.upper().str.replace(r"\s+", "", regex=True)
-    )
-    voa_data["postcode"] = (
-        voa_data["postcode"].str.upper().str.replace(r"\s+", "", regex=True)
-    )
-    # Infill any NaN rateable_values with the average
-    nan_value = voa_data["rateable_value"].isna()
-    if nan_value.sum() > 0:
-        try:
-            func = VOA_FILL_FUNCTIONS[fill_func.strip().lower()]
-            fill = func(voa_data["rateable_value"].values)
-        except KeyError as e:
-            raise ValueError(
-                "`fill_func` should be one of "
-                f"{list(VOA_FILL_FUNCTIONS.keys())} not {fill_func!r}"
-            ) from e
-        warnings.warn(
-            f"{nan_value.sum()} rows in VOA input have no information for "
-            f"'rateable_value' so infilling with the {fill_func} ({fill:.1f})",
-            RuntimeWarning,
-        )
-        voa_data.loc[nan_value, "rateable_value"] = fill
 
-    # Weight rateable value if required according to scat number
-    if not weightings is None:
-        voa_data = voa_data[["postcode", "rateable_value", "scat_num"]].merge(
-            weightings, left_on="scat_num", right_on=weightings.index, how="left"
-        )
-        voa_data["weighted_rateable_value"] = (
-            voa_data["rateable_value"] * voa_data["Weight"]
-        )
-        voa_data = voa_data[["postcode", "weighted_rateable_value"]].rename(
-            columns={"weighted_rateable_value": "rateable_value"}
-        )
+    rezoned, _ = Rezone.rezone(floorspace, lookup, lsoa_column, rezoneCols=area_column)
+    rezoned.rename(columns={lsoa_column: "Zone"}, inplace=True)
+    grouped = rezoned.groupby("Zone").sum()
 
-    # Use postcode lookup to aggregate rateable_value to model zones
-    # and warn user of any missing postcodes
-    rezoned, missing = Rezone.rezone(
-        voa_data[["postcode", "rateable_value"]],
-        lookup,
-        "postcode",
-        rezoneCols="rateable_value",
-    )
-    if not missing.empty:
-        nan_pc = missing.postcode.isna()
-        warnings.warn(
-            f"{nan_pc.sum()} rows in VOA input don't have a postcode and "
-            f"{len(missing) - nan_pc.sum()} rows in VOA input have postcodes "
-            "which can't be found in the lookup: "
-            + ", ".join(missing.loc[~nan_pc, "postcode"].tolist())
-            + " These rows are ignored."
-        )
-        rezoned.dropna(subset=["postcode"], inplace=True)
-    rezoned.rename(columns={"postcode": "zone"}, inplace=True)
-    rezoned["zone"] = pd.to_numeric(
-        rezoned["zone"], errors="ignore", downcast="integer"
-    )
-    return rezoned.groupby("zone", as_index=False).sum()
+    grouped = grouped.reindex(lookup["new"].unique())
+    return grouped
 
 
 def lgv_parameters(path: Path) -> dict[str, Any]:
@@ -526,9 +460,9 @@ def lgv_parameters(path: Path) -> dict[str, Any]:
     LGV_PARAMETERS_COLUMNS
     LGV_PARAMETERS
     """
-    params = utilities.read_multi_sheets(
-        path, {LGV_PARAMETERS_SHEET: LGV_PARAMETERS_COLUMNS}
-    )[LGV_PARAMETERS_SHEET]
+    params = utilities.read_multi_sheets(path, {LGV_PARAMETERS_SHEET: LGV_PARAMETERS_COLUMNS})[
+        LGV_PARAMETERS_SHEET
+    ]
     params = utilities.to_dict(params, *LGV_PARAMETERS_COLUMNS, name="LGV Parameters")
     missing = []
     out_params = {}
@@ -567,9 +501,10 @@ def read_study_area(path: Path) -> set:
     Any zones not given are assumed to be outside
     the study area.
     """
-    columns = {"zone": int, "internal": int}
+    columns = {"zone": str, "internal": int}
     df = utilities.read_csv(path, "Model Study Area CSV", columns)
-    df["internal"] = df["internal"].astype(bool)
+    df.loc[:, "zone"] = pd.to_numeric(df["zone"], downcast="unsigned", errors="ignore")
+    df.loc[:, "internal"] = df["internal"].astype(bool)
     internal = df.loc[df.internal, "zone"].tolist()
     return set(internal)
 
