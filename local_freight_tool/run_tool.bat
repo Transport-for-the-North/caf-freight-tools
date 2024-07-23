@@ -1,8 +1,5 @@
 @echo off
 
-set env_name=freighttool
-
-call activate_conda
-call conda activate %env_name%
+call activate_environment
 python -m LFT
 pause
