@@ -1,6 +1,8 @@
 @echo off
 
-call activate_environment.bat
-echo Running LFT
+set env_name=freighttool
+
+call activate_conda
+call conda activate %env_name%
 python -m LFT
 pause
