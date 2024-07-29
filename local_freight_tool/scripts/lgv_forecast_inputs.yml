@@ -1,9 +1,0 @@
-base_model_config: U:\Lot3_LFT\2.LGV Model\Outputs\Base\LGV Model Outputs - 2023-10-03 16.51.18\LGV_model_config.yml
-base_year: 2018
-forecast_year: 2028
-output_folder: U:\Lot3_LFT\2.LGV Model\LGV Model Forecasting Inputs\Grown with NTEM
-oa_lookup_path: U:\Lot3_LFT\2.LGV Model\LGV Model Inputs\0.Lookups\PC_OA_LSOA_MSOA_LAD_2018_lookup\PC_OA_LSOA_MSOA_LAD_2018_lookup.csv
-base_planning_path: U:\Lot3_LFT\2.LGV Model\LGV Model Forecasting Inputs\2028\TEMPro_projections-2018.csv
-forecast_planning_path: U:\Lot3_LFT\2.LGV Model\LGV Model Forecasting Inputs\2028\TEMPro_projections-2028.csv
-forecasted_vehicle_kms: U:\Lot3_LFT\2.LGV Model\LGV Model Forecasting Inputs\Forecasting Calculations - MB\english-welsh-growth-speed-kilometres.xlsx
-fleet_growth: U:\Lot3_LFT\2.LGV Model\LGV Model Forecasting Inputs\Forecasting Calculations\NoCARB_fleet_projections.csv
