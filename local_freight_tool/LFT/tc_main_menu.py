@@ -11,7 +11,6 @@ from PyQt5.QtCore import pyqtSlot, Qt
 from .profile_builder import Profile_Builder
 from .hgv_annual_tonne_to_pcu_ui import TonneToPCUInterface
 from .matrix_utilities_ui import MatrixUtilities
-from .lgv_model.lgv_model_ui import LGVModelUI
 from .forecast_ui import ForecastUI
 from .utilities import Utilities
 from .cost_conversion import WeightedRezone
@@ -83,12 +82,6 @@ class tier_converter(QtWidgets.QWidget):
         next_button.clicked.connect(self.on_click_time_period_conv)
 
         y += sep
-        next_button = QtWidgets.QPushButton(self)
-        next_button.setText("LGV Model")
-        next_button.setGeometry(10, y, 480, 30)
-        next_button.clicked.connect(self.on_click_LGVProcessing)
-
-        y += sep
         labelD = QtWidgets.QLabel(self)
         labelD.setText("Utilities")
         labelD.setFont(QtGui.QFont("Arial", 12, QtGui.QFont.Bold))
@@ -128,12 +121,6 @@ class tier_converter(QtWidgets.QWidget):
     @pyqtSlot()
     def on_click_AnnualTonne2PCU(self):
         self.selections_window = TonneToPCUInterface(self)
-        self.hide()
-        self.selections_window.show()
-
-    @pyqtSlot()
-    def on_click_LGVProcessing(self):
-        self.selections_window = LGVModelUI(self)
         self.hide()
         self.selections_window.show()
 
