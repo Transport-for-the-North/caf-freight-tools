@@ -210,7 +210,7 @@ Table: Outputs from the HGV annual PCU to model time period PCU module
 
 ## LGV Model
 
-LGV model moved to [caf.van](https://github.com/Transport-for-the-North/caf.van), move is still WIP!.
+LGV model moved to [caf.van](https://github.com/Transport-for-the-North/caf.van).
 
 ## Matrix Utilities
 
