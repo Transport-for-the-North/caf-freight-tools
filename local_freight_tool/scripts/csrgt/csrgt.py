@@ -171,7 +171,10 @@ class _TLDData:
             self._data["dist_max"] - self._data["dist_min"]
         )
 
-        self._rolling_mean_n = int(rolling_mean_n)
+        self._data["rolling_count"] = _moving_mean(self._data["count"], rolling_mean_n)
+        self._data["rolling_perc"] = _moving_mean(self._data["percentage"], rolling_mean_n)
+        self._data["rolling_height"] = _moving_mean(self._data["bin_height"], rolling_mean_n)
+
         self._hist_data_source = None
         self._rolling_data_source = None
 
@@ -184,16 +187,17 @@ class _TLDData:
         return self._bins.copy()
 
     def hist_data_source(self) -> models.ColumnDataSource:
-        return models.ColumnDataSource(self._data.to_dict("list"))
+        return models.ColumnDataSource(
+            self._data[
+                ["dist_min", "dist_max", "avg_dist", "count", "percentage", "bin_height"]
+            ].to_dict("list")
+        )
 
     def rolling_data_source(self) -> models.ColumnDataSource:
         return models.ColumnDataSource(
-            {
-                "avg_dist": self._data["avg_dist"],
-                "rolling_count": _moving_mean(self._data["count"], self._rolling_mean_n),
-                "rolling_perc": _moving_mean(self._data["percentage"], self._rolling_mean_n),
-                "rolling_height": _moving_mean(self._data["bin_height"], self._rolling_mean_n),
-            }
+            self._data[
+                ["avg_dist", "rolling_count", "rolling_perc", "rolling_height"]
+            ].to_dict(list)
         )
 
     @classmethod
@@ -428,7 +432,7 @@ def _plot_tld(
     weights: np.ndarray = None,
     weight_name: str = "Trips",
     plot_type: Literal["hist", "tld"] = "hist",
-) -> plotting.figure:
+) -> tuple[plotting.figure, dict[str, _TLDData]]:
     LOG.info("Creating TLD - %s", title)
     if plot_type not in ("hist", "tld"):
         raise ValueError(f"invalid {plot_type = }")
@@ -532,7 +536,7 @@ def _plot_tld(
     )
     tld.add_layout(label)
     tld.legend.click_policy = "hide"
-    return tld
+    return tld, sources
 
 
 def _add_plots(
@@ -621,12 +625,36 @@ def tld_dashboard(
         )
 
     outer_tabs = []
+    excel_mode = "w"
+    excel_path = path.with_name(path.stem + "-data.xlsx")
     for weight in weight_columns:
         tabs = []
 
         # Plot TLD for all data
-        fig = create_plot("Trip Length Distribution for All Data", weight)
+        fig, sources = create_plot("Trip Length Distribution for All Data", weight)
         tabs.append(models.TabPanel(child=fig, title="All"))
+
+        if excel_mode == "w":
+            LOG.info("Writing TLD data to Excel: %s", excel_path)
+
+        with pd.ExcelWriter(
+            excel_path, mode=excel_mode, engine="openpyxl", if_sheet_exists="error"
+        ) as excel:
+            for nm, data in sources.items():
+                if weight is None:
+                    sheet_name = f"{nm}"
+                else:
+                    sheet_name = f"{nm} - {weight.value}"
+                data.data.to_excel(excel, sheet_name=sheet_name)
+
+            excel_mode = "a"
+
+        LOG.info(
+            "Updated %s with %s new sheets for %s weighting",
+            excel_path.name,
+            len(sources),
+            "trips" if weight is None else weight.value,
+        )
 
         # Plot distributions for individual columns
         for column in (Columns.ARTIC_RIGID, Columns.COMMODITY):
