@@ -639,7 +639,10 @@ def tld_dashboard(
             LOG.info("Writing TLD data to Excel: %s", excel_path)
 
         with pd.ExcelWriter(
-            excel_path, mode=excel_mode, engine="openpyxl", if_sheet_exists="error"
+            excel_path,
+            mode=excel_mode,
+            engine="openpyxl",
+            if_sheet_exists="error" if excel_mode == "a" else None,
         ) as excel:
             for nm, data in sources.items():
                 if weight is None:
