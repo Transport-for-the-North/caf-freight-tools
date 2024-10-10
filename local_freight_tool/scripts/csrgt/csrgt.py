@@ -118,6 +118,7 @@ class _DataLoad:
         nuts_lookup = pd.DataFrame({"NUTS3": nuts3_unique, **nuts})
 
         for _, val in nuts_lookup.items():
+            assert isinstance(val, pd.Series)
             LOG.info(_unique_column_message(val))
 
         return nuts_lookup
@@ -197,7 +198,7 @@ class _TLDData:
         return models.ColumnDataSource(
             self._data[
                 ["avg_dist", "rolling_count", "rolling_perc", "rolling_height"]
-            ].to_dict(list)
+            ].to_dict("list")
         )
 
     @classmethod
@@ -384,7 +385,7 @@ def _artic_rigid_splits(csrgt: _DataLoad, excel_path: pathlib.Path):
     LOG.info("Written: %s", excel_path)
 
 
-def _moving_mean(arr: np.ndarray, n: int):
+def _moving_mean(arr: np.ndarray | pd.Series, n: int):
     arr = np.pad(arr, (n // 2, n - 1 - n // 2), mode="edge")
     return np.convolve(arr, np.ones(n), "valid") / n
 
