@@ -808,7 +808,7 @@ def tld_dashboard(
                 mask = csrgt.data[column] == val
                 title = f"Trip Length Distribution for {column.value} = {val}"
                 try:
-                    fig = create_plot(title, weight, mask)
+                    fig, _ = create_plot(title, weight, mask)
                     tabs.append(models.TabPanel(child=fig, title=str(val).title()))
 
                 except ValueError as exc:
