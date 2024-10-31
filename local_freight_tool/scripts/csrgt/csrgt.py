@@ -13,15 +13,16 @@ import operator
 import pathlib
 import re
 import textwrap
-from typing import Generator, Literal, Sequence
+import warnings
 import zipfile
+from typing import Generator, Literal, Sequence
 
+import bokeh.io
 import caf.toolkit as ctk
 import numpy as np
 import pandas as pd
 import pydantic
 from bokeh import models, palettes, plotting
-import bokeh.io
 
 ##### CONSTANTS #####
 
@@ -68,13 +69,19 @@ class _Config(ctk.BaseConfig):
     csrgt_path: pydantic.FilePath
     output_folder: pydantic.DirectoryPath
     noham_tld_zip: pydantic.FilePath
+    nuts_names: pydantic.FilePath | None = None
 
 
 class _DataLoad:
 
-    def __init__(self, path: pathlib.Path) -> None:
+    _NUTS_ZONES = [1, 2, 3]
+
+    def __init__(
+        self, path: pathlib.Path, nuts_names_lookup: pathlib.Path | None = None
+    ) -> None:
         self._data = self._load_csrgt(path)
         self._nuts_lookup = self._calculate_nuts_lookup()
+        self._nuts_names = self._load_nuts_names(nuts_names_lookup)
 
     @classmethod
     def _load_csrgt(cls, path: pathlib.Path) -> pd.DataFrame:
@@ -98,6 +105,64 @@ class _DataLoad:
         )
 
         return csrgt
+
+    @classmethod
+    def _load_nuts_names(cls, path: pathlib.Path | None) -> dict[int, dict[str, str]]:
+        """Load NUTS code to name lookup from CSV."""
+        if path is None:
+            return {}
+
+        if not path.is_file():
+            warnings.warn(f"NUTS name lookup file doesn't exist: {path}")
+            return {}
+
+        data = pd.read_csv(path)
+
+        pattern = r"NUTS(\d)\d{2}(CD|NM)"
+        nuts_columns: dict[tuple[int, str], str] = {}
+        for column in data.columns:
+            matched = re.match(pattern, column, re.IGNORECASE)
+            if matched is None:
+                continue
+
+            nuts_columns[(int(matched.group(1)), matched.group(2).lower())] = column
+
+        if len(nuts_columns) == 0:
+            warnings.warn(
+                "Couldn't find columns in format "
+                f"'{pattern}' in NUTS names lookup: {path.name}"
+            )
+            return {}
+
+        names_lookup: dict[int, dict[str, str]] = {}
+        for n in cls._NUTS_ZONES:
+            lookup = cls._produce_name_lookup(data, n, nuts_columns)
+            if lookup is not None:
+                names_lookup[n] = lookup
+
+        return names_lookup
+
+    @classmethod
+    def _produce_name_lookup(
+        cls, data: pd.DataFrame, nuts_n: int, nuts_columns: dict[tuple[int, str], str]
+    ) -> dict[str, str] | None:
+        for i in ("cd", "nm"):
+            if (nuts_n, i) not in nuts_columns:
+                warnings.warn(f"NUTS {nuts_n} {i.upper()} column not found")
+                return None
+
+        code = nuts_columns[(nuts_n, "cd")]
+        name = nuts_columns[(nuts_n, "nm")]
+
+        lookup = data[[code, name]].drop_duplicates()
+
+        for i in (code, name):
+            duplicates = lookup[i].duplicated()
+            if duplicates.any():
+                warnings.warn(f"{i} column contains duplicates")
+                return None
+
+        return lookup.set_index(code)[name].to_dict()
 
     def _calculate_nuts_lookup(
         self,
@@ -160,6 +225,23 @@ class _DataLoad:
     @property
     def data(self) -> pd.DataFrame:
         return self._data.copy()
+
+    def get_nuts_names(self, zone: str | int) -> dict[str, str] | None:
+        if isinstance(zone, str):
+            try:
+                n = int(zone)
+            except ValueError:
+                matched = re.match(r"NUTS(\d)", zone, re.I)
+                if matched is None:
+                    return None
+                n = int(matched.group(1))
+
+        else:
+            n = zone
+
+        if n not in self._nuts_names:
+            return None
+        return self._nuts_names[n]
 
 
 class _TLDData:
@@ -247,6 +329,7 @@ def _sample_size(
     df: pd.DataFrame,
     place_columns: Sequence[Columns] | None = None,
     other_cols: Sequence[Columns] = (Columns.ARTIC_RIGID, Columns.COMMODITY),
+    name_lookup: dict[str, str] | None = None,
 ):
     """Calculates number of rows by artic/rigid and commodity type."""
     other_cols = list(other_cols)
@@ -272,6 +355,17 @@ def _sample_size(
     #     sample.loc[:, (i, "Total")] = sample.loc[:, i].sum(axis=1)
 
     sample.sort_index(axis=1, inplace=True)
+
+    # Replace NUTS codes with names if given
+    if name_lookup is not None and place_columns is not None:
+        index_cols = sample.index.names
+        sample = sample.reset_index()
+
+        for col in place_columns:
+            sample[col] = sample[col].replace(name_lookup)
+
+        sample = sample.set_index(index_cols)
+
     return sample
 
 
@@ -310,24 +404,37 @@ def _produce_sample_sizes(
         for name, zones, zone_place_cols in iterator:
             for place in zone_place_cols:
                 for type_ in other_cols:
-                    sheet = f"{place} - {type_}"
+                    sheet = f"{shorten(place, 13)} - {shorten(type_, 13)}"
                     LOG.info("Sample size for %s", sheet)
-                    sample = _sample_size(zones, place_columns=(place,), other_cols=(type_,))
+                    sample = _sample_size(
+                        zones,
+                        place_columns=(place,),
+                        other_cols=(type_,),
+                        name_lookup=csrgt.get_nuts_names(name),
+                    )
                     sample.to_excel(excel, sheet_name=sheet)
 
-                sheet = f"{place} - both"
+                sheet = f"{shorten(place, 22)} - both"
                 LOG.info("Sample size for %s", sheet)
-                sample = _sample_size(zones, place_columns=(place,), other_cols=other_cols)
+                sample = _sample_size(
+                    zones,
+                    place_columns=(place,),
+                    other_cols=other_cols,
+                    name_lookup=csrgt.get_nuts_names(name),
+                )
                 sample.to_excel(excel, sheet_name=sheet)
 
             if name == "NUTS3":
                 continue
 
             for type_ in other_cols:
-                sheet = f"Both - {type_}"
+                sheet = f"Both - {shorten(type_, 22)}"
                 LOG.info("Sample size for %s", sheet)
                 sample = _sample_size(
-                    zones, place_columns=zone_place_cols, other_cols=(type_,)
+                    zones,
+                    place_columns=zone_place_cols,
+                    other_cols=(type_,),
+                    name_lookup=csrgt.get_nuts_names(name),
                 )
                 sample.reset_index().to_excel(excel, sheet_name=sheet, index=False)
 
@@ -349,36 +456,71 @@ def _tonnage_per_trip(
                 total_tonnes="sum", number_trips="count", mean_per_trip="mean"
             )
             zone_data.columns = [i.replace("_", " ").title() for i in zone_data.columns]
-            zone_data.to_excel(excel, sheet_name=f"Tonnes {name}")
+
+            name_lookup = csrgt.get_nuts_names(name)
+            if name_lookup is not None:
+                index_cols = zone_data.index.names
+                zone_data = zone_data.reset_index()
+
+                for col in index_cols:
+                    zone_data[col] = zone_data[col].replace(name_lookup)
+
+                zone_data = zone_data.set_index(index_cols)
+
+            zone_data.to_excel(excel, sheet_name=f"Tonnes {shorten(name, 23)}")
 
     LOG.info("Written: %s", excel_path)
 
 
-def _artic_rigid_splits(csrgt: _DataLoad, excel_path: pathlib.Path):
+def shorten(value: str, length: int) -> str:
+    """Remove middle section of `value` and replace with '...' to shorten."""
+    if len(value) <= length:
+        return value
+
+    n = (length - 3) // 2
+    return value[:n] + "..." + value[-n:]
+
+
+def _artic_rigid_splits(
+    csrgt: _DataLoad,
+    excel_path: pathlib.Path,
+    agg_column: Columns = Columns.VEHICLE_ID,
+    agg_method: str = "count",
+):
     """Calculate split between artic and rigid vehicle types."""
     pattern = re.compile(r"(un)?load", re.I)
     LOG.info("Producing artic / rigid splits")
 
     with pd.ExcelWriter(excel_path, mode="w", engine="openpyxl") as excel:
         for name, zone_data, zone_columns in csrgt.iterate_nuts_zones(
-            [Columns.ARTIC_RIGID, Columns.VEHICLE_ID]
+            [Columns.ARTIC_RIGID, agg_column]
         ):
             column_groups = {"Both": zone_columns}
             column_groups.update({pattern.match(i).group(0): [i] for i in zone_columns})
 
             for nm, cols in column_groups.items():
-                sheet = f"{name} {nm}"
+                sheet = f"{shorten(name, 13)} {shorten(nm, 13)}"
                 LOG.info("Artic / Rigid split for %s", sheet)
 
-                split = zone_data.groupby(cols + [Columns.ARTIC_RIGID])[
-                    Columns.VEHICLE_ID
-                ].count()
+                split = zone_data.groupby(cols + [Columns.ARTIC_RIGID])[agg_column].agg(
+                    agg_method
+                )
                 split = split.unstack()
                 cols = split.columns
                 split["Total"] = split.sum(axis=1)
 
                 for c in cols:
                     split[f"% {c}"] = split[c] / split["Total"]
+
+                name_lookup = csrgt.get_nuts_names(name)
+                if name_lookup is not None:
+                    index_cols = split.index.names
+                    split = split.reset_index()
+
+                    for col in index_cols:
+                        split[col] = split[col].replace(name_lookup)
+
+                    split = split.set_index(index_cols)
 
                 split.to_excel(excel, sheet_name=sheet)
 
@@ -700,12 +842,18 @@ def main() -> None:
         parameters.save_yaml(out_path)
         LOG.info("Written config: %s", out_path)
 
-        csrgt = _DataLoad(parameters.csrgt_path)
+        csrgt = _DataLoad(parameters.csrgt_path, parameters.nuts_names)
         csrgt.save_nuts_lookup(output_folder / "NUTS321_lookup.csv")
 
         _produce_sample_sizes(csrgt, output_folder / "sample_sizes.xlsx")
         _tonnage_per_trip(csrgt, output_folder / "tonnage_per_trip.xlsx")
         _artic_rigid_splits(csrgt, output_folder / "artic_rigid_split.xlsx")
+        _artic_rigid_splits(
+            csrgt,
+            output_folder / "artic_rigid_split_tonnage.xlsx",
+            agg_column=Columns.TONNES,
+            agg_method="sum",
+        )
 
         # Create TLD plots
         noham_tld = _load_noham_tld(
