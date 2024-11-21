@@ -1,0 +1,23 @@
+output_folder: outputs
+
+matrix_paths:
+  Base 2018 Artic: U:\9. HGV Data\LFT input examples\2018_Outputs\artic_total_annual_pcus.csv
+  Base 2018 Rigid: U:\9. HGV Data\LFT input examples\2018_Outputs\rigid_total_annual_pcus.csv
+  Test 1 Artic: U:\9. HGV Data\LFT input examples\Test_1_Outputs\artic_total_annual_pcus.csv
+  Test 1 Rigid: U:\9. HGV Data\LFT input examples\Test_1_Outputs\rigid_total_annual_pcus.csv
+  Test 2 Artic: U:\9. HGV Data\LFT input examples\Test_2_Outputs\artic_total_annual_pcus.csv
+  Test 2 Rigid: U:\9. HGV Data\LFT input examples\Test_2_Outputs\rigid_total_annual_pcus.csv
+  Test 3 Artic: U:\9. HGV Data\LFT input examples\Test_3_Outputs\artic_total_annual_pcus.csv
+  Test 3 Rigid: U:\9. HGV Data\LFT input examples\Test_3_Outputs\rigid_total_annual_pcus.csv
+
+distance_matrix: U:\9. HGV Data\LFT input examples\GBFM_2018\B057 3320 DIS HGV_IP fmV PS_GBFMZ.csv
+tld_bins: 0, 5, 10, 20, 50, 100, 200, 500, 1000, 2000
+
+sector_translation:
+  path: U:\9. HGV Data\LFT inputs 2023\Factoring\gbfm_nuts1_lookup.csv
+  from_col: UniqueID
+  to_col: NUTS_NAME
+  factors_col: factor
+
+comparison_tlds:
+  CSRGT HGV: U:\9. HGV Data\CSRGT\Analysis\Analysis_Outputs\2022-2023 Outputs\20241011-CSRGT_Analysis\csrgt_hgv_tld.csv
