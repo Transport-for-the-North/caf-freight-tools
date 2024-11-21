@@ -1,0 +1,4 @@
+caf.toolkit>=0.8.1
+pandas>=2
+plotly>=5
+pydantic>=2
