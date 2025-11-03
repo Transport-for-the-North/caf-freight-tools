@@ -19,8 +19,8 @@ class TonneToPCU:
     """Class for the HGV artic-rigid split and annual tonnage to annual PCU
     conversion.
     """
-
-    KEYS = ["artic", "rigid"]
+    
+    KEYS = ["artic", "rigid"] #, "Rigid - Over 3.5t to 7.5t", "Rigid - Over 7.5t to 17t", "Rigid - Over 17t to 25t", "Rigid - Over 25t", "Artic - Over 3.5t to 33t", "Artic - Over 33t"]
 
     def __init__(
         self,
@@ -91,8 +91,8 @@ class TonneToPCU:
         self._read_non_eu_imports_exports_file()
         self.inputs["distance_bands"] = self.read_csv(
             self.input_files["distance_bands"],
-            ["start", "end", "rigid", "artic"],
-            numerical_columns=["start", "end", "rigid", "artic"],
+            ["start", "end"] + self.KEYS,
+            numerical_columns=["start", "end"] + self.KEYS, #, "rigid", "artic"
         )
 
         # Check all distance bands are unique
@@ -128,8 +128,8 @@ class TonneToPCU:
 
         self.inputs["port_traffic_proportions"] = self.read_csv(
             self.input_files["port_traffic_proportions"],
-            ["type", "direction", "accompanied", "artic", "rigid"],
-            numerical_columns=["artic", "rigid"],
+            ["type", "direction", "accompanied"] + self.KEYS,
+            numerical_columns=self.KEYS,
         )
 
         # check port traffic proportions are unique for each type-direction
@@ -149,8 +149,8 @@ class TonneToPCU:
 
         self.inputs["pcu_factors"] = self.read_csv(
             self.input_files["pcu_factors"],
-            ["zone", "direction", "artic", "rigid"],
-            numerical_columns=["artic", "rigid"],
+            ["zone", "direction"] + self.KEYS,
+            numerical_columns=self.KEYS,
         )
 
         # check PCU factors are unique for each zone-direction pair
@@ -184,6 +184,7 @@ class TonneToPCU:
             new_headers=["Imp0Exp1", "port_id", "zone_id", "trips"],
             numerical_columns=["trips"],
         )
+
         missing = ~non_eu_imports_exports.port_id.isin(self.inputs["ports"].port_id)
         if missing.sum() > 0:
             missing_from_lookup = non_eu_imports_exports[missing].port_id.unique()
@@ -591,6 +592,7 @@ class TonneToPCU:
                 )
 
 
+
     @staticmethod
     def read_csv(path, columns, new_headers=None, numerical_columns=None):
         """Reads in a csv file and converts it to a Pandas DataFrame.
@@ -658,7 +660,7 @@ class TonneToPCU:
                 raise ValueError(msg)
 
         return df
-    
+
 def tonne_to_pcu(inputs: dict[str, Path], output_path: Path)->TonneToPCU:
     """Runs the Tonne to PCU process
 
@@ -707,7 +709,7 @@ def tonne_to_pcu(inputs: dict[str, Path], output_path: Path)->TonneToPCU:
 
         # read input files
         hgv = TonneToPCU(inputs)
-
+        
         # add inputs to log file
         log_data["distance_bands"] = hgv.inputs["distance_bands"]
 
@@ -721,6 +723,8 @@ def tonne_to_pcu(inputs: dict[str, Path], output_path: Path)->TonneToPCU:
         progress_df.loc[i, "Completed"] = "yes"
 
         summary_df = hgv.summary_df()
+
+    
         log_data["matrix_summaries"] = (
             summary_df.style.apply(
                 highlight_cells,
@@ -752,7 +756,6 @@ def tonne_to_pcu(inputs: dict[str, Path], output_path: Path)->TonneToPCU:
         )
         i += 1
         progress_df.loc[i, "Completed"] = "yes"
-
         hgv.save_trip_outputs(output_path)
         hgv.save_pcu_outputs(output_path)
         i += 1
@@ -767,6 +770,7 @@ def tonne_to_pcu(inputs: dict[str, Path], output_path: Path)->TonneToPCU:
         log_data["process"] =progress_df.style.apply(flag_error_row, axis=1)
         write_to_excel(log_file, log_data)
         return hgv
+
 
 
 def output_file_checks(output_function):

@@ -1,58 +1,92 @@
 operational:
-  output_folder: C:\Users\UKKXF022\OneDrive - WSP O365\Midlands_connect_freight\thirsty_truck_outputs
+  output_folder: C:\Users\DaGa9\Documents\FEDZ_outputs # X:\FEDZ Outputs
   show_plots: False
   hex_bin_width: 12
+  run_LFT: True
+  run_FEDZ: False
+
 
 analysis_inputs:
   vehicle_keys:
     - Artic
     - Rigid
+    # - Rigid - Over 3.5t to 7.5t
+    # - Rigid - Over 7.5t to 17t
+    # - Rigid - Over 17t to 25t
+    # - Rigid - Over 25t 
+    # - Artic - Over 3.5t to 33t 
+    # - Artic - Over 33t
   vehicle_ranges:
     Artic:
-      laden: 200
-      unladen: 250
+      laden: 150
+      unladen: 200
     Rigid:
-      laden: 200
-      unladen: 250
-  laden_status_factors_path: C:\Users\UKKXF022\OneDrive - WSP O365\Midlands_connect_freight\thirsty_truck_inputs\laden_status_factors.csv
+      laden: 150
+      unladen: 200
+    # Rigid - Over 3.5t to 7.5t:
+    #   laden: 150
+    #   unladen: 200
+    # Rigid - Over 7.5t to 17t:
+    #   laden: 150
+    #   unladen: 200
+    # Rigid - Over 17t to 25t:
+    #   laden: 150
+    #   unladen: 200
+    # Rigid - Over 25t:
+    #   laden: 150
+    #   unladen: 200
+    # Artic - Over 3.5t to 33t:
+    #   laden: 150
+    #   unladen: 200
+    # Artic - Over 33t:
+    #   laden: 150
+    #   unladen: 200
 
-  zone_translation_path: C:\Users\UKKXF022\OneDrive - WSP O365\Midlands_connect_freight\thirsty_inputs\gbfm_to_miham_spatial.csv
+  laden_status_factors_path: C:\Users\DaGa9\Documents\FEDZ_inputs\LFT_inputs\Aggreagated and Disaggregated\laden_status_factors.csv
+
+  zone_translation_path: C:\Users\DaGa9\Documents\FEDZ_inputs\gbfm_to_miham_spatial-adjusted.csv
   original_zoning: gbfm
   target_zoning: miham
-  analysis_network_path: C:\Users\UKKXF022\OneDrive - WSP O365\Midlands_connect_freight\thirsty_inputs\MiHAM_network\links_25\MiHAM_DM25_links.shp
-  analysis_network_nodes_path: C:\Users\UKKXF022\OneDrive - WSP O365\Midlands_connect_freight\thirsty_inputs\MiHAM_network\nodes_25\MiHAM_DM25_nodes.shp
+  analysis_network_path: C:\Users\DaGa9\Documents\FEDZ_inputs\MiHAM_network\links_25\MiHAM_DM25_links.shp
+  analysis_network_nodes_path: C:\Users\DaGa9\Documents\FEDZ_inputs\MiHAM_network\nodes_25\MiHAM_DM25_nodes_v2.shp
+  # od_lines_path: C:\Users\DaGa9\Documents\FEDZ_outputs\od_routes
+
+  economic_geographies_toggle: True # leave on true, regardless of run_LFT/run_FEDZ settings above
+  industries: C:\Users\DaGa9\Documents\FEDZ_inputs\Economic Geographies Inputs\Industries by Centroids.csv
+  operational_hours: C:\Users\DaGa9\Documents\FEDZ_inputs\Economic Geographies Inputs\Industry Operational Hours by Weight Class.csv
+  general_haulage_factor: 0.2
 
   tonne_to_pcu_inputs:
-    domestic_bulk_port_path: C:\Users\UKKXF022\OneDrive - WSP O365\Midlands_connect_freight\LFT_inputs\AllCommTotTonnesOZ_DZ_DomBulkPortRoad_GBZ.csv # GBFM
-    unitised_eu_imports_path: C:\Users\UKKXF022\OneDrive - WSP O365\Midlands_connect_freight\\LFT_inputs\UnitisedTradeEurope_Tonnes_Dir_GBZSeqPort_GBZSeqROAD0_GBZ.csv # GBFM
-    unitised_eu_exports_path: C:\Users\UKKXF022\OneDrive - WSP O365\Midlands_connect_freight\\LFT_inputs\BWUnitTradeEurope_Tonnes_Dir_GBZSeqPort_GBZSeqROAD1_GBZ.csv # GBFM
-    unitised_non_eu_path: C:\Users\UKKXF022\OneDrive - WSP O365\Midlands_connect_freight\\LFT_inputs\IOGBP_U_NONEurope_Tn_Dir_GBPort_GBZSeqROAD_GBZ.csv # GBFM
-    ports_path: C:\Users\UKKXF022\OneDrive - WSP O365\Midlands_connect_freight\LFT_inputs\Annual tonnes to annual pcus\GBPortctrToGBPortCodesToGBZoneCodes(not sequential).csv # GBFM
-    gbfm_distance_matrix_path: C:\Users\UKKXF022\OneDrive - WSP O365\Midlands_connect_freight\\LFT_inputs\Annual tonnes to annual pcus\B057 3320 DIS HGV_IP fmV PS_GBFMZ.csv # GBFM
+    domestic_bulk_port_path: C:\Users\DaGa9\Documents\FEDZ_inputs\GBFM_outputs\AllCommTotTonnesOZ_DZ_DomBulkPortRoad_GBZ.csv #_2050 GBFM
+    unitised_eu_imports_path: C:\Users\DaGa9\Documents\FEDZ_inputs\GBFM_outputs\UnitisedTradeEurope_Tonnes_Dir_GBZSeqPort_GBZSeqROAD0_GBZ.csv # GBFM
+    unitised_eu_exports_path: C:\Users\DaGa9\Documents\FEDZ_inputs\GBFM_outputs\BWUnitTradeEurope_Tonnes_Dir_GBZSeqPort_GBZSeqROAD1_GBZ.csv # GBFM
+    unitised_non_eu_path: C:\Users\DaGa9\Documents\FEDZ_inputs\GBFM_outputs\IOGBP_U_NONEurope_Tn_Dir_GBPort_GBZSeqROAD_GBZ.csv # GBFM
+    ports_path: C:\Users\DaGa9\Documents\FEDZ_inputs\GBFM_outputs\GBPortctrToGBPortCodesToGBZoneCodes(not sequential).csv # GBFM 
+    gbfm_distance_matrix_path: C:\Users\DaGa9\Documents\FEDZ_inputs\GBFM_outputs\B057 3320 DIS HGV_IP fmV PS_GBFMZ.csv # GBFM
+    distance_bands_path: C:\Users\DaGa9\Documents\FEDZ_inputs\LFT_inputs\Aggreagated and Disaggregated\hgv_trips_per_1000t_by_distance_band.csv #To Send
+    port_traffic_proportions_path: C:\Users\DaGa9\Documents\FEDZ_inputs\LFT_inputs\Aggreagated and Disaggregated\port_traffic_trips_per_1000t.csv #To Send
+    pcu_factors_path: C:\Users\DaGa9\Documents\FEDZ_inputs\LFT_inputs\Aggreagated and Disaggregated\pcu_factors.csv #To Send
 
-    distance_bands_path: C:\Users\UKKXF022\OneDrive - WSP O365\Midlands_connect_freight\\LFT_inputs\Annual tonnes to annual pcus\hgv_trips_per_1000t_by_distance_band.csv #To Send
-    port_traffic_proportions_path: C:\Users\UKKXF022\OneDrive - WSP O365\Midlands_connect_freight\\LFT_inputs\Annual tonnes to annual pcus\port_traffic_trips_per_1000t.csv #To Send
-    pcu_factors_path: C:\Users\UKKXF022\OneDrive - WSP O365\Midlands_connect_freight\\LFT_inputs\Annual tonnes to annual pcus\pcu_factors.csv #To Send
-
-  od_matrices_inputs:
-    od_matrices_path:
-      Artic: C:\Users\UKKXF022\OneDrive - WSP O365\Midlands_connect_freight\thirsty_truck_outputs\annual_tonne_to_pcu_conversion\artic_total_annual_trips.csv
-      Rigid: C:\Users\UKKXF022\OneDrive - WSP O365\Midlands_connect_freight\thirsty_truck_outputs\annual_tonne_to_pcu_conversion\rigid_total_annual_trips.csv
+  # od_matrices_inputs:
+  #   od_matrices_path:
+  #     Artic: C:\Users\DaGa9\Documents\FEDZ_outputs\annual_tonne_to_pcu_conversion\artic_total_annual_trips.csv
+  #     Rigid: C:\Users\DaGa9\Documents\FEDZ_outputs\annual_tonne_to_pcu_conversion\rigid_total_annual_trips.csv
+      # Artic: C:\Users\DaGa9\Documents\debug_FEDZ_outputs\annual_tonne_to_pcu_conversion\artic_total_annual_trips.csv
+      # Rigid: C:\Users\DaGa9\Documents\debug_FEDZ_outputs\annual_tonne_to_pcu_conversion\rigid_total_annual_trips.csv
   #thirsty_points_inputs:
   #  thirsty_points_paths:
-  #    Artic: C:\Users\UKKXF022\Documents\Midlands_connect_freight\demo_thirsty_points\demo_artic_thirsty_points.csv
-  #    Rigid: C:\Users\UKKXF022\Documents\Midlands_connect_freight\demo_thirsty_points\demo_rigid_thirsty_points.csv
+  #    Artic:
+  #    Rigid:
 
 plotting_inputs:
-  network_path: C:\Users\UKKXF022\OneDrive - WSP O365\Midlands_connect_freight\midlands_road_links_shapefile\aggregated_filtered_road_network.shp 
-  motorway_junction_path: C:\Users\UKKXF022\OneDrive - WSP O365\Midlands_connect_freight\shape_files\os_motorway_junction
-  outlines_path: C:\Users\UKKXF022\OneDrive - WSP O365\Midlands_connect_freight\shape_files\useful_for_hexbin\England_regions\england_regions.shp
-  map_labels_path: C:\Users\UKKXF022\OneDrive - WSP O365\Midlands_connect_freight\shape_files\notable_places\notable_places_easting_northing.shp
+  network_path: C:\Users\DaGa9\Documents\FEDZ_inputs\plotting_inputs\midlands_road_links_shapefile\aggregated_filtered_road_network.shp
+  motorway_junction_path: C:\Users\DaGa9\Documents\FEDZ_inputs\plotting_inputs\os_motorway_junction
+  outlines_path: C:\Users\DaGa9\Documents\FEDZ_inputs\plotting_inputs\England_regions\england_regions.shp
+  map_labels_path: C:\Users\DaGa9\Documents\FEDZ_inputs\plotting_inputs\notable_places\notable_places_easting_northing.shp
   plotting_points:
     - label: "Services"
-      data_path: C:\Users\UKKXF022\OneDrive - WSP O365\Midlands_connect_freight\shape_files\motorway_services_HGV_access\motorway_services.shp
+      data_path: C:\Users\DaGa9\Documents\FEDZ_inputs\plotting_inputs\MSAs\motorway_services.shp
       hover_column_name: "name"
       colour: "blue"
       shape: "diamond"
       size: 7
-      

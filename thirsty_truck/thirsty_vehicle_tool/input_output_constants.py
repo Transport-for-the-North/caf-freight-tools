@@ -146,13 +146,61 @@ class AnalysisInputs:
         demand_matrix = check_and_format_demand_matrix(demand_matrix)
 
         return ParsedAnalysisInputs(
-            demand_marix=demand_matrix,
+            demand_matrix=demand_matrix,
             network=network,
             network_nodes= network_nodes, 
             range=range_,
             od_lines=self.od_lines,
         )
 
+@dataclasses.dataclass
+class EconomicGeographiesInputs:
+    """Input Economic Geographies data file paths
+
+    Parameters
+    ----------
+    od_demand_matrix_path:pathlib.Path
+        file path for OD trip matrix to analyse
+    zone_centroids_path:pathlib.Path
+        file path for zone centroids for the corresponding OD zones
+    range: float
+        range of vehicle
+    """
+    industries_path: pathlib.Path
+    op_hours_path: pathlib.Path
+    
+
+    def parse_economic_geographies_inputs(self) -> ParsedEconomicGeographiesInputs:
+        """parses inputs into a named tuple
+
+        Returns
+        -------
+        ParsedEconomicGeographiesInputs
+            named tuple containing all economic geographies input data
+        """
+        LOG.info("Parsing Economic Geographies inputs")
+        # read in files
+
+        # check range is correct type
+        try:
+            range_ = float(self.range)
+        except ValueError:
+            raise ValueError(
+                "The range you provided in not a number, please re-enter the value. Cheers!"
+            )
+
+        LOG.info("Parsing Industry Trip Data")
+        industries = pd.read_csv(self.industries_path)
+        # indsutries = check_and_format_demand_matrix(industries)
+
+        LOG.info("Parsing Operational Hours and Vehicle Weight Classes")
+        op_hours = pd.read_csv(self.op_hours_path)
+        # op_hours = check_and_format_demand_matrix(op_hours)
+
+        return ParsedEconomicGeographiesInputs(
+            industries=industries,
+            op_hours=op_hours
+            )
 
 @dataclasses.dataclass
 class ODMatrixInputs:
@@ -377,7 +425,7 @@ class ParsedAnalysisInputs(NamedTuple):
 
     Parameters
     ----------
-    demand_marix: pd.DataFrame
+    demand_matrix: pd.DataFrame
         OD trip matrix to analyse
     zone_centroids: gpd.GeoDataFrame
         zone centroids for the corresponding OD zones
@@ -385,12 +433,23 @@ class ParsedAnalysisInputs(NamedTuple):
         vehicle range in m
     """
 
-    demand_marix: pd.DataFrame
+    demand_matrix: pd.DataFrame
     network: Optional[gpd.GeoDataFrame]
     network_nodes: Optional[gpd.GeoDataFrame]
     od_lines: Optional[pathlib.Path]
     range: float
 
+class ParsedEconomicGeographiesInputs(NamedTuple):
+    """for storing the parsed inputs
+
+    Parameters
+    ----------
+    industries: pd.DataFrame
+    op_hours: pd.DataFrame
+    """
+
+    industries: pd.DataFrame
+    op_hours: pd.DataFrame
 
 @dataclasses.dataclass
 class Operational:
@@ -408,10 +467,13 @@ class Operational:
         approximate width of hex bins
     """
 
+    
     output_folder: pathlib.Path
     show_plots: bool
     hex_bin_width: float
-
+    run_LFT: Optional[bool] = True
+    run_FEDZ: Optional[bool] = True
+    
     def create_input_summary(self) -> str:
         """Creates an summary output of the operational input
 
@@ -421,6 +483,8 @@ class Operational:
             output summary
         """
         output = "\nOperational Inputs\n"
+        output += f"Run LFT: {self.run_LFT}"
+        output += f"Run FEDZ: {self.run_LFT}"
         output += f"Output Folder - {self.output_folder}\n"
         output += f"Approx Hexbin Width = {self.hex_bin_width:.3e} metres\n"
         return output
@@ -726,7 +790,7 @@ def check_columns(
 
 
 def output_file_checks(output_function):
-    """decorator for out put fuctions
+    """decorator for output functions
 
     will deal with permission errors and warn user when overwriting file
 

@@ -14,6 +14,7 @@ import numpy as np
 from tqdm import tqdm
 import networkx as nx
 import concurrent.futures
+import pdb
 
 # local imports
 from thirsty_vehicle_tool import input_output_constants, tv_logging
@@ -47,7 +48,7 @@ def get_thirsty_points(
     file_name : str, optional
         file name of thirsty points file, by default "thirsty_points"
     logging_tag : str, optional
-        tag to indetify which process the function has been called by, by default ""
+        tag to identify which process the function has been called by, by default ""
 
     Returns
     -------
@@ -57,7 +58,7 @@ def get_thirsty_points(
     LOG.info(f"{logging_tag}: Finding thirsty points")
 
     # remove intrazonal trips, these do not create od routes on the network
-    od_matrix = remove_intrazonal_trips(data_inputs.demand_marix)
+    od_matrix = remove_intrazonal_trips(data_inputs.demand_matrix)
 
     # create a linestring between each OD pair, with the trips as an atribute
 
@@ -81,8 +82,8 @@ def get_thirsty_points(
         if len(od_lines)==0:
             raise ValueError(f"The directory provided for OD lines: {od_lines}, does not contain any ({OD_LINE_FILE_EXT}) files")
     
-    #get thirsty points
-    #remove od pairs that don't contribute to demand
+    # get thirsty points
+    # remove od pairs that don't contribute to demand
     filtered_od_matrix = od_matrix.loc[od_matrix["trips"]!=0]
     thirsty_points = create_thirsty_points_in_parallel(od_lines, filtered_od_matrix, data_inputs.network, data_inputs.range, logging_tag)
             
@@ -95,7 +96,7 @@ def get_thirsty_points(
     thirsty_points = gpd.GeoDataFrame(thirsty_points, geometry="geometry")
     thirsty_points.crs = input_output_constants.CRS
 
-    # write thristy points to file
+    # write thirsty points to file
     # write to csv to prevent file too big errors
     output_thirsty_points = pd.DataFrame(thirsty_points.copy())
     output_thirsty_points["easting"] = gpd.GeoSeries(
@@ -112,64 +113,75 @@ def get_thirsty_points(
 
     return thirsty_points
 
-
-
 def create_thirsty_points(od_lines_file: list[str], filtered_od_matrix:pd.DataFrame, network:gpd.GeoDataFrame, range_:float, logging_tag:str):
     
+    #try:
+        
+    path = pd.read_hdf(od_lines_file).reset_index()
+
+
+    path_geo = path.merge(network, how="left", on=["a", "b"])
+    path_geo = path_geo.loc[:, ["o", "d", "a", "b", "geometry"]]
+
+
+    # breakpoint()
+    shortest_path_temp = path_geo.groupby(["o", "d"])["geometry"].apply(ops.linemerge)
+    shortest_path = shortest_path_temp.to_frame().reset_index()
+
+
+
+    demand_path = shortest_path.merge(filtered_od_matrix, left_on=["o", "d"], right_on=["origin", "destination"], how="left")
+
+    if demand_path["trips"].isna().any():
+        LOG.warning(f"{len(demand_path[demand_path['trips'].isna()])} od pairs with missing demand")
+
+        demand_path.loc["trips"] = demand_path["trips"].fillna(0, inplace=True)
+
     try:
-        
-        path = pd.read_hdf(od_lines_file).reset_index()
-
-        
-        path_geo = path.merge(network, how="left", on=["a", "b"])
-        path_geo = path_geo.loc[:, ["o", "d", "a", "b", "geometry"]]
-
-
-        #TODO this breaks because geometry is a "float"
-        shortest_path_temp = path_geo.groupby(["o", "d"])["geometry"].apply(ops.linemerge)
-        shortest_path = shortest_path_temp.to_frame().reset_index()
-
-
-
-        demand_path = shortest_path.merge(filtered_od_matrix, left_on=["o", "d"], right_on=["origin", "destination"], how="left")
-
-        if demand_path["trips"].isna().any():
-            LOG.warning(f"{len(demand_path[demand_path['trips'].isna()])} od pairs with missing demand")
-
-            demand_path.loc["trips"] = demand_path["trips"].fillna(0, inplace=True)
-        
-
+        demand_path.dropna(subset='geometry', inplace=True)
         demand_path["point_geometry"] = demand_path["geometry"].apply(drop_points, step=range_)
+    except:
+        print(demand_path)
+        print(demand_path["geometry"])
+        print(demand_path[demand_path['geometry'].apply(lambda x: isinstance(x, float))])
+        raise Exception("Kaputt")
 
+    demand_path.drop(columns="geometry", inplace=True)
+    demand_path.rename(columns={"point_geometry": "geometry"}, inplace=True)
 
-        demand_path.drop(columns="geometry", inplace=True)
-        demand_path.rename(columns={"point_geometry": "geometry"}, inplace=True)
-        #TODO check we have multiple point per od pair where required
-        return demand_path
-    except Exception as e:
-        LOG.warning(f"Unable to create thirsty points for file {od_lines_file}: {str(e)}")
-        return None
+    return demand_path
+    #except Exception as e:
+    #    LOG.warning(f"Unable to create thirsty points for file {od_lines_file}: {str(e)}")
+    #    return None
 
 def create_thirsty_points_in_parallel(od_lines, filtered_od_matrix, network:gpd.GeoDataFrame, range_:float, key):
+    for i, od_lines_file in enumerate(od_lines):
+        future = create_thirsty_points(od_lines_file, filtered_od_matrix, network, range_, f"{key}: chunk {i + 1}:")
+        #futures.append(future)
+
     with concurrent.futures.ProcessPoolExecutor(max_workers=os.cpu_count() - 2) as executor:
         futures = []
 
-
         for i, od_lines_file in enumerate(od_lines):
-            future = create_thirsty_points(od_lines_file, filtered_od_matrix, network, range_, f"{key}: chunk {i+1}:")
-
             future = executor.submit(create_thirsty_points, od_lines_file, filtered_od_matrix, network, range_, f"{key}: chunk {i+1}:")
             futures.append(future)
-
+        breakpoint()
+        # if "3.5t to 7.5t" not in key:
+        #     print("I'm artic or rigid standard")
+        # else:
+        #     pdb.set_trace()
+        #     at_breaking_point(key) # fails here currently
         results = [future.result() for future in tqdm(concurrent.futures.as_completed(futures), total = len(futures), desc = f"{key} thirsty_points")]
 
     # Concatenate valid results, ignoring None values
     stacked_thirsty_points = [result for result in results if result is not None]
     unstacked = pd.concat(stacked_thirsty_points, ignore_index=True)
 
-    #explode thirsty points lists, gives each item in list its own row and dupilcate other columns
+    # explode thirsty points lists, gives each item in list its own row and dupilcate other columns
     thirsty_points = unstacked.explode(column="geometry")
-
+    # HASH REST and use this line to skip:
+    # thirsty_points = pd.read_csv(r"C:\Users\DaGa9\Documents\FEDZ_outputs\thirsty_points\artic_over_33-laden.csv", header=0, index_col=0)
+    # thirsty_points = pd.read_csv(r"C:\Users\DaGa9\Documents\FEDZ_outputs\thirsty_points\artic_over_33-unladen.csv", header=0, index_col=0)
     return thirsty_points
 
 def remove_intrazonal_trips(od_trip_matrix: pd.DataFrame) -> pd.DataFrame:
@@ -218,7 +230,7 @@ def create_od_lines(
     range_: float
         range of vehicle (used to filter out trips short than this)
     logging_tag: str
-        tag to indentify which process has called function
+        tag to identify which process has called function
     network: Optional[gpd.GeoDataFrame] default None
         network to snap bendy routes to. if None, straightline process will be used
 
@@ -332,12 +344,7 @@ def create_od_lines_in_parallel(chunked_end_points, existing_outputs, skip_exist
         futures = []
 
         for i, chunk in enumerate(chunked_end_points):
-
-
             output_filename = output_path / f"routes_{i+1}{OD_LINE_FILE_EXT}"
-
-            #calculate_routes(i, chunk, existing_outputs, skip_existing_files, output_filename, network_graph, link_length_lookup, network_nodes, logging_tag)
-
             future = executor.submit(calculate_routes, i, chunk, existing_outputs, skip_existing_files, output_filename, network_graph, link_length_lookup, network_nodes, logging_tag)
             futures.append(future)
 
@@ -364,7 +371,7 @@ def calculate_routes(i, chunk, existing_outputs, skip_existing_files, output_pat
 def drop_points(line: geometry.LineString, step: float) -> list[geometry.Point]:
     """creates a set of points at steps along a line string
 
-    creates points begginging at step from origin and continues till
+    creates points beginning at step from origin and continues till
     destination is reached
 
     Parameters
@@ -516,3 +523,7 @@ def chunk_dataframe(df, chunk_size):
     chunks = [df.iloc[i * chunk_size: (i + 1) * chunk_size] for i in range(num_chunks)]
 
     return chunks
+
+def at_breaking_point(var):
+    print(var)
+    breakpoint()

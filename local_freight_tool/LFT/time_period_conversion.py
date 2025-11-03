@@ -175,7 +175,8 @@ def to_time_period(
     output_subfolder = output_folder / f"{time_per}_intermediate"
     output_subfolder.mkdir(exist_ok=True, parents=True)
     # Extract zone system names from correpondence
-    names = extract_zc_names(zone_correspondence_path)
+    if zone_correspondence_path is not None:
+        names = extract_zc_names(zone_correspondence_path)
 
     rezoned = {}
     summaries = {}
@@ -185,22 +186,25 @@ def to_time_period(
         if f is None:
             raise errors.MissingDataError(f"time period factors - {time_per}", veh)
         tp_mat = mat * f
-        tp_mat.name = f"{time_per}_HGV_{veh}-{names[0]}"
-        summaries[f"{veh.title()} - {time_per} - {names[0]}"] = tp_mat.summary()
-        tp_mat.export_to_csv(output_subfolder / (tp_mat.name + ".csv"))
-
-        rezoned[veh] = tp_mat.rezone(zone_correspondence_path)
-        rezoned[veh].name = f"{time_per}_HGV_{veh}-{names[1]}"
-        summaries[f"{veh.title()} - {time_per} - {names[1]}"] = rezoned[veh].summary()
-        rezoned[veh].export_to_csv(output_subfolder / (rezoned[veh].name + ".csv"))
+        if zone_correspondence_path is not None:
+            tp_mat.name = f"{time_per}_HGV_{veh}-{names[0]}"
+        else:
+            tp_mat.name = f"{time_per}_HGV_{veh}"
+       # summaries[f"{veh.title()} - {time_per} - {names[0]}"] = tp_mat.summary()
+        tp_mat.to_csv(output_subfolder / (tp_mat.name + ".csv"))
+        if zone_correspondence_path is not None:
+            rezoned[veh] = tp_mat.rezone(zone_correspondence_path)
+            rezoned[veh].name = f"{time_per}_HGV_{veh}-{names[1]}"
+            #summaries[f"{veh.title()} - {time_per} - {names[1]}"] = rezoned[veh].summary()
+            rezoned[veh].export_to_csv(output_subfolder / (rezoned[veh].name + ".csv"))
     del tp_mat
 
-    message_hook(f"Combining artic and rigid matrices for {time_per}")
-    combined = rezoned["artic"] + rezoned["rigid"]
-    combined.name = f"{time_per}_HGV_combined-{names[1]}"
-    summaries[f"Combined - {time_per}"] = combined.summary()
-    combined.export_to_csv(output_folder / (combined.name + ".csv"))
-    message_hook(f"Finished processing {time_per}")
+    #message_hook(f"Combining artic and rigid matrices for {time_per}")
+    #combined = rezoned["artic"] + rezoned["rigid"]
+    #combined.name = f"{time_per}_HGV_combined-{names[1]}"
+    #summaries[f"Combined - {time_per}"] = combined.summary()
+    #combined.export_to_csv(output_folder / (combined.name + ".csv"))
+    #message_hook(f"Finished processing {time_per}")
     return summaries
 
 
@@ -253,8 +257,8 @@ def process_matrices(
     for veh, path in matrix_paths.items():
         message_hook(f"Reading {veh} matrix")
         try:
-            matrices[veh] = mu.ODMatrix.read_OD_file(path)
-            mat_summary[f"Input {veh.title()}"] = matrices[veh].summary()
+            matrices[veh] = pd.read_csv(path, usecols=["origin", "destination", "trips"])
+            #mat_summary[f"Input {veh.title()}"] = matrices[veh].summary()
         except Exception as e:
             mat_summary[f"Input {veh.title()}"] = {
                 "Comment": f"{e.__class__.__name__}: {e}"

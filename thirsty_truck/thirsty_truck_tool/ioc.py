@@ -13,9 +13,11 @@ import pandas as pd
 
 # local
 from thirsty_vehicle_tool import input_output_constants, tv_logging
+# from thirsty_truck import KEYS
 
 # constants
 LOG = tv_logging.get_logger(__name__)
+LFT_KEYS = ["artic", "rigid"] #, "Rigid - Over 3.5t to 7.5t", "Rigid - Over 7.5t to 17t", "Rigid - Over 17t to 25t", "Rigid - Over 25t", "Artic - Over 3.5t to 33t", "Artic - Over 33t"] #"artic", "rigid", ,"Rigid - Over 3.5t to 7.5t",   "Rigid - Over 7.5t to 17t", "Rigid - Over 17t to 25t", "Rigid - Over 25t", "Artic - Over 3.5t to 33t", "Artic - Over 33t"]
 
 #   process constants
 TONNE_TO_PCU_KEYS = [
@@ -35,15 +37,14 @@ TONNE_TO_PCU_COLUMNS = {
     "unitised_eu_exports": None,
     "unitised_non_eu": ["Imp0Exp1", "GBPortctr", "GBRawZone", "Traffic"],
     "ports": ["GBPortctr", "GBZone"],
-    "distance_bands": ["start", "end", "rigid", "artic"],
+    "distance_bands": ["start", "end"] + LFT_KEYS,
     "gbfm_distance_matrix": None,
-    "port_traffic_proportions": ["type", "direction", "accompanied", "artic", "rigid"],
-    "pcu_factors": ["zone", "direction", "artic", "rigid"],
+    "port_traffic_proportions": ["type", "direction", "accompanied"] + LFT_KEYS,
+    "pcu_factors": ["zone", "direction"] + LFT_KEYS,
 }
 
 COMBINED_KEY = "Combined"
 
-LFT_KEYS = ["artic", "rigid"]
 
 #this must only contain chars that are suitable for a file name but do not appear in either sets of keys
 DISAGG_KEY_SEP = "--"
@@ -83,6 +84,10 @@ class ParsedAnalysisInputs:
     lft_inputs: Optional[dict[str, pathlib.Path]] = None
     od_matrices: Optional[dict[str, pd.DataFrame]] = None
     thirsty_points: Optional[dict[str, gpd.GeoDataFrame]] = None
+    economic_geographies_toggle: Optional[str] = "No"
+    industries: Optional[pd.DataFrame] = None
+    operational_hours: Optional[pd.DataFrame] = None
+    general_haulage_factor: Optional[float] = None
 
 @dataclasses.dataclass
 class AnalysisInputs:
@@ -100,6 +105,10 @@ class AnalysisInputs:
     zone_translation_path: Optional[pathlib.Path]=None
     original_zoning: Optional[str]=None
     target_zoning: Optional[str]="gbfm"
+    economic_geographies_toggle: Optional[bool] = False
+    industries: Optional[pathlib.Path]=None
+    operational_hours: Optional[pathlib.Path]=None
+    general_haulage_factor: Optional[float]=None
 
     od_lines: Optional[pathlib.Path]=None
 
@@ -127,7 +136,7 @@ class AnalysisInputs:
         else:
             self.target_zoning = "undefined"
 
-        # check that atleast 1 data input is given
+        # check that at least 1 data input is given
         data_input_count = 0
         if self.tonne_to_pcu_inputs is not None:
             data_input_count += 1
@@ -158,7 +167,6 @@ class AnalysisInputs:
         laden_status_factors = laden_status_factors[vehicle_keys]
 
         # format ranges
-
         if len(vehicle_keys) != len(self.vehicle_ranges):
             raise KeyError("vehicle ranges and keys must be same length")
         ranges = {}
@@ -181,25 +189,48 @@ class AnalysisInputs:
                 ] = range_
 
 
-        # parse cone translation 
+        # parse zone translation 
         if self.zone_translation_path is None:
             zone_translation = None
 
         else:
             zone_translation = pd.read_csv(self.zone_translation_path)
 
-        #parse network
-        if self.analysis_network_path is None and self.analysis_network_nodes_path is None:
-            analysis_network = None
-            analysis_nodes = None
-        else:
-            analysis_network = gpd.read_file(self.analysis_network_path)
-            analysis_nodes = gpd.read_file(self.analysis_network_nodes_path)
+        # parse network
+            if self.analysis_network_path is None and self.analysis_network_nodes_path is None:
+                analysis_network = None
+                analysis_nodes = None
+            else:
+                analysis_network = gpd.read_file(self.analysis_network_path, geometry ="geometry")
+                analysis_network_geom_check = analysis_network["geometry"].apply(lambda x: isinstance(x, float))
+                if any(analysis_network_geom_check):
+                    raise ValueError(f"{analysis_network_geom_check.sum()}/{len(analysis_network)} floats found in geometry line string {analysis_network.loc[0,'geometry']}")
 
-        if self.od_lines is None:
-            od_lines = None
+                analysis_network.to_crs(input_output_constants.CRS, inplace = True)
+                analysis_nodes = gpd.read_file(self.analysis_network_nodes_path)
+                analysis_nodes.to_crs(input_output_constants.CRS, inplace = True)
+
+                analysis_network_geom_check = analysis_network["geometry"].apply(lambda x: isinstance(x, float))
+                if any(analysis_network_geom_check):
+                    raise ValueError("floats found in geometry line string")
+            if self.od_lines is None:
+                od_lines = None
+            else:
+                od_lines = glob.glob(str(od_lines))
+
+        # parse economic geographies
+        if (self.economic_geographies_toggle == True and self.general_haulage_factor is not None and self.industries is not None and self.operational_hours is not None):
+            economic_geographies_toggle = True
+            industries = pd.read_csv(self.industries)
+            operational_hours = pd.read_csv(self.operational_hours)
+            general_haulage_factor = self.general_haulage_factor
+    
         else:
-            od_lines = glob.glob(str(od_lines))
+            economic_geographies_toggle == False
+            industries = None
+            operational_hours = None
+            general_haulage_factor = None
+
         # parse tonne to pcu inputs
         if (
             self.tonne_to_pcu_inputs is not None
@@ -210,7 +241,7 @@ class AnalysisInputs:
             for key in LFT_KEYS:
                 if key.lower() not in vehicle_keys:
                     raise IndexError(
-                        f"When using LFT inputs, the vehicle keys be {' ,'.join(LFT_KEYS)}"
+                        f"When using LFT inputs, the vehicle keys should be {' ,'.join(LFT_KEYS)}"
                     )
             paths_dict = dict(
                 zip(
@@ -237,7 +268,11 @@ class AnalysisInputs:
                 target_zoning=self.target_zoning,
                 analysis_network=analysis_network,
                 analysis_network_nodes = analysis_nodes,
-                od_lines=od_lines
+                od_lines=od_lines,
+                economic_geographies_toggle=economic_geographies_toggle,
+                industries=industries,
+                operational_hours=operational_hours,
+                general_haulage_factor=general_haulage_factor,
             )
         elif self.od_matrices_inputs is not None and self.thirsty_points_inputs is None:
             LOG.info("Proceeding analysis with OD matrix input")
@@ -253,7 +288,11 @@ class AnalysisInputs:
                 target_zoning=self.target_zoning,
                 analysis_network=analysis_network,
                 analysis_network_nodes = analysis_nodes,
-                od_lines=od_lines
+                od_lines=od_lines,
+                economic_geographies_toggle=economic_geographies_toggle,
+                industries=industries,
+                operational_hours=operational_hours,
+                general_haulage_factor=general_haulage_factor,
             )
 
         else:
@@ -269,7 +308,11 @@ class AnalysisInputs:
                 target_zoning=self.target_zoning,
                 analysis_network=analysis_network,
                 analysis_nodes = analysis_nodes,
-                od_lines=od_lines
+                od_lines=od_lines,
+                economic_geographies_toggle=economic_geographies_toggle,
+                industries=industries,
+                operational_hours=operational_hours,
+                general_haulage_factor=general_haulage_factor,
             )
 
         return output
@@ -340,12 +383,13 @@ class AnalysisInputs:
         return output
 
 
-class ThristyTruckConfig(caf.toolkit.BaseConfig):
+class ThirstyTruckConfig(caf.toolkit.BaseConfig):
     """config class for thirsty truck tool"""
 
     plotting_inputs: input_output_constants.PlottingInputs
     analysis_inputs: AnalysisInputs
     operational: input_output_constants.Operational
+    # economic_geographies: input_output_constants.ParsedEconomicGeographiesInputs
 
     def convert_to_m(self, to_m_factor: float) -> None:
         """converts revelant variables to m
@@ -392,7 +436,7 @@ def convert_lft_keys(
         else:
             raise IndexError(
                 "inputted vehicle keys don't match those of the LFT\n"
-                f"the keys must conatain {', '.join(lower_input_vehicle_keys)} "
-                "(case and order insensetive"
+                f"the keys must contain {', '.join(lower_input_vehicle_keys)} "
+                "(case and order insensitive)"
             )
     return new_keys
